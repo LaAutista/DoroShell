@@ -23,7 +23,7 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | Item context operations | Pin/unpin/reorder and app tasks; rename/delete/sort/properties incomplete. | Edit only user-owned shortcuts; deleting a shortcut must never delete the application. |
 | Keyboard / activation | Alt+F1, search Enter, Tab, All Programs/Back and staged Escape retreat supported; real pointer/keyboard and click-away checks passed. | Full arrow/home/end navigation, focus restoration, mnemonic and screen-reader testing. |
 | Original menu access | Integration preserves configuration for rollback; no Shift-click alternate-menu gesture. | Keep a reachable LXQt menu and configurable alternate gesture without overriding personal bindings. |
-| Session controls | Delegates to LXQt session dialog; destructive actions not executed during tests. | Capability-aware UI, confirmation, disabled unsupported actions. |
+| Session controls | Split shutdown/arrow control, Cancel-default confirmation, GIO LXQt desktop-entry dispatch and native-dialog fallback. Missing entries are disabled; real UI input tested with fake dispatch only. | Hardware capability-aware disabling and configurable primary action; destructive actions are never executed during tests. |
 | Button customization | Local image import with backup; multiple hover/pressed states absent. | Separate button-state assets, sizing and small-icon legibility. |
 | Skinning | Pink stylesheet and inherited desktop behavior; no Open-Shell skin-file compatibility. | Versioned native theme schema, preview/revert, metrics and contrast tests; audit any future importer. |
 | Localization / RTL | English strings; complete translation and RTL behavior unverified. | Translation catalogs, RTL layout, input-method tests. |

@@ -52,10 +52,10 @@ class ReadabilityTests(unittest.TestCase):
             menu=StartMenu();settings=Settings(Path(tmp))
             try:
                 css=menu.styleSheet();ink=text_color(rule(css,'QWidget'))
-                for selector in ('QWidget#doroShellStart','QWidget#applicationsPanel','QListWidget, QLineEdit, QComboBox','QListWidget::item:selected','QPushButton:hover, QPushButton:focus','QMenu'):
+                for selector in ('QWidget#doroShellStart','QWidget#applicationsPanel','QListWidget, QLineEdit, QComboBox','QListWidget::item:selected','QPushButton:hover, QPushButton:focus','QMenu','QMessageBox','QMessageBox QPushButton'):
                     self.check_pair(ink,backgrounds(rule(css,selector)))
                 places=text_color(rule(css,'QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton'))
-                for selector in ('QWidget#placesPanel','QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus'):
+                for selector in ('QWidget#placesPanel','QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus','QPushButton[sessionPrimary="true"]','QPushButton#powerMenuArrow'):
                     self.check_pair(places,backgrounds(rule(css,selector)))
                 placeholder=re.search(r'placeholder-text-color:\s*(#[0-9a-f]{6})',css).group(1)
                 self.check_pair(placeholder,backgrounds(rule(css,'QListWidget, QLineEdit, QComboBox')))

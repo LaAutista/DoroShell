@@ -2,11 +2,17 @@
 
 ## Current checkpoint
 
-The current suite passes **59 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
+The current suite passes **61 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
 
 The native panel candidate includes the Show Desktop edge target from `f2c66ae`; a separate X11 panel rendered it at 12 pixels on the far right. A later authenticated private-X11/Openbox check verified actual mouse-click show/restore of two disposable windows in both horizontal and vertical profiles. The edge target measured 12 pixels in both orientations. Live orientation changes, pre-minimized windows and other window managers remain outside that check. Show/restore was never activated on personal windows. The personal panel was not replaced or restarted. Fresh-login, clean-install and multi-monitor/Wayland acceptance remain outstanding. The [roadmap](roadmap.md) and [native panel scope](../panel/README.md) describe remaining work.
 
 Personal Doro image and animated busy cursor were installed in a later increment; the early missing-artwork notes below are historical. Likewise, the separate native panel now provides unified pinned/running tasks, beyond the older taskbar module described below.
+
+### Framed portrait and split power control
+
+The personal Start portrait is framed above the folder column. The default menu is 680×610 so all six default folders remain visible; smaller layouts retain scrolling. Offscreen appearance and geometry were checked, followed by private-X11 dragging, navigation, click-away and open-menu capture/cancellation regression checks.
+
+The adjacent power arrow and primary shutdown button were exercised with real mouse/keyboard input on private X11, while all session dispatch was mocked. Cancel was verified as the default, Escape preserved the menu, and confirmed fake dispatch occurred once without recent-app history. Missing and unknown actions are covered by automated tests. The actual system was never locked, suspended, logged out, restarted or shut down. Native hardware/capability handling and changing the primary action remain further work.
 
 ### Categorized Settings
 

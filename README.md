@@ -2,7 +2,7 @@
 
 **DoroShell is an LXQt customization/setup toolkit with Plasma-like features**, inspired by familiar Windows and Plasma workflows. It configures and extends an existing LXQt installation; it is not a standalone desktop environment or a replacement shell.
 
-The first module is a two-column Qt Start menu: application search, categories, pinning, personal-folder links, LXQt settings, and a session/power dialog. A dedicated LXQt Quick Launch button and Alt+F1 open it. Alt+F1 again closes it. Escape clears a search, returns from a category to Home, then closes the menu. The All Programs button changes to Back while browsing or searching. The original Fancy Menu preferences are retained for rollback.
+The first module is a two-column Qt Start menu: application search, categories, pinning, personal-folder links, LXQt settings, and confirmed split session/power controls. A dedicated LXQt Quick Launch button and Alt+F1 open it. Alt+F1 again closes it. Escape clears a search, returns from a category to Home, then closes the menu. The All Programs button changes to Back while browsing or searching. The original Fancy Menu preferences are retained for rollback.
 
 ## Status and support
 
@@ -79,7 +79,7 @@ The working-tree menu now includes the pink theme, Home / All programs navigatio
 
 The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The [roadmap](docs/roadmap.md) separates implemented features from remaining design and acceptance work.
 
-Current validation: **59 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
+Current validation: **61 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
 
 Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
 
@@ -253,7 +253,7 @@ Body text inherits the system font size. Pink surfaces use dark plum text, the d
 
 Behavior follows the [original Windows 7 taskbar guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-taskbar) and [Classic/Open-Shell customization reference](https://www.classicshell.net/faq/), while the supplied concept sets the pink/Doro appearance. Native Windows-only integrations remain listed separately in the parity plan.
 
-Current increment: 59 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. A separate private-X11 test then exercised the production clipboard path: successful capture, mid-drag cancellation retaining the image, actual Writer/Draw Paste with matching pixels, and clipboard-owner exit after replacement. No login or clean-install test is implied.
+Current increment: 61 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. A separate private-X11 test then exercised the production clipboard path: successful capture, mid-drag cancellation retaining the image, actual Writer/Draw Paste with matching pixels, and clipboard-owner exit after replacement. No login or clean-install test is implied.
 
 
 ### Isolated clipboard-paste acceptance
@@ -274,3 +274,16 @@ python tests/check_settings_pages_x11.py --run --xvfb /path/to/Xvfb
 ```
 
 On the same private-display harness, real pointer and keyboard events exercised category navigation and retained selections. Preview left the temporary MIME configuration unchanged; Apply created the selected module's backup and association; Restore returned the original configuration exactly. The personal home and defaults were not changed. Category normal/selected/hover colors pass contrast checks, and all five pages were visually inspected with 16-point system text and a dark palette.
+
+
+### Split session and power controls
+
+The main **Shut down…** button asks for confirmation, with **Cancel** selected by default. Its adjacent arrow offers Lock screen, Log out, Sleep, Hibernate, Restart, and the full native LXQt session dialog. Shutdown, restart, logout, sleep and hibernate always use DoroShell's confirmation; Escape returns to Start. Actions use installed LXQt desktop entries through GIO and never enter recent-program history. Missing desktop entries are disabled; hardware and session support remain delegated to LXQt.
+
+This confirmation does not change LXQt preferences: [LXQt's manual](https://github.com/lxqt/lxqt-session/blob/master/lxqt-leave/resources/lxqt-leave.1) explains that argument-based actions may otherwise run directly depending on its confirmation setting.
+
+```sh
+python tests/check_power_controls_x11.py --run --xvfb /path/to/Xvfb
+```
+
+The private-display test exercises the split menu, keyboard selection, Cancel-default prompts, Escape, and a confirmed fake dispatch. Every GIO session lookup is replaced by a test dispatcher. **No real lock, sleep, logout, restart or shutdown action is executed by these tests.** Automated tests also cover missing/unknown actions, duplicate-dispatch prevention and exclusion from recent-app history.

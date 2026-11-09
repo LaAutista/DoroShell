@@ -147,6 +147,41 @@ class MenuTests(unittest.TestCase):
                 launch.assert_not_called()
             shiboken6.delete(window)
 
+    def test_session_actions_require_confirmation_and_skip_recent_history(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            window.exit_on_hide = True
+            fixture = Mock(); fixture.launch.return_value = True
+            with patch.object(menu.Gio.DesktopAppInfo, 'new', return_value=fixture) as lookup, patch.object(menu.QMessageBox, 'question', return_value=menu.QMessageBox.StandardButton.Cancel) as question, patch.object(window.recent, 'save') as recent, patch.object(window, 'close') as close:
+                window.session_action('shutdown')
+                question.assert_called_once()
+                self.assertEqual(question.call_args.args[-1], menu.QMessageBox.StandardButton.Cancel)
+                fixture.launch.assert_not_called(); close.assert_not_called()
+                self.assertTrue(window.exit_on_hide); self.assertFalse(window.launching)
+                question.return_value = menu.QMessageBox.StandardButton.Yes
+                for action_id in menu.SESSION_ACTIONS:
+                    window.launching = False
+                    window.session_action(action_id)
+                    lookup.assert_called_with('lxqt-' + action_id + '.desktop')
+                self.assertEqual(fixture.launch.call_count, len(menu.SESSION_ACTIONS))
+                recent.assert_not_called()
+                window.session_action('shutdown')
+                self.assertEqual(fixture.launch.call_count, len(menu.SESSION_ACTIONS))
+            window.exit_on_hide = False; window.close(); shiboken6.delete(window)
+
+    def test_session_action_missing_or_invalid_never_dispatches(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            with patch.object(menu.Gio.DesktopAppInfo, 'new', return_value=None) as lookup, patch.object(window, 'error') as error, patch.object(menu.QMessageBox, 'question') as question:
+                window.session_action('unexpected')
+                lookup.assert_not_called()
+                window.session_action('shutdown')
+                question.assert_not_called()
+                self.assertEqual(error.call_count, 2)
+                self.assertFalse(window.launching)
+            window.close(); shiboken6.delete(window)
+
     def test_search_and_filter(self):
         data = menu.GLib.KeyFile()
         text = '[Desktop Entry]\nType=Application\nName=Test Editor\nExec=/bin/true\nCategories=Utility;\nKeywords=writing;\n'
@@ -247,11 +282,13 @@ class MenuTests(unittest.TestCase):
             self.assertEqual(cfg.value('panel1/plugins'), ['fancymenu', 'dockbarx'])
             self.assertEqual(cfg.value('other/keep'), 'new personal setting')
 
-    def test_session_button_opens_dialog_only(self):
+    def test_split_session_controls_route_through_guarded_handler(self):
         window = menu.StartMenu()
-        with patch.object(window, 'run_desktop') as launch:
+        with patch.object(window, 'session_action') as launch:
             window.session_button.click()
-            launch.assert_called_once_with('lxqt-leave.desktop')
+            launch.assert_called_once_with('shutdown')
+            window.power_menu.actions()[-1].trigger()
+            launch.assert_called_with('options')
         shiboken6.delete(window)
 
     def test_duplicate_activation_launches_once_and_recent_history_persists(self):

@@ -21,6 +21,15 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
     QTableWidgetItem, QFileDialog, QAbstractItemView, QScrollArea, QStyledItemDelegate)
 
+SESSION_ACTIONS = {
+    'shutdown': ('Shut down', 'system-shutdown'),
+    'reboot': ('Restart', 'system-reboot'),
+    'logout': ('Log out', 'system-log-out'),
+    'suspend': ('Sleep', 'system-suspend'),
+    'hibernate': ('Hibernate', 'system-suspend-hibernate'),
+    'lockscreen': ('Lock screen', 'system-lock-screen'),
+}
+
 FOLDERS = [('Home', 'HomeLocation', 'user-home'),
            ('Documents', 'DocumentsLocation', 'folder-documents'),
            ('Downloads', 'DownloadLocation', 'folder-download'),
@@ -463,11 +472,30 @@ class StartMenu(QWidget):
         settings.setObjectName('menuControl')
         settings.clicked.connect(lambda: self.run_desktop('lxqt-config.desktop'))
         right.addWidget(settings)
-        self.session_button = QPushButton(QIcon.fromTheme('system-shutdown'), 'Log out / power…')
+        power = QHBoxLayout(); power.setSpacing(0)
+        self.session_button = QPushButton(QIcon.fromTheme('system-shutdown'), 'Shut down…')
         self.session_button.setObjectName('menuControl')
-        self.session_button.setToolTip('Open session options. Logging out returns to the login screen. Escape backs out or closes this menu.')
-        self.session_button.clicked.connect(lambda: self.run_desktop('lxqt-leave.desktop'))
-        right.addWidget(self.session_button)
+        self.session_button.setProperty('sessionPrimary', True)
+        self.session_button.setToolTip('Shut down the computer after confirmation. Cancel is selected by default.')
+        self.session_button.setEnabled(Gio.DesktopAppInfo.new('lxqt-shutdown.desktop') is not None)
+        self.session_button.clicked.connect(lambda: self.session_action('shutdown'))
+        power.addWidget(self.session_button, 1)
+        self.power_arrow = QPushButton('▾')
+        self.power_arrow.setObjectName('powerMenuArrow')
+        self.power_arrow.setAccessibleName('More session and power options')
+        self.power_arrow.setToolTip('Lock, log out, sleep, restart and other session options')
+        self.power_arrow.setFixedWidth(34)
+        self.power_menu = QMenu(self.power_arrow)
+        for action_id in ('lockscreen', 'logout', 'suspend', 'hibernate', 'reboot'):
+            label, icon = SESSION_ACTIONS[action_id]
+            action = self.power_menu.addAction(QIcon.fromTheme(icon), label + ('' if action_id == 'lockscreen' else '…'))
+            action.setEnabled(Gio.DesktopAppInfo.new('lxqt-'+action_id+'.desktop') is not None)
+            action.triggered.connect(lambda checked=False, action_id=action_id: self.session_action(action_id))
+        self.power_menu.addSeparator()
+        self.power_menu.addAction('All session options…', lambda: self.session_action('options'))
+        self.power_arrow.setMenu(self.power_menu)
+        power.addWidget(self.power_arrow)
+        right.addLayout(power)
         body.addWidget(places_panel, 2)
         root.addLayout(body)
         self.status = QLabel('Right-click an application to pin it • Tab to move between columns')
@@ -491,13 +519,21 @@ class StartMenu(QWidget):
             QPushButton { text-align: left; padding: 12px; border: 1px solid transparent; border-radius: 5px; }
             QPushButton#folderLink { padding: 6px 8px; }
             QPushButton#menuControl { padding: 5px 8px; }
+            QPushButton[sessionPrimary="true"] { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #934369,stop:1 #6f294c); border: 1px solid #dca5c5; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+            QPushButton#powerMenuArrow { padding: 5px 2px; background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #934369,stop:1 #6f294c); border: 1px solid #dca5c5; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+            QPushButton#powerMenuArrow::menu-indicator { image: none; }
+            QWidget#placesPanel QPushButton:disabled { color: #fff5fb; }
             QPushButton:hover, QPushButton:focus { background: #f3c6e0; border: 1px solid #914069; }
             QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus { background: #642644; border: 1px solid #fff0f8; }
             QLineEdit { padding: 12px; placeholder-text-color: #795369; } QComboBox { padding: 8px; }
             QComboBox QAbstractItemView { background: #fff7fc; color: #351329; selection-background-color: #edafd2; selection-color: #351329; }
             QComboBox QAbstractItemView::item:selected { background: #edafd2; color: #351329; }
+            QMessageBox { background: #fff2f9; color: #351329; }
+            QMessageBox QLabel { color: #351329; }
+            QMessageBox QPushButton { background: #fff7fc; color: #351329; border: 1px solid #914069; min-width: 70px; }
             QMenu { background: #fff2f9; color: #351329; border: 1px solid #aa4a7c; }
             QMenu::item:selected { background: #eaa6c8; }
+            QMenu::item:disabled { color: #684b5c; }
         ''')
         self.search.textChanged.connect(self.refresh)
         self.category.currentTextChanged.connect(self.refresh)
@@ -703,6 +739,53 @@ class StartMenu(QWidget):
             self.close()
         except (GLib.Error, RuntimeError) as error:
             self.launching = False
+            self.error(str(error))
+
+    def session_action(self, action_id):
+        if self.launching:
+            return
+        if action_id not in SESSION_ACTIONS and action_id != 'options':
+            self.error('Unknown session action.')
+            return
+        desktop_id = 'lxqt-leave.desktop' if action_id == 'options' else 'lxqt-' + action_id + '.desktop'
+        app = Gio.DesktopAppInfo.new(desktop_id)
+        if app is None:
+            self.error(f'{desktop_id} is not installed.')
+            return
+        self.launching = True
+        if action_id not in ('lockscreen', 'options'):
+            label = SESSION_ACTIONS[action_id][0]
+            exit_on_hide = self.exit_on_hide
+            self.exit_on_hide = False
+            try:
+                prompt = {'shutdown': 'Shut down this computer? Save your work first.',
+                          'reboot': 'Restart this computer? Save your work first.',
+                          'logout': 'Log out of this session? Save your work first.',
+                          'suspend': 'Put this computer to sleep?',
+                          'hibernate': 'Hibernate this computer?'}[action_id]
+                answer = QMessageBox.question(self, label + '?', prompt,
+                                              QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                                              QMessageBox.StandardButton.Cancel)
+            finally:
+                self.exit_on_hide = exit_on_hide
+            if answer != QMessageBox.StandardButton.Yes:
+                self.launching = False
+                self.show()
+                self.search.setFocus()
+                return
+        try:
+            # GIO owns the installed LXQt desktop entry; session actions never enter recent-app history.
+            if not app.launch([], None):
+                raise RuntimeError('The session action could not be started.')
+            was_visible = self.isVisible()
+            self.close()
+            # A modal confirmation can already have hidden the popup while exit-on-hide was suspended.
+            if self.exit_on_hide and not was_visible:
+                QTimer.singleShot(0, QApplication.instance().quit)
+        except (GLib.Error, RuntimeError) as error:
+            self.launching = False
+            self.show()
+            self.search.setFocus()
             self.error(str(error))
 
     def run_desktop(self, desktop_id):

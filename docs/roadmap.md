@@ -4,7 +4,7 @@ DoroShell customizes an existing LXQt desktop. The Windows 7 layout with pink Do
 
 ## Implemented increments
 
-- **Start:** two columns, GIO application search and actions, pinned and optional recent apps, drag ordering, editable standard-folder links, All Programs/Back navigation, search-first keyboard focus, Escape retreat and click-away dismissal. Personal artwork is installed locally and preserved by upgrades.
+- **Start:** two columns, GIO application search and actions, pinned and optional recent apps, drag ordering, editable standard-folder links, All Programs/Back navigation, search-first keyboard focus, Escape retreat, click-away dismissal and split power controls with Cancel-default confirmation. Personal artwork is installed locally and preserved by upgrades.
 - **Native panel candidate:** unified pinned/running tasks, persistent pin dragging, graphical pin editor, hidden notification icons in an anchored popup, pink styling and a narrow far-right Show Desktop target. The separate candidate has a reversible next-login switch; development has not enabled it on the personal desktop. [Build and switch instructions](../panel/README.md).
 - **Desktop modules:** Openbox edge snapping and keyboard halves, saved single-desktop configuration, screenshot capture/cancellation, optional Kate/Dolphin defaults and per-app dark themes, and personal busy-cursor generation. The ordinary pointer is inherited unless pink is explicitly selected.
 - **Screenshot of open Start:** freezes the visible menu before region selection. Enter/Copy confirms and Escape/Cancel leaves the clipboard unchanged. This is separate from the ordinary global screenshot helper.
@@ -12,13 +12,13 @@ DoroShell customizes an existing LXQt desktop. The Windows 7 layout with pink Do
 
 ## Verified scope
 
-The current suite passes 59 automated tests using offscreen Qt, mocks and temporary homes. Separate X11 checks cover synthetic pin dragging, menu navigation and click-away, native task restore and pin launch/reopen, notification overflow, edge snapping, and screenshot capture/cancellation. The original global ScreenGrab path was pasted into isolated Writer and Draw instances. The newer open-menu capture path was tested both with private PNG output on the desktop and with real clipboard publication on an authenticated private Xvfb display. Writer and Draw pasted matching pixels; mid-drag cancellation preserved the completed capture, and replacement released the helper.
+The current suite passes 61 automated tests using offscreen Qt, mocks and temporary homes. Separate X11 checks cover synthetic pin dragging, menu navigation and click-away, native task restore and pin launch/reopen, notification overflow, edge snapping, and screenshot capture/cancellation. The original global ScreenGrab path was pasted into isolated Writer and Draw instances. The newer open-menu capture path was tested both with private PNG output on the desktop and with real clipboard publication on an authenticated private Xvfb display. Writer and Draw pasted matching pixels; mid-drag cancellation preserved the completed capture, and replacement released the helper.
 
 Kate/Dolphin default resolution and dark appearance were checked in temporary homes and separate application instances. The far-right Show Desktop target was visually inspected, then its hide/restore action and horizontal/vertical dimensions were verified on disposable windows in a private Xvfb/Openbox session. These are local checks, not clean-install or fresh-login acceptance. See [verification history](verification.md).
 
 ## Next work
 
-1. Complete menu composition: pinned/recent section presentation, program-tree and folder cascades, configurable recent limits, opt-in document/settings search, and the split power control. Keep destructive actions behind native confirmation and never execute them during tests.
+1. Complete menu composition: pinned/recent section presentation, program-tree and folder cascades, configurable recent limits, opt-in document/settings search, and configurable primary power actions. Keep destructive actions behind native confirmation and never execute them during tests.
 2. Complete native taskbar behavior and visuals: broader real-application identity matching, grouped window previews, attention/auto-hide transitions, keyboard focus, tray accessibility and supported progress/overlay data. Preserve native icon activation and context menus.
 3. Validate long labels, larger fonts, narrow screens, multiple monitors and scaling. Maintain readable normal/hover/selected/disabled states and system fonts.
 4. Extend the isolated Show Desktop checks to live orientation changes, pre-minimized windows, multiple desktops and other window managers. Basic horizontal/vertical show/restore has passed; do not hide personal windows as a test.
