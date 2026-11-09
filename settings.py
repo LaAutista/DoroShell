@@ -110,7 +110,7 @@ class Settings(QWidget):
                         Qt.ArrowType.DownArrow if open_ else Qt.ArrowType.RightArrow))
                     self.note(form,'Use LXQt taskbar style for the stock taskbar. Icon dragging applies to the DockBarX applet.')
                 if module=='screenshots':
-                    self.note(form,'Print freezes the desktop, including Start. Select an area or press Enter for the full desktop. Annotate, then choose Copy or Save. Open in ScreenGrab sends the finished image to the native window when the importer is installed.')
+                    self.note(form,'Print freezes the desktop, including Start. Drag an area, choose Window and click an app, or press Enter for the full desktop. Annotate, then choose Copy or Save. Open in ScreenGrab sends the finished image to the native window when the importer is installed.')
                 label = dict(OPTIONS)[module]
                 choice = QComboBox()
                 choice.setItemDelegate(QStyledItemDelegate(choice))

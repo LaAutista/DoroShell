@@ -45,8 +45,43 @@ def snapshot_desktop():
     return compose_screens([(s.geometry(), s.grabWindow(0).toImage()) for s in screen.virtualSiblings()])
 
 
+def x11_window_rectangles():
+    """Topmost first, in native root pixels, before the overlay is mapped."""
+    from contextlib import closing
+    try:
+        from Xlib import X, display, error
+    except ImportError:
+        return []
+    rectangles = []
+    try:
+        with closing(display.Display()) as server:
+            root = server.screen().root
+            def prop(window, name):
+                value = window.get_full_property(server.intern_atom(name), X.AnyPropertyType)
+                return value.value if value is not None else ()
+            ignored = {server.intern_atom('_NET_WM_WINDOW_TYPE_' + kind) for kind in ('DOCK', 'DESKTOP')}
+            for wid in reversed(prop(root, '_NET_CLIENT_LIST_STACKING')):
+                try:
+                    window = server.create_resource_object('window', int(wid))
+                    if window.get_attributes().map_state != X.IsViewable or ignored.intersection(prop(window, '_NET_WM_WINDOW_TYPE')):
+                        continue
+                    geom = window.get_geometry()
+                    pos = root.translate_coords(window, 0, 0)
+                    rect = QRect(pos.x, pos.y, geom.width, geom.height)
+                    extents = prop(window, '_NET_FRAME_EXTENTS')
+                    if len(extents) == 4:
+                        left, right, top, bottom = map(int, extents)
+                        rect.adjust(-left, -top, right, bottom)
+                    rectangles.append(rect)
+                except error.XError:
+                    continue  # A client may disappear while freezing the desktop.
+    except (error.DisplayError, error.XError, OSError):
+        return []
+    return rectangles
+
+
 class FrozenCapture(QDialog):
-    def __init__(self, image, geometry):
+    def __init__(self, image, geometry, windows=()):
         super().__init__(None, Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         if image.isNull() or geometry.isEmpty():
             raise ValueError('No completed screen image was supplied')
@@ -55,6 +90,8 @@ class FrozenCapture(QDialog):
         self.origin = None
         self.original = QRect()
         self.raw_selection = QRect()
+        self.windows = [r.intersected(image.rect()) for r in windows if r.intersects(image.rect())]
+        self.hover_window = QRect()
         self.drag = ''
         self.strokes = []
         self.redo_stack = []
@@ -123,14 +160,18 @@ class FrozenCapture(QDialog):
         self.help = QLabel()
         actions.addWidget(self.help,0,0)
         self.actions = {}
-        columns = 4 if narrow else 7
-        for i,(label,action) in enumerate([('Undo',self.undo),('Redo',self.redo),('Copy',self.accept),
+        columns = 4 if self.viewport.width() < 760 else 8
+        for i,(label,action) in enumerate([('Window',self.pick_window),('Undo',self.undo),('Redo',self.redo),('Copy',self.accept),
                 ('Save…',self.choose_save),('Open in ScreenGrab',self.native_window),('Cancel',self.reject)],1):
             button=QPushButton(label)
             self.actions[label]=button
             button.setAutoDefault(False)
             button.clicked.connect(action)
             actions.addWidget(button,i//columns,i%columns)
+        window_button = self.actions['Window']
+        window_button.setCheckable(True)
+        window_button.setEnabled(bool(self.windows))
+        window_button.setToolTip('Choose a visible window (W)' if self.windows else 'No visible X11 application windows')
         self.native_binary = Path.home()/'.local/share/doroshell/screengrab-import'
         native=self.actions['Open in ScreenGrab']
         native.setEnabled(os.access(self.native_binary,os.X_OK))
@@ -138,17 +179,39 @@ class FrozenCapture(QDialog):
                           else 'Install the ScreenGrab PNG importer to open this image.')
         self.set_tool('Select')
 
+    def pick_window(self):
+        if self.windows:
+            self.set_tool('Select' if self.active_tool == 'Window' else 'Window')
+
+    def window_at(self, position):
+        point = self.raw_point(position)
+        return next((r for r in self.windows if r.contains(point)), QRect())
+
+    def view_rect(self, rect):
+        if rect.isEmpty():
+            return QRect()
+        x = self.width() / self.image.width()
+        y = self.height() / self.image.height()
+        left, top = math.floor(rect.x()*x), math.floor(rect.y()*y)
+        right, bottom = math.ceil((rect.x()+rect.width())*x), math.ceil((rect.y()+rect.height())*y)
+        return QRect(left, top, right-left, bottom-top)
+
     def ink_group(self):
         return 'highlight' if self.active_tool=='Highlight' else 'ink'
 
     def set_tool(self, name):
         self.active_tool=name
+        self.hover_window = QRect()
+        self.actions['Window'].setChecked(name == 'Window')
+        self.actions['Save…'].setEnabled(name != 'Window')
+        self.actions['Copy'].setEnabled(name != 'Window')
+        self.actions['Open in ScreenGrab'].setEnabled(name != 'Window' and os.access(self.native_binary,os.X_OK))
         for tool,button in self.tool_buttons.items():
             button.setChecked(tool==name)
         group=self.ink_group()
         self.stroke_width.setValue(self.widths[group])
-        self.stroke_width.setEnabled(name not in ('Select','Redact','Text'))
-        self.color_button.setEnabled(name not in ('Select','Redact'))
+        self.stroke_width.setEnabled(name not in ('Select','Window','Redact','Text'))
+        self.color_button.setEnabled(name not in ('Select','Window','Redact'))
         color=self.colors[group]
         self.color_button.setStyleSheet('border-bottom: 3px solid '+color.name())
         self.color_button.setAccessibleName('Annotation color '+color.name())
@@ -191,7 +254,7 @@ class FrozenCapture(QDialog):
 
     def updated(self):
         size = self.pixel_rect().size()
-        self.help.setText(f'{size.width()} × {size.height()}')
+        self.help.setText('Click a window' if self.active_tool == 'Window' else f'{size.width()} × {size.height()}')
         self.actions['Undo'].setEnabled(bool(self.strokes))
         self.actions['Redo'].setEnabled(bool(self.redo_stack))
         target=self.selection.intersected(self.viewport)
@@ -247,12 +310,14 @@ class FrozenCapture(QDialog):
         with QPainter(self) as painter:
             painter.drawImage(self.rect(), self.image)
             self.draw_strokes(painter)
-            painter.setClipRegion(QRegion(self.rect()).subtracted(QRegion(self.selection)))
-            opacity = 60 if self.selection.isEmpty() else 120
-            if self.active_tool=='Select' or not self.selection.isEmpty():
+            picking = self.active_tool == 'Window'
+            target = self.view_rect(self.hover_window) if picking else self.selection
+            painter.setClipRegion(QRegion(self.rect()).subtracted(QRegion(target)))
+            opacity = 60 if target.isEmpty() else 120
+            if picking or self.active_tool=='Select' or not target.isEmpty():
                 painter.fillRect(self.rect(), QColor(0,0,0,opacity))
             painter.setClipping(False)
-            if self.selection.isEmpty() and self.active_tool=='Select' and not self.strokes:
+            if target.isEmpty() and self.active_tool=='Select' and not self.strokes:
                 text = 'Drag to select an area  ·  Enter to copy the full desktop'
                 hint = painter.fontMetrics().boundingRect(text).adjusted(-14,-8,14,8)
                 hint.moveCenter(self.viewport.center())
@@ -261,17 +326,24 @@ class FrozenCapture(QDialog):
                 painter.drawRoundedRect(hint,6,6)
                 painter.setPen(Qt.GlobalColor.white)
                 painter.drawText(hint,Qt.AlignmentFlag.AlignCenter,text)
-            if not self.selection.isEmpty():
+            if not target.isEmpty():
                 painter.setPen(QPen(QColor('#80cfff'),2))
-                painter.drawRect(self.selection.adjusted(0,0,-1,-1))
+                painter.drawRect(target.adjusted(0,0,-1,-1))
                 painter.setBrush(QColor('white'))
-                for point in self.handles().values():
+                for point in (() if picking else self.handles().values()):
                     painter.drawEllipse(point,4,4)
 
     def mousePressEvent(self, event):
         if event.button()!=Qt.MouseButton.LeftButton:
             return
         p = event.position().toPoint()
+        if self.active_tool == 'Window':
+            rect = self.window_at(event.position())
+            if not rect.isEmpty():
+                self.raw_selection = rect
+                self.selection = self.view_rect(rect)
+                self.set_tool('Select')
+            return
         self.origin = p
         self.original = QRect(self.selection)
         self.raw_original = QRect(self.raw_selection)
@@ -325,7 +397,10 @@ class FrozenCapture(QDialog):
         self.updated()
 
     def mouseMoveEvent(self,event):
-        if self.origin is not None:
+        if self.active_tool == 'Window':
+            self.hover_window = self.window_at(event.position())
+            self.update()
+        elif self.origin is not None:
             self.drag_to(event.position())
         elif self.active_tool=='Select':
             p=event.position().toPoint()
@@ -360,18 +435,20 @@ class FrozenCapture(QDialog):
             self.accept()
         elif event.key()==Qt.Key.Key_Escape:
             self.reject()
+        elif event.key()==Qt.Key.Key_W and not event.modifiers():
+            self.pick_window()
         elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key()==Qt.Key.Key_Z:
             if event.modifiers() & Qt.KeyboardModifier.ShiftModifier: self.redo()
             else: self.undo()
         elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key()==Qt.Key.Key_S:
-            self.choose_save()
+            if self.active_tool != 'Window': self.choose_save()
         elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key()==Qt.Key.Key_C:
             self.accept()
         else:
             super().keyPressEvent(event)
 
     def accept(self):
-        if self.origin is None:
+        if self.origin is None and self.active_tool != 'Window':
             super().accept()
 
     def selected_image(self):
@@ -478,12 +555,15 @@ def main():
     if not lock.tryLock(0):
         if args.notify: print('BUSY',flush=True)
         return 0
+    windows = []
     if args.geometry:
         image, geometry=read_image(), QRect(*args.geometry)
     else:
+        if app.platformName() == 'xcb':
+            windows = x11_window_rectangles()
         image, geometry=snapshot_desktop()
     if args.notify: print('FROZEN',flush=True)
-    dialog=FrozenCapture(image,geometry)
+    dialog=FrozenCapture(image,geometry,windows)
     dialog.exec()
     image=dialog.selected_image()
     if image is None:

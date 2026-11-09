@@ -12,7 +12,7 @@ PACKAGES={
  'native-panel':['lxqt-panel','python-gobject','pyside6'],
  'panel':['lxqt-panel','lxqt-globalkeys','procps-ng'],
  'snapping':['openbox','python-xlib','pyside6'],
- 'screenshots':['screengrab','pyside6','lxqt-globalkeys','python-gobject'],
+ 'screenshots':['screengrab','python-xlib','pyside6','lxqt-globalkeys','python-gobject'],
  'dolphin':['dolphin','xdg-utils'], 'kate':['kate','xdg-utils'],
  'kate-dark':['kate','breeze'], 'dolphin-dark':['dolphin','breeze'],
  'single-desktop':['openbox'], 'taskbar':['lxqt-panel'],

@@ -8,11 +8,13 @@ Print uses a DoroShell Qt Widgets overlay on X11. Its interaction follows the Pl
 - Global Print in a private LXQt/Openbox environment produced the expected crop, ignored incomplete work, and survived setup repeat and rollback. Writer and Draw pasted every expected pixel after the capture UI process exited. The separate X11 clipboard owner released its window when another client replaced the contents.
 - Offscreen tests exercised full-desktop Enter, moving and resizing, drawing and undo/redo, saving final PNG pixels, cancelling the save dialog, negative virtual coordinates and mixed image densities. A changed Print command is refused, and a matching command renumbered by LXQt can be updated and restored.
 - Two private Xephyr Xinerama heads at 640×480 each were arranged side by side. The same drag spanning the boundary produced an 80×60 image with pixels from both heads at 100% and 150%. Qt exposed their combined Xinerama desktop as one surface. Physical mixed-DPI hardware and Wayland remain unverified.
-- A private-display check opened a 260×180 annotated crop in the native ScreenGrab window and used its own Copy command. Every pixel matched the rendered crop. Repeat installation retained the importer and screenshot rollback removed its managed executable. Color and stroke width changes on successive marks were checked against final pixels. The overlay provides raster annotations and rectangular cropping. It does not reproduce Spectacle’s complete tool set, window detection, video or sharing integrations.
+- On private Openbox/X11 at 100% and 150%, the Window tool selected the upper client in an overlap and clipped a decorated lower client at the screen edge. Every output pixel matched the original frozen desktop after the underlying window changed color.
+- A private-display check opened a 260×180 annotated crop in the native ScreenGrab window and used its own Copy command. Every pixel matched the rendered crop. Repeat installation retained the importer and screenshot rollback removed its managed executable. Color and stroke width changes on successive marks were checked against final pixels. The overlay provides raster annotations, rectangular cropping and X11 window selection using the visible client stacking order and window-manager frame extents. It does not reproduce Spectacle’s complete tool set, video or sharing integrations.
 
 From the checkout, the clipboard and cross-monitor checks are:
 
 ```sh
+python tests/check_window_capture_x11.py --run --xvfb /path/to/Xvfb
 python tests/check_screengrab_import_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/import-enabled/screengrab
 python tests/check_menu_clipboard_x11.py --run --xvfb /path/to/Xvfb
 python tests/check_overlay_multimonitor_x11.py --run --xvfb /path/to/Xvfb --xephyr /path/to/Xephyr

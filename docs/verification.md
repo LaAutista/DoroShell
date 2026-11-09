@@ -2,7 +2,7 @@
 
 ## Current core acceptance — 2026-11-09
 
-The current suite passes 83 automated tests. Global Print and open-Start Print use the same selection and annotation overlay. The native ScreenGrab importer was checked against every pixel of the finished crop. See [screenshot verification](screenshot-verification.md).
+The current suite passes 84 automated tests. Global Print and open-Start Print use the same selection and annotation overlay. The native ScreenGrab importer was checked against every pixel of the finished crop. See [screenshot verification](screenshot-verification.md).
 
 The updated native panel ran on the development desktop after an LXQt panel-module refresh. The same window manager and all five existing application windows remained. The 40-pixel bar showed the chevron and both clock lines with the existing icon size. On private X11, the calendar opened fully above the bar, and a synthetic notification app responded to mouse, keyboard and context actions in the overflow popup. Clock pixels and calendar bounds were also checked at scale factors 1, 1.5 and 2 with font DPI 96, 120 and 144. A real next-login check of this build and a clean CachyOS installation remain open.
 

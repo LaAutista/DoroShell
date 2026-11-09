@@ -32,6 +32,24 @@ class MenuCaptureTests(unittest.TestCase):
         self.assertFalse(publish(dialog.selected_image(),sink))
         sink.clipboard.assert_not_called();shiboken6.delete(dialog)
 
+    def test_window_picker_uses_topmost_raw_bounds_and_requires_a_hit(self):
+        image = self.image()
+        rect = QRect(51, 61, 81, 101)
+        dialog = FrozenCapture(image, QRect(0, 0, 200, 150), [rect, QRect(-30, 10, 210, 170)])
+        dialog.show()
+        dialog.actions['Window'].click()
+        QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=QPoint(190, 140))
+        QTest.keyClick(dialog, Qt.Key.Key_Return)
+        self.assertTrue(dialog.isVisible())
+        self.assertFalse(dialog.actions['Copy'].isEnabled())
+        QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=QPoint(40, 45))
+        self.assertEqual(dialog.pixel_rect(), rect)
+        self.assertEqual(dialog.rendered_image(), image.copy(rect))
+        dialog.actions['Window'].click()
+        QTest.keyClick(dialog, Qt.Key.Key_Escape)
+        self.assertIsNone(dialog.selected_image())
+        shiboken6.delete(dialog)
+
     def test_confirmed_crop_uses_frozen_pixels_and_scales(self):
         image=self.image();dialog=FrozenCapture(image,QRect(0,0,200,150))
         self.select(dialog)
