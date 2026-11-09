@@ -60,13 +60,147 @@ Tests use Qt's offscreen platform, mocks for external actions, and temporary ins
 ## Roadmap
 
 - Verify this menu/setup on a clean CachyOS LXQt VM and after login.
-- Implement the persistent single-desktop module; see [scope](docs/roadmap.md).
-- Screenshots and clipboard workflow.
-- Taskbar behavior and window icons.
-- Edge-drag tiling with the actual window manager.
-- Dolphin defaults and application file associations.
+- Validate the persistent single-desktop module after login; see [scope](docs/roadmap.md).
+- Broaden screenshot validation across monitors and clipboard managers.
+- Validate taskbar behavior on more LXQt layouts.
+- Extend edge-drag tiling beyond the tested Openbox/X11 layout.
+- Broaden optional Kate/Dolphin associations beyond plain text and folders.
 - Broader desktop compatibility and complete installer orchestration.
 
-Only the Start menu and panel integration are implemented here. No blanket desktop replacement, workspace reset, or future module is run by these commands.
+The menu-specific commands above change only the Start menu and its panel integration. The working tree also contains experimental optional modules and a `setup.py` dispatcher, described below; they are not yet a clean-install-tested release.
 
 Source licensing has not yet been selected; private access does not itself grant redistribution rights. Choose a source license before a public release.
+
+## Current development checkpoint
+
+The working-tree menu now includes the pink theme, Home / All programs navigation, ordered pins, optional recent programs, and the folder editor. Its compact right-column controls leave all six default folders visible at the default 680×570 size; smaller windows retain scrolling. Automated geometry checks cover three window sizes. Offscreen rendering was visually inspected. The updated menu and DoroShell Settings launcher are installed locally; the personal Start icon, cursor, favorites, panel configuration and default-app choices were preserved.
+
+`setup.py` selects menu, panel, snapping, screenshots, Kate/Dolphin associations and per-app dark themes, single-desktop, taskbar and optional cursor modules. The default selection is only the menu; all desktop/default-app changes require explicit selection. With no action flag it previews changes. `--packages` only prints an Arch/CachyOS package command; it does not execute it. Do not apply the all-module preset as a substitute for reviewing each component. Existing desktop settings and artwork must be preserved when upgrading a personal installation.
+
+The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The original roadmap and Windows 7 comparison document retain the design and acceptance requirements; some implementation has moved ahead of those planning snapshots.
+
+Latest validation: **34 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
+
+Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
+
+## DoroShell settings
+
+Run `python setup.py --gui` from the checkout, or **DoroShell Settings** after installing/updating the menu. It is also available under Start → Menu options. Every option begins at **Keep unchanged**. Choose the components you want, preview, then apply. Existing rollback manifests enable **Restore previous settings**. Modules apply sequentially; if one fails, the log identifies it and earlier successful modules can be restored individually.
+
+- **Taskbar:** grouped application icons or LXQt icons with labels. This uses LXQt's native taskbar: click an open app's icon to activate/restore it; grouped windows use LXQt's group UI. Launch closed apps from Start or existing Quick Launch icons. Existing Quick Launch entries remain; this is not Plasma's unified pinned-launcher/task-manager plugin. The explicit option can detach a known DockBarX entry while retaining its configuration for rollback.
+- **Snapping:** Openbox/X11 mouse-drag left/right halves, plus Super+Left/Right and Super+Down to restore. Existing conflicting bindings are refused. Enable the refresh checkbox to start the helper now; otherwise it starts at the next login.
+- **Screenshots:** Print uses ScreenGrab region selection. Drag, then Enter to confirm; Escape cancels. The helper owns the completed clipboard image until replaced, so pasting works after ScreenGrab exits. Other capture modes are not exposed yet.
+- **One desktop:** saves Openbox's desktop count and initial desktop as 1. It does not migrate live windows or restart the session. Application rules targeting other desktops are refused. Verify at a user-chosen next login.
+- **Kate/Dolphin:** separate opt-ins for `text/plain`, `inode/directory`, and each app's Breeze Dark color scheme. Other MIME choices and global themes are retained. Apps must already be installed. Save work and close the affected app yourself before applying or restoring its theme so it cannot overwrite the file. DoroShell never closes it.
+- **Personal artwork:** choose a Start image and select menu Enable/update. A local managed PNG is backed up; future menu upgrades preserve it. The cursor uses your animated GIF frames and their timing, with one character per frame. The normal pointer remains inherited by default; pink is an explicit option. No Doro reference or animation is bundled.
+
+Examples (preview first; append `--apply` only for selected changes):
+
+```sh
+python setup.py taskbar --taskbar-style icons
+python setup.py taskbar --taskbar-style standard
+python setup.py kate dolphin kate-dark dolphin-dark
+python setup.py screenshots snapping single-desktop
+python setup.py cursor --gif /path/to/spinning-doro.gif
+python setup.py menu --icon /path/to/personal-doro.png
+python setup.py kate dolphin --rollback
+```
+
+The refresh checkbox/`--live` refreshes only selected panel/shortcut components and Openbox snapping. One-desktop and app-theme changes are not forced into running applications. Installer configuration paths currently follow the default home-directory XDG layout; custom XDG layouts require adaptation. Menu preferences themselves respect `XDG_CONFIG_HOME`.
+
+
+## Personal animated loading cursor
+
+`cursor.py` creates an inherited Breeze theme that replaces only wait/watch and progress/left_ptr_watch. The progress cursor retains the original Breeze arrow and hotspot. All other shapes come from Breeze. It accepts a local animated GIF, preserves frame timing, and builds 24/30/32/48/64-pixel Xcursors with Pillow (distribution package `python-pillow`); no compiler or xcursorgen is required. No artwork is included or uploaded.
+
+```sh
+python cursor.py --gif /path/to/personal-animation.gif          # preview planned files
+python cursor.py --gif /path/to/personal-animation.gif --apply
+python cursor.py --rollback
+```
+
+The module updates the LXQt cursor theme, the user default cursor theme, and the Xresources theme entry. It preserves cursor size and the rest of each configuration file. Original bytes/modes are backed up in `~/.local/state/lxqt-comfort/cursor-install.json`. Repeat application is supported. Rollback refuses any managed file changed since installation rather than overwriting personal edits. Keep that private backup. There is no automatic package installation or session restart. Restart applications that cache cursors; log out and back in when convenient for consistent session-wide pickup. The installer does not force-refresh running applications or the X server resource database. Automated tests use temporary homes and synthetic artwork; live X11 validation is separate. Wayland is untested.
+
+## Edit the Start menu's folder links
+
+Choose **Edit folder links…** beneath the folder list. Add folders with the folder picker; double-click a Name cell (or press F2) to rename it; use Move up/Move down to reorder; uncheck Show to hide a link; or Remove to remove the shortcut only. No folder or file is deleted. Restore defaults prepares the original six standard links. **Save** applies changes; Cancel or Escape discards them.
+
+Settings are stored separately from favorites in `~/.config/lxqt-comfort/folders.json` (or under XDG_CONFIG_HOME). Standard links resolve the user's actual system folder locations. Custom paths are private machine-specific data and must not be committed or uploaded. Existing settings are backed up as `folders.json.backup-<timestamp>` before changed saves. Invalid or concurrently modified settings are preserved, with an error instead of overwrite. Restoring defaults changes links only; it does not reset app pins, LXQt settings, or the filesystem.
+
+Folder-editor validation: five additional automated tests cover mouse add/reorder, keyboard rename/hide, persistence, cancellation, defaults/backups, invalid/concurrent/failed-save protection, empty lists and modal return to the menu. At that earlier checkpoint the suite passed 14 tests (including separate cursor tests); see the current validation above. `python tests/check_folders_x11.py` checks the editor on X11 with temporary configuration; directory-picker selection is mocked. An installed Documents link was dispatched successfully to the actual Dolphin handler. Native file-picker interaction, visual confirmation of the resulting Dolphin window, clean-install and post-login behavior have not been verified for this change. No logout or power action was executed.
+
+## Optional QuickStart for Gaming
+
+DoroShell targets **CachyOS and Arch-based systems**. Other distributions can adapt the package names and commands. These are optional commands for you to choose and run yourself; DoroShell does not install gaming applications. Package names and upstream instructions were checked on 2026-11-08; availability can change.
+
+`sudo pacman -Syu --needed PACKAGE` refreshes repository databases, **updates the whole system**, and installs the selected package. `--needed` skips reinstalling packages already up to date; it does not suppress system upgrades. Avoid `pacman -Sy PACKAGE` partial upgrades. Review the transaction before accepting it.
+
+| Application | Install command | Source |
+| --- | --- | --- |
+| OBS Studio | `sudo pacman -Syu --needed obs-studio` | [Arch Extra](https://archlinux.org/packages/extra/x86_64/obs-studio/); CachyOS may supply an optimized build. |
+| Discord | `sudo pacman -Syu --needed discord` | [Arch Extra](https://archlinux.org/packages/extra/x86_64/discord/), official Discord client. |
+| Signal | `sudo pacman -Syu --needed signal-desktop` | [Arch Extra](https://archlinux.org/packages/extra/x86_64/signal-desktop/), Arch-maintained package. |
+| Blender | `sudo pacman -Syu --needed blender` | [Arch Extra](https://archlinux.org/packages/extra/x86_64/blender/). |
+| Flatpak | `sudo pacman -Syu --needed flatpak` | [Flathub's Arch setup](https://flathub.org/en/setup/Arch). |
+| Steam | `sudo pacman -Syu --needed steam` | [Arch Multilib](https://archlinux.org/packages/multilib/x86_64/steam/). Enable `[multilib]` and its `Include` line in `/etc/pacman.conf` first if disabled. Review the appropriate GPU and 32-bit driver choices; see [Arch's Steam guide](https://wiki.archlinux.org/title/Steam). |
+| Kate | `sudo pacman -Syu --needed kate` | [Arch Extra](https://archlinux.org/packages/extra/x86_64/kate/). Installing it does not opt into DoroShell's default-editor setting. |
+| Dolphin | `sudo pacman -Syu --needed dolphin` | [Arch Extra](https://archlinux.org/packages/extra/x86_64/dolphin/). Installing it does not change DoroShell's file-manager setting. |
+| Breeze Dark (optional for Kate/Dolphin) | `sudo pacman -Syu --needed breeze` | Provides the color scheme used by the opt-in dark-theme modules. |
+
+### Discord, Vesktop and Vencord
+
+**Discord** is the official app. **Vesktop** is a separate third-party Discord desktop client with **Vencord included**. **Vencord** adds plugins and themes to Discord; it is not another messaging service. Vesktop does not require separately patching the official Discord app. Enable the plugins you want in Vencord's settings. No existing Discord installation or plugin configuration was inspected for this guide. See [Vesktop's project](https://github.com/Vencord/Vesktop) and [installation instructions](https://vesktop.dev/install/linux/).
+
+On CachyOS, [`vesktop-bin`](https://dashboard.cachyos.org/package/cachyos/x86_64/vesktop-bin) is available in the `cachyos` repository (also confirmed in the local repository database):
+
+```sh
+sudo pacman -Syu --needed vesktop-bin
+```
+
+On plain Arch, upstream recommends the **AUR** package `vesktop-bin`. With an already installed AUR helper, review the PKGBUILD and sources before building:
+
+```sh
+sudo pacman -Syu
+paru -S --needed vesktop-bin
+```
+
+The AUR is community-maintained build recipes, not an official Arch binary repository. Do not add CachyOS repositories to another distribution merely to run this command.
+
+To add Vencord to the **official Discord app** instead, [Vencord's official Linux instructions](https://vencord.dev/download/) provide this upstream installer command:
+
+```sh
+sh -c "$(curl -sS https://vencord.dev/install.sh)"
+```
+
+This downloads and executes a third-party installer. Review the script first if you choose this route, run it as your normal user, and select the intended Discord installation in its prompts. DoroShell never runs it. Discord does not endorse these modifications; consult [Vencord's FAQ](https://vencord.dev/support/) for support and client-modification caveats.
+
+### Bottles, Stremio and Heroic through Flathub
+
+After installing Flatpak, add Flathub for your user once, then choose any applications below:
+
+```sh
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install --user flathub com.usebottles.bottles
+flatpak install --user flathub com.stremio.Stremio
+flatpak install --user flathub com.heroicgameslauncher.hgl
+```
+
+[Bottles supports and recommends its Flatpak](https://docs.usebottles.com/getting-started/installation). [Stremio links to its Flathub release](https://www.stremio.com/downloads). [Heroic recommends Flatpak](https://heroicgameslauncher.com/downloads). Flatpak manages these separately from pacman; use `flatpak update --user` for updates. Adding Flathub is an explicit additional software source.
+
+CachyOS also offers a native [Heroic package](https://dashboard.cachyos.org/package/cachyos/x86_64/heroic-games-launcher-bin):
+
+```sh
+sudo pacman -Syu --needed heroic-games-launcher-bin
+```
+
+That pacman command is **CachyOS-specific**. On other Arch-based systems, use the upstream Flatpak route above or independently review the AUR package. Choose one packaging route per app to avoid duplicate installations.
+
+### Fluorine Manager
+
+[Fluorine Manager](https://github.com/SulfurNitride/Fluorine-Manager) is a Linux port of Mod Organizer 2 with FUSE-based virtual filesystem support. It is an **upstream third-party download**, not a verified pacman package in this guide. Download the current archive matching your system from its [releases](https://github.com/SulfurNitride/Fluorine-Manager/releases), extract it into a user-owned directory, open a terminal there, and run:
+
+```sh
+./fluorine-manager
+```
+
+Follow upstream's runtime requirements and Settings → Compatibility instructions to select Proton and prepare Windows-tool support. Do not substitute an invented `pacman` package name. DoroShell neither downloads Fluorine nor configures Wine/Proton or games for you.

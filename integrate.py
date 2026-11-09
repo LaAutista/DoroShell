@@ -81,6 +81,7 @@ def run(home, apply=False, rollback=False):
     if not rollback:
         state.parent.mkdir(parents=True, exist_ok=True)
         state.write_text(json.dumps(record, indent=2) + '\n')
+        state.chmod(0o600)
     for filename, edits in changes.items():
         cfg = settings[filename]
         for key, value in edits.items():
@@ -96,13 +97,13 @@ def run(home, apply=False, rollback=False):
     print('Saved integration.' if not rollback else 'Restored menu integration keys; unrelated settings retained.')
 
 
-def live_run(home, rollback=False):
+def live_run(home, rollback=False, operation=None, components=None):
     """Stop config writers before editing; restart only components that were running."""
     if home.resolve() != Path.home().resolve():
         raise RuntimeError('--live is only valid for the current desktop user')
     stopped = []
     try:
-        for name in ['lxqt-panel', 'lxqt-globalkeysd']:
+        for name in (components if components is not None else ['lxqt-panel', 'lxqt-globalkeysd']):
             pattern = '^/usr/bin/' + name + '$'
             result = subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', pattern], capture_output=True, text=True)
             if result.returncode not in (0, 1):
@@ -119,7 +120,10 @@ def live_run(home, rollback=False):
                 time.sleep(.1)
             else:
                 raise RuntimeError(name + ' did not stop; configuration not changed')
-        run(home, apply=not rollback, rollback=rollback)
+        if operation is None:
+            run(home, apply=not rollback, rollback=rollback)
+        else:
+            operation()
     finally:
         for name in stopped:
             pattern = '^/usr/bin/' + name + '$'

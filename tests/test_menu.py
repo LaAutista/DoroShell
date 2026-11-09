@@ -32,6 +32,27 @@ class MenuTests(unittest.TestCase):
         self.assertFalse(menu.matches(app, 'editor', 'Game'))
         self.assertFalse(menu.matches(app, 'missing', 'All applications'))
 
+    def test_right_column_controls_fit_and_folders_remain_accessible(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            window.show()
+            self.app.processEvents()
+            area = window.findChild(menu.QScrollArea)
+            controls = window.findChildren(menu.QPushButton, 'menuControl')
+            self.assertEqual(len(controls), 4)
+            self.assertEqual(area.verticalScrollBar().maximum(), 0)
+            for width, height in ((680, 570), (480, 450), (900, 700)):
+                window.resize(width, height)
+                self.app.processEvents()
+                for button in controls:
+                    self.assertTrue(window.rect().contains(button.geometry()))
+                    self.assertGreaterEqual(button.width(), button.minimumSizeHint().width())
+                for first, second in zip(controls, controls[1:]):
+                    self.assertLess(first.geometry().bottom(), second.geometry().top())
+                self.assertLess(area.geometry().bottom(), controls[0].geometry().top())
+            window.close()
+            shiboken6.delete(window)
+
     def test_menu_search_empty_folder_and_launch_error(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
             window = menu.StartMenu()
@@ -102,6 +123,28 @@ class MenuTests(unittest.TestCase):
             window.session_button.click()
             launch.assert_called_once_with('lxqt-leave.desktop')
         shiboken6.delete(window)
+
+    def test_duplicate_activation_launches_once_and_recent_history_persists(self):
+        from unittest.mock import MagicMock
+        fake = MagicMock()
+        fake.get_id.return_value='example.desktop'
+        fake.get_display_name.return_value='Example'
+        fake.get_description.return_value='Example app'
+        fake.get_categories.return_value='Utility;'
+        fake.get_keywords.return_value=[]
+        fake.get_executable.return_value='/bin/true'
+        fake.launch.return_value=True
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ, {'XDG_CONFIG_HOME':d}), patch.object(menu,'applications',return_value=[fake]):
+            window=menu.StartMenu()
+            item=window.list.item(0)
+            window.launch_item(item)
+            window.launch_item(item)
+            fake.launch.assert_called_once_with([],None)
+            recent=menu.RecentPrograms(Path(d)/'lxqt-comfort/recent.json')
+            self.assertEqual(recent.value['items'],['example.desktop'])
+            recent.save(enabled=False)
+            self.assertEqual(menu.RecentPrograms(recent.path).value,{'enabled':False,'items':[]})
+            shiboken6.delete(window)
 
     def test_symlink_protection(self):
         with tempfile.TemporaryDirectory() as directory:

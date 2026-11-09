@@ -1,5 +1,7 @@
 # One desktop and future modules
 
+This is the original planning snapshot. The working tree now includes optional modules and settings; see the README and verification report for implemented behavior and current limits. Live workspace migration and post-login acceptance remain outstanding.
+
 Exactly one virtual desktop, with all ordinary application windows accessible on it, is a required future setup default. This does not mean disabling multiple monitors.
 
 The current installer does not implement workspace changes. A live prototype was separately repaired to one Openbox desktop, with its existing windows moved without closing applications and the saved count verified. Persistence across logout/reboot remains untested.

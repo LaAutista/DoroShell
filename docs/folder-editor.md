@@ -1,0 +1,9 @@
+# Folder editor implementation checkpoint
+
+Implemented the first Windows 7-inspired enhancement: configurable right-side folder links. Default links remain visible, with scrolling for longer lists. Add, rename, reorder, hide, remove shortcut, restore defaults, Save and Cancel are available. Existing app favorites are separate and unchanged.
+
+The editor temporarily hides the popup without exiting its process, uses a separate dialog, and returns to the menu after save/cancel. Settings validation and atomic saves protect malformed/external changes; timestamped backups preserve previous settings. Tests simulate an atomic replacement failure and verify the original is retained.
+
+The installed-menu update was made through the personal installation source so its icon, desktop entry and shortcuts were retained. A private `before-folder-editor-*` directory under the user's existing lxqt-comfort state directory contains the previous installed `start_menu.py`, `menu-install.json` and hashes of the updated pair. To revert this update, first verify both installed files still match those recorded hashes, then restore both backed-up files together; refuse to overwrite subsequent changes. Leave folder settings in place (the old menu ignores them). This is separate from complete menu uninstall, which requires panel integration rollback first.
+
+All 14 current automated tests passed; five are new folder tests. X11 widget testing passed using a temporary settings directory, including the popup/dialog lifecycle. Directory selection was mocked, while editing and save controls received Qt mouse/key events. The installed Documents link dispatched to Dolphin through GIO with no error. Actual native picker interaction and visual Dolphin confirmation remain gaps; fresh-install/login tests remain pending. No later menu/module work or repository upload was performed.
