@@ -14,14 +14,14 @@ DoroShell customizes an existing LXQt desktop. The Windows 7 layout with pink Do
 
 The current suite passes 58 automated tests using offscreen Qt, mocks and temporary homes. Separate X11 checks cover synthetic pin dragging, menu navigation and click-away, native task restore and pin launch/reopen, notification overflow, edge snapping, and screenshot capture/cancellation. The original global ScreenGrab path was pasted into isolated Writer and Draw instances. The newer open-menu capture path was tested both with private PNG output on the desktop and with real clipboard publication on an authenticated private Xvfb display. Writer and Draw pasted matching pixels; mid-drag cancellation preserved the completed capture, and replacement released the helper.
 
-Kate/Dolphin default resolution and dark appearance were checked in temporary homes and separate application instances. The far-right Show Desktop target was visually inspected without activating it on personal windows. These are local checks, not clean-install or fresh-login acceptance. See [verification history](verification.md).
+Kate/Dolphin default resolution and dark appearance were checked in temporary homes and separate application instances. The far-right Show Desktop target was visually inspected, then its hide/restore action and horizontal/vertical dimensions were verified on disposable windows in a private Xvfb/Openbox session. These are local checks, not clean-install or fresh-login acceptance. See [verification history](verification.md).
 
 ## Next work
 
 1. Complete menu composition: pinned/recent section presentation, program-tree and folder cascades, configurable recent limits, opt-in document/settings search, and the split power control. Keep destructive actions behind native confirmation and never execute them during tests.
 2. Complete native taskbar behavior and visuals: broader real-application identity matching, grouped window previews, attention/auto-hide transitions, keyboard focus, tray accessibility and supported progress/overlay data. Preserve native icon activation and context menus.
 3. Validate long labels, larger fonts, narrow screens, multiple monitors and scaling. Maintain readable normal/hover/selected/disabled states and system fonts.
-4. Exercise Show Desktop show/restore in a disposable desktop session, and verify vertical positioning separately. Do not hide personal windows as a test.
+4. Extend the isolated Show Desktop checks to live orientation changes, pre-minimized windows, multiple desktops and other window managers. Basic horizontal/vertical show/restore has passed; do not hide personal windows as a test.
 5. Use a clean CachyOS LXQt test system for install, upgrade, rollback and dependency acceptance. Verify next-login panel/autostart and single-desktop persistence at a user-chosen login. Do not force logout or restart the working session.
 
 ## One-desktop contract
