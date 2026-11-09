@@ -113,6 +113,40 @@ class MenuTests(unittest.TestCase):
             self.assertFalse(window.state.exists())
             shiboken6.delete(window)
 
+    def test_programs_button_and_escape_return_without_launching(self):
+        from PySide6.QtTest import QTest
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            window.show()
+            window.activateWindow()
+            self.app.processEvents()
+            with patch.object(window, 'launch_item') as launch:
+                self.assertEqual(window.programs.text(), 'All Programs')
+                QTest.mouseClick(window.programs, menu.Qt.MouseButton.LeftButton)
+                self.assertEqual(window.category.currentText(), 'All applications')
+                self.assertEqual(window.programs.text(), 'Back')
+                window.search.setText('test')
+                QTest.keyClick(window.search, menu.Qt.Key.Key_Escape)
+                self.app.processEvents()
+                self.assertEqual(window.search.text(), '')
+                self.assertEqual(window.category.currentText(), 'All applications')
+                self.assertTrue(window.isVisible())
+                QTest.keyClick(window.search, menu.Qt.Key.Key_Escape)
+                self.app.processEvents()
+                self.assertEqual(window.category.currentText(), 'Home')
+                self.assertTrue(window.isVisible())
+                window.category.setCurrentText('Utility')
+                window.search.setText('test')
+                QTest.mouseClick(window.programs, menu.Qt.MouseButton.LeftButton)
+                self.assertEqual(window.search.text(), '')
+                self.assertEqual(window.category.currentText(), 'Home')
+                self.assertTrue(window.search.hasFocus())
+                QTest.keyClick(window.search, menu.Qt.Key.Key_Escape)
+                self.app.processEvents()
+                self.assertFalse(window.isVisible())
+                launch.assert_not_called()
+            shiboken6.delete(window)
+
     def test_search_and_filter(self):
         data = menu.GLib.KeyFile()
         text = '[Desktop Entry]\nType=Application\nName=Test Editor\nExec=/bin/true\nCategories=Utility;\nKeywords=writing;\n'

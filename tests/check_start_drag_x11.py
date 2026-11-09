@@ -78,8 +78,34 @@ try:
             window.close();shiboken6.delete(window)
             restored=m.StartMenu()
             assert restored.favorites==expected,'Pin order did not survive reopening Start'
+            restored.move(80,80);restored.show();wait(.3)
+            point=restored.programs.mapToGlobal(restored.programs.rect().center())
+            input_event(X.MotionNotify,x=point.x(),y=point.y())
+            input_event(X.ButtonPress,1);input_event(X.ButtonRelease,1);wait(.2)
+            assert restored.category.currentText()=='All applications'
+            assert restored.programs.text()=='Back'
+            for name in 'alpha':
+                code=d.keysym_to_keycode(XK.string_to_keysym(name))
+                input_event(X.KeyPress,code);input_event(X.KeyRelease,code)
+            wait(.2)
+            assert restored.search.text()=='alpha','Typing did not reach search after All Programs'
+            for expected_category,visible in [('All applications',True),('Home',True),('Home',False)]:
+                code=d.keysym_to_keycode(XK.string_to_keysym('Escape'))
+                input_event(X.KeyPress,code);input_event(X.KeyRelease,code);wait(.2)
+                assert restored.search.text()==''
+                assert restored.category.currentText()==expected_category
+                assert restored.isVisible()==visible
+            assert not marker.exists(),'Back navigation launched a selected application'
+            outside=m.QWidget();outside.setWindowTitle('DoroShell disposable click-away target')
+            outside.setGeometry(820,80,120,120);outside.show();wait(.2)
+            restored.show();wait(.2)
+            point=outside.mapToGlobal(outside.rect().center())
+            input_event(X.MotionNotify,x=point.x(),y=point.y())
+            input_event(X.ButtonPress,1);input_event(X.ButtonRelease,1);wait(.2)
+            assert not restored.isVisible(),'Click-away failed to dismiss Start'
+            outside.close();shiboken6.delete(outside)
             restored.close();shiboken6.delete(restored)
-        print('PASS: real Start pin drag, Escape cancellation, keyboard move, no accidental launch, persisted reopen order',flush=True)
+        print('PASS: real Start pin drag, Escape cancellation, keyboard move, no accidental launch, persisted reopen order, All Programs/search/Back keyboard navigation, click-away dismissal',flush=True)
 finally:
     input_event(X.ButtonRelease,1)
     input_event(X.MotionNotify,x=pointer.root_x,y=pointer.root_y)

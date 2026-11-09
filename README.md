@@ -2,7 +2,7 @@
 
 **DoroShell is an LXQt customization/setup toolkit with Plasma-like features**, inspired by familiar Windows and Plasma workflows. It configures and extends an existing LXQt installation; it is not a standalone desktop environment or a replacement shell.
 
-The first module is a two-column Qt Start menu: application search, categories, pinning, personal-folder links, LXQt settings, and a session/power dialog. A dedicated LXQt Quick Launch button and Alt+F1 open it. Alt+F1 again or Escape closes it. The original Fancy Menu preferences are retained for rollback.
+The first module is a two-column Qt Start menu: application search, categories, pinning, personal-folder links, LXQt settings, and a session/power dialog. A dedicated LXQt Quick Launch button and Alt+F1 open it. Alt+F1 again closes it. Escape clears a search, returns from a category to Home, then closes the menu. The All Programs button changes to Back while browsing or searching. The original Fancy Menu preferences are retained for rollback.
 
 ## Status and support
 
@@ -238,7 +238,7 @@ A separately built native LXQt Panel prototype now provides a hidden-tray arrow 
 
 Drag a pinned app before or after another pin in **Home** or **Pinned**. Escape cancels the drag. Search results and recent-only entries cannot be dragged. The right-click **Move pin up/down** commands remain available with keyboard menu navigation. Saved order survives reopening Start; existing favorites are backed up and concurrent edits are refused.
 
-The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` check uses synthetic desktop entries and a temporary favorites file. It moves the real pointer, then restores it. It verifies reorder, Escape cancellation, keyboard movement, persistence, and that dragging never launches an app.
+The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` check uses synthetic desktop entries and a temporary favorites file. It moves the real pointer, then restores it. It verifies reorder, Escape cancellation, keyboard movement, persistence, All Programs/Back navigation, search focus, click-away dismissal, and no accidental app launch.
 
 
 ### Capture an open Start menu
@@ -253,4 +253,4 @@ Body text inherits the system font size. Pink surfaces use dark plum text, the d
 
 Behavior follows the [original Windows 7 taskbar guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-taskbar) and [Classic/Open-Shell customization reference](https://www.classicshell.net/faq/), while the supplied concept sets the pink/Doro appearance. Native Windows-only integrations remain listed separately in the parity plan.
 
-Current increment: 55 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. No login or clean-install test is implied.
+Current increment: 58 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. No login or clean-install test is implied.

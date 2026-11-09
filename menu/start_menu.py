@@ -413,9 +413,9 @@ class StartMenu(QWidget):
         self.search = QLineEdit()
         self.search.setPlaceholderText('Search applications…')
         self.search.setAccessibleName('Search applications')
-        programs = QPushButton('All programs / Home')
-        programs.clicked.connect(lambda: self.category.setCurrentText('Home' if self.category.currentText() == 'All applications' else 'All applications'))
-        left.addWidget(programs)
+        self.programs = QPushButton('All Programs')
+        self.programs.clicked.connect(self.toggle_programs)
+        left.addWidget(self.programs)
         left.addWidget(self.search)
         body.addWidget(apps_panel, 3)
         places_panel = QWidget()
@@ -458,7 +458,7 @@ class StartMenu(QWidget):
         right.addWidget(settings)
         self.session_button = QPushButton(QIcon.fromTheme('system-shutdown'), 'Log out / power…')
         self.session_button.setObjectName('menuControl')
-        self.session_button.setToolTip('Open session options. Logging out returns to the login screen. Escape closes this menu.')
+        self.session_button.setToolTip('Open session options. Logging out returns to the login screen. Escape backs out or closes this menu.')
         self.session_button.clicked.connect(lambda: self.run_desktop('lxqt-leave.desktop'))
         right.addWidget(self.session_button)
         body.addWidget(places_panel, 2)
@@ -495,7 +495,7 @@ class StartMenu(QWidget):
         self.category.currentTextChanged.connect(self.refresh)
         self.search.returnPressed.connect(lambda: self.launch_item(self.list.currentItem()))
         QShortcut(QKeySequence('Print'), self, activated=self.capture_menu)
-        QShortcut(QKeySequence('Escape'), self, activated=self.close)
+        QShortcut(QKeySequence('Escape'), self, activated=self.navigate_back)
         QShortcut(QKeySequence('Alt+F1'), self, activated=self.close)
         QShortcut(QKeySequence('Ctrl+F'), self, activated=self.search.setFocus)
         QShortcut(QKeySequence('Down'), self.search, activated=self.focus_results)
@@ -571,6 +571,24 @@ class StartMenu(QWidget):
         if self.exit_on_hide:
             QTimer.singleShot(0, QApplication.instance().quit)
 
+    def toggle_programs(self):
+        if self.search.text() or self.category.currentText() != 'Home':
+            self.search.clear()
+            self.category.setCurrentText('Home')
+        else:
+            self.category.setCurrentText('All applications')
+        self.search.setFocus()
+
+    def navigate_back(self):
+        if self.search.text():
+            self.search.clear()
+            self.search.setFocus()
+        elif self.category.currentText() != 'Home':
+            self.category.setCurrentText('Home')
+            self.search.setFocus()
+        else:
+            self.close()
+
     def focus_results(self):
         self.list.setFocus()
 
@@ -595,6 +613,10 @@ class StartMenu(QWidget):
         self.list.clear()
         category = self.category.currentText()
         query = self.search.text()
+        back = bool(query) or category != 'Home'
+        self.programs.setText('Back' if back else 'All Programs')
+        self.programs.setIcon(QIcon.fromTheme('go-previous' if back else 'go-next'))
+        self.programs.setAccessibleName('Back to pinned and recent applications' if back else 'All Programs')
         pinned = [self.by_id[x] for x in self.favorites if x in self.by_id]
         recent = [self.by_id[x] for x in self.recent.value['items'] if x in self.by_id] if self.recent.value['enabled'] else []
         if query:
