@@ -16,6 +16,7 @@ PACKAGES={
  'kate-dark':['kate','breeze'], 'dolphin-dark':['dolphin','breeze'],
  'single-desktop':['openbox'], 'taskbar':['lxqt-panel'],
  'cursor':['python-pillow'],
+ 'taskbar-drag':['python-gobject'],
 }
 DEFAULT=['menu']
 

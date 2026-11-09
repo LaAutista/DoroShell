@@ -38,3 +38,10 @@ The earlier ScreenGrab X11 startup failure was a sandbox-access limitation. Auth
 The updated menu and settings launcher were installed after preview and backup; installed menu bytes matched the checkout. The existing personal Start image and cursor were retained because the full-size replacement references were unavailable. The project now lives in the user-selected folder; the original checkout was retained as a backup.
 
 No screenshots from the personal desktop or test captures are committed. Source licensing remains a release decision. Open-Shell was used as a behavioral reference; no code, icons, skins or documentation were imported from it. Doro reference assets remain local pending provenance and the user's files.
+
+
+### DockBarX dragging follow-up
+
+A real X11 test reproduced lost drops in the installed DockBarX LXQt embedding. With the opt-in compatibility hook, left-button dragging reordered three synthetic pinned launchers, Escape left their order unchanged, and restarting the isolated test panel visually restored the saved order. The test used a temporary home and private D-Bus session; personal launchers were not rearranged. Regression tests cover native successful moves, horizontal/vertical placement, outside drops and Escape's cleared drag action. This is applet-restart persistence, not a fresh-login test.
+
+The follow-up suite passed 39 automated tests. The hook was then enabled on the personal taskbar: the DockBarX child restarted under the same LXQt panel process, launcher order and panel configuration remained byte-for-byte unchanged, and all existing X11 client windows remained present. A private launcher-order backup was saved before activation. Personal icons were not rearranged during testing.

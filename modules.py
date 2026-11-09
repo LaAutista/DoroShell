@@ -9,11 +9,13 @@ import re
 import shlex
 import subprocess
 import tempfile
+import sysconfig
+import signal
 from install import safe, set_ini
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent
-MODULES = ('snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark')
+MODULES = ('snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
 
 
 def ini_value(text, section, key):
@@ -83,6 +85,14 @@ def plans(home, module, taskbar_style="icons"):
             section = groups[0] if groups else 'Print.1'
             for key,value in [('Exec', str(home/'.local/bin/doroshell-screenshot')), ('Enabled','true'),('Comment','DoroShell ScreenGrab selection'),('path',None)]:
                 ini('.config/lxqt/globalkeyshortcuts.conf',section,key,value)
+    elif module=='taskbar-drag':
+        if not Path('/usr/share/dockbarx/lxqt-panel-applet.py').is_file():
+            raise RuntimeError('This option requires the existing DockBarX LXQt plugin')
+        site = Path(sysconfig.get_path('purelib', scheme='posix_user', vars={'userbase': str(home/'.local')}))
+        relative = str(site.relative_to(home))
+        file(relative+'/doroshell_dockbarx_drag.py', (ROOT/'runtime/dockbarx_drag.py').read_bytes())
+        hook = "import sys; __import__('doroshell_dockbarx_drag').activate() if sys.argv[0] == '/usr/share/dockbarx/lxqt-panel-applet.py' else None\n"
+        file(relative+'/doroshell_dockbarx_drag.pth', hook.encode())
     elif module in ('kate-dark', 'dolphin-dark'):
         app = module.removesuffix('-dark')
         if not Path('/usr/share/color-schemes/BreezeDark.colors').is_file():
@@ -257,6 +267,30 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons"):
         manifest.unlink()
 
 
+def refresh_dockbarx():
+    """Reload only the plugin child; LXQt's keeper respawns it in place."""
+    pids = []
+    for process in Path('/proc').iterdir():
+        if not process.name.isdigit():
+            continue
+        try:
+            if process.stat().st_uid != os.getuid():
+                continue
+            argv = (process/'cmdline').read_bytes().split(b'\0')
+            if len(argv)<2 or argv[1] != b'/usr/share/dockbarx/lxqt-panel-applet.py':
+                continue
+            # Only the child of the real user's LXQt panel, never arbitrary Python.
+            parent = next(line.split()[1] for line in (process/'status').read_text().splitlines() if line.startswith('PPid:'))
+            if (Path('/proc')/parent/'comm').read_text().strip()=='lxqt-panel':
+                pids.append(int(process.name))
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            continue
+    if len(pids) != 1:
+        raise RuntimeError('Expected one DockBarX applet owned by LXQt; files saved, refresh at next login')
+    os.kill(pids[0], signal.SIGTERM)
+    print('DockBarX applet refreshed; panel and application windows retained.')
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('module',choices=MODULES)
@@ -281,6 +315,12 @@ if __name__=='__main__':
             parser.error('Install '+app+' before opting in')
         if args.module.endswith('-dark') and subprocess.run(['pgrep','-u',str(os.getuid()),'-x',app],stdout=subprocess.DEVNULL).returncode==0:
             parser.error('Save your work and close '+app+' yourself before changing its theme')
+    if args.live and args.module=='taskbar-drag':
+        if args.home.resolve()!=Path.home().resolve():
+            parser.error('--live requires the current user home')
+        run(args.home,args.module,args.apply,args.rollback)
+        refresh_dockbarx()
+        raise SystemExit(0)
     if args.live:
         from integrate import live_run
         # Preflight before briefly stopping any config writer.

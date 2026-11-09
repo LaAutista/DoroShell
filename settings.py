@@ -13,6 +13,7 @@ OPTIONS = [
     ('menu', 'Pink Start menu'),
     ('panel', 'Start button and Alt+F1'),
     ('taskbar', 'Taskbar'),
+    ('taskbar-drag', 'DockBarX icon dragging'),
     ('snapping', 'Drag windows to screen edges'),
     ('screenshots', 'Print Screen → clipboard'),
     ('single-desktop', 'One desktop (next login)'),
