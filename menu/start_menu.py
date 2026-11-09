@@ -353,7 +353,7 @@ class StartMenu(QWidget):
         self.setObjectName('doroShellStart')
         self.exit_on_hide = False
         self.launching = False
-        self.resize(680, 570)
+        self.resize(680, 610)
         self.apps = applications()
         self.by_id = {app.get_id(): app for app in self.apps}
         self.state = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'lxqt-comfort/favorites.json'
@@ -379,16 +379,23 @@ class StartMenu(QWidget):
         elif heading_font.pixelSize() > 0: heading_font.setPixelSize(round(heading_font.pixelSize() * 1.8))
         heading.setFont(heading_font)
         header = QHBoxLayout()
-        header.addWidget(heading)
-        header.addStretch()
+        header.addWidget(heading, 3)
+        portrait = QWidget()
+        portrait_row = QHBoxLayout(portrait)
+        portrait_row.setContentsMargins(0, 0, 0, 0)
+        portrait_row.addStretch()
         personal_icon = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)) / 'lxqt-comfort/start-icon.png'
-        if personal_icon.is_file():
+        portrait_icon = personal_icon if personal_icon.is_file() else Path(__file__).with_name('start.svg')
+        if portrait_icon.is_file():
             mascot = QLabel()
             mascot.setObjectName('personalStartImage')
-            mascot.setFixedSize(40, 40)
-            mascot.setAccessibleName('Personal Start image')
-            mascot.setPixmap(QIcon(str(personal_icon)).pixmap(QSize(40, 40)))
-            header.addWidget(mascot)
+            mascot.setFixedSize(72, 72)
+            mascot.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            mascot.setAccessibleName('Personal Start image' if personal_icon.is_file() else 'Start image')
+            mascot.setPixmap(QIcon(str(portrait_icon)).pixmap(QSize(64, 64)))
+            portrait_row.addWidget(mascot)
+        portrait_row.addStretch()
+        header.addWidget(portrait, 2)
         root.addLayout(header)
         body = QHBoxLayout()
         apps_panel = QWidget()
@@ -474,6 +481,7 @@ class StartMenu(QWidget):
             }
             QLabel#heading { font-weight: 600; padding-bottom: 10px; color: #5b143d; }
             QWidget#applicationsPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff9fd,stop:1 #f7d3e7); border: 1px solid #fff0f8; border-radius: 9px; }
+            QLabel#personalStartImage { background: #fff1fa; border: 2px solid #b75d91; border-radius: 8px; }
             QWidget#placesPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #a84e7c,stop:0.5 #803656,stop:1 #ab507b); border: 1px solid #f7d4e7; border-radius: 9px; }
             QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton { color: #fff5fb; }
             QLabel#section { padding: 8px; }
@@ -793,7 +801,7 @@ def main():
     window.exit_on_hide = True
     screen = QApplication.screenAt(QCursor.pos()) or app.primaryScreen()
     area = screen.availableGeometry()
-    window.resize(min(680, area.width()), min(570, area.height()))
+    window.resize(min(680, area.width()), min(610, area.height()))
     window.move(area.left(), area.bottom() - window.height() + 1)
     window.show()
     if args.screenshot:

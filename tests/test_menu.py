@@ -165,6 +165,12 @@ class MenuTests(unittest.TestCase):
             controls = window.findChildren(menu.QPushButton, 'menuControl')
             self.assertEqual(len(controls), 4)
             self.assertEqual(area.verticalScrollBar().maximum(), 0)
+            portrait = window.findChild(menu.QLabel, 'personalStartImage')
+            places = window.findChild(menu.QWidget, 'placesPanel')
+            self.assertFalse(portrait.pixmap().isNull())
+            center = portrait.mapTo(window, portrait.rect().center())
+            self.assertTrue(places.geometry().left() <= center.x() <= places.geometry().right())
+            self.assertLess(portrait.mapTo(window, portrait.rect().bottomLeft()).y(), places.geometry().top())
             for width, height in ((680, 570), (480, 450), (900, 700)):
                 window.resize(width, height)
                 self.app.processEvents()
