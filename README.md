@@ -227,3 +227,8 @@ The opt-in X11 check is `dbus-run-session -- python tests/check_taskbar_drag_x11
 The goal now covers all Open-Shell feature families, with Windows 7 kept as the primary menu style. [The parity inventory and delivery plan](docs/open-shell-parity.md) distinguishes implemented behavior, missing features and Windows-only integrations. Full parity is not complete; Explorer and Internet Explorer extensions cannot run directly in LXQt.
 
 Start now exposes application-provided tasks in the application right-click menu, such as New Window when the app declares it. Tasks use GIO desktop actions without shell command parsing. This does not yet provide recent-document jump lists, and successful dispatch cannot prove that the target application completed its action.
+
+
+## DoroShell Panel development
+
+A separately built native LXQt Panel prototype now provides a hidden-tray arrow and popup, native grouped tasks and a reversible next-login profile migration from DockBarX. The current desktop is not switched automatically. See [build, verification, limitations and rollback](panel/README.md). Unified pinned/running application icons and the final Windows 7 visual treatment remain unfinished.
