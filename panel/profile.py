@@ -82,8 +82,31 @@ def profile(original, home, launchers, hidden):
             if cfg.contains(notifier+'/type') and cfg.value(notifier+'/type') != 'statusnotifier':
                 raise ValueError('Panel widget name conflict: '+notifier)
             result.append(notifier);cfg.setValue(notifier+'/type','statusnotifier')
+        # A standalone --config file does not inherit the stock panel's plugin types.
+        for name in result:
+            if not cfg.contains(name+'/type'):
+                cfg.setValue(name+'/type', name)
+        cfg.setValue(notifier+'/doroshellCollapseNew', hidden is None and
+                     not any(cfg.contains(notifier+'/'+key) for key in ('hideList','autoHideList')))
         cfg.setValue(notifier+'/alignment','Right');cfg.setValue(notifier+'/doroshellPopup',True)
         if hidden is not None:cfg.setValue(notifier+'/hideList',hidden)
+        clock=next((name for name in result if cfg.value(name+'/type')=='worldclock'), None)
+        if clock is None:
+            clock='doroshellClock'
+            if clock in cfg.childGroups():
+                raise ValueError('Panel widget name conflict: '+clock)
+            cfg.setValue(clock+'/type','worldclock')
+        else:
+            result.remove(clock)
+        result.append(clock)
+        cfg.setValue(clock+'/alignment','Right')
+        cfg.setValue(clock+'/formatType','short-timeonly')
+        cfg.setValue(clock+'/dateFormatType','short')
+        cfg.setValue(clock+'/showDate',True)
+        cfg.setValue(clock+'/datePosition','below')
+        if not cfg.contains(clock+'/customFormat'):
+            cfg.setValue(clock+'/useAdvancedManualFormat',True)
+            cfg.setValue(clock+'/customFormat',"h:mm AP'<br/>'ddd, MMM d")
         desktop=next((name for name in result if cfg.value(name+'/type',name)=='showdesktop'),None)
         if desktop is None:
             desktop='doroshellShowDesktop'
@@ -96,7 +119,7 @@ def profile(original, home, launchers, hidden):
         cfg.setValue(desktop+'/alignment','Right')
         cfg.setValue(desktop+'/doroshellEdge',True)
         cfg.setValue('panel1/plugins',result)
-        for key,value in {'doroshellTheme':True,'position':'Bottom','panelSize':40,'iconSize':28,'lineCount':1}.items():cfg.setValue('panel1/'+key,value)
+        for key,value in {'doroshellTheme':True,'position':'Bottom','panelSize':40,'iconSize':cfg.value('panel1/iconSize', 28),'lineCount':1}.items():cfg.setValue('panel1/'+key,value)
         cfg.sync()
         if cfg.status()!=QSettings.Status.NoError:raise RuntimeError('Profile serialization failed')
         return config_path.read_bytes()
@@ -179,7 +202,16 @@ def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=
     for path,data in files.items():
         if data is None:path.unlink(missing_ok=True)
         else:atomic(path,data,record[str(path.relative_to(home))]['mode'] if rollback else (0o755 if path.name=='doroshell-native-panel' else 0o600))
-    if rollback:manifest.unlink()
+    if rollback:
+        # Keep sizing history with the backups when its panel is removed.
+        size_record = manifest.with_name('taskbar-size.json')
+        if size_record.exists():
+            safe(size_record, home)
+            with tempfile.NamedTemporaryFile(prefix='taskbar-size-before-restore-', suffix='.json',
+                                             dir=manifest.parent, delete=False) as backup:
+                backup_name = backup.name
+            size_record.replace(backup_name)
+        manifest.unlink()
     print('Saved for your next normal login. No process stopped or started.')
 
 

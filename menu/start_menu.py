@@ -13,9 +13,9 @@ import subprocess
 import gi
 gi.require_version('Gio', '2.0')
 from gi.repository import Gio, GLib
-from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QByteArray, QBuffer, QIODevice
+from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QRectF
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup, QPainterPath, QRegion
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
@@ -364,6 +364,9 @@ class ApplicationList(QListWidget):
             event.ignore()
 
 
+MENU_SIZE = QSize(508, 634)
+
+
 class StartMenu(QWidget):
     def __init__(self):
         super().__init__(None, Qt.WindowType.Popup)
@@ -371,7 +374,8 @@ class StartMenu(QWidget):
         self.setObjectName('doroShellStart')
         self.exit_on_hide = False
         self.launching = False
-        self.resize(680, 610)
+        self.resize(MENU_SIZE)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.apps = applications()
         self.by_id = {app.get_id(): app for app in self.apps}
         self.state = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'lxqt-comfort/favorites.json'
@@ -389,37 +393,32 @@ class StartMenu(QWidget):
         except (OSError, ValueError) as error:
             self.state_error = str(error)
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 18, 18, 18)
-        heading = QLabel('Start')
-        heading.setObjectName('heading')
-        heading_font = heading.font()
-        if heading_font.pointSizeF() > 0: heading_font.setPointSizeF(heading_font.pointSizeF() * 1.8)
-        elif heading_font.pixelSize() > 0: heading_font.setPixelSize(round(heading_font.pixelSize() * 1.8))
-        heading.setFont(heading_font)
-        header = QHBoxLayout()
-        header.addWidget(heading, 3)
-        portrait = QWidget()
-        portrait_row = QHBoxLayout(portrait)
-        portrait_row.setContentsMargins(0, 0, 0, 0)
-        portrait_row.addStretch()
+        root.setContentsMargins(2, 58, 2, 2)
+        self.frame = frame = QWidget()
+        frame.setObjectName('glassFrame')
+        root.addWidget(frame)
+        body = QHBoxLayout(frame)
+        body.setContentsMargins(10, 14, 10, 12)
+        body.setSpacing(6)
+        self.mascot = None
         personal_icon = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)) / 'lxqt-comfort/start-icon.png'
         portrait_icon = personal_icon if personal_icon.is_file() else Path(__file__).with_name('start.svg')
+        framed = personal_icon.with_name('framed-start-icon.png')
+        if framed.is_file():
+            portrait_icon = framed
         if portrait_icon.is_file():
-            mascot = QLabel()
+            self.mascot = mascot = QLabel(self)
             mascot.setObjectName('personalStartImage')
-            mascot.setFixedSize(72, 72)
+            mascot.setFixedSize(88, 88)
             mascot.setAlignment(Qt.AlignmentFlag.AlignCenter)
             mascot.setAccessibleName('Personal Start image' if personal_icon.is_file() else 'Start image')
-            mascot.setPixmap(QIcon(str(portrait_icon)).pixmap(QSize(64, 64)))
-            portrait_row.addWidget(mascot)
-        portrait_row.addStretch()
-        header.addWidget(portrait, 2)
-        root.addLayout(header)
-        body = QHBoxLayout()
+            if portrait_icon == framed:
+                mascot.setStyleSheet('background: transparent; border: none;')
+            mascot.setPixmap(QIcon(str(portrait_icon)).pixmap(QSize(88, 88) if portrait_icon == framed else QSize(76, 76)))
         apps_panel = QWidget()
         apps_panel.setObjectName('applicationsPanel')
         left = QVBoxLayout(apps_panel)
-        left.setContentsMargins(5, 5, 5, 5)
+        left.setContentsMargins(8, 8, 8, 8)
         self.pinned_heading = QLabel('Pinned')
         self.pinned_heading.setObjectName('pinnedHeading')
         left.addWidget(self.pinned_heading)
@@ -429,7 +428,7 @@ class StartMenu(QWidget):
         self.category.setAccessibleName('Application category')
         left.addWidget(self.category)
         self.list = ApplicationList(self)
-        self.list.setIconSize(QSize(28, 28))
+        self.list.setIconSize(QSize(32, 32))
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.list.setAccessibleName('Applications')
@@ -438,10 +437,22 @@ class StartMenu(QWidget):
         self.list.itemClicked.connect(self.launch_item)
         self.list.itemActivated.connect(self.launch_item)
         left.addWidget(self.list)
+        self.shortcuts_heading = QLabel('Applications')
+        self.shortcuts_heading.setObjectName('pinnedHeading')
+        left.addWidget(self.shortcuts_heading)
+        self.shortcuts = QListWidget()
+        self.shortcuts.setAccessibleName('Common applications')
+        self.shortcuts.setIconSize(QSize(32, 32))
+        self.shortcuts.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.shortcuts.itemClicked.connect(self.launch_item)
+        self.shortcuts.itemActivated.connect(self.launch_item)
+        left.addWidget(self.shortcuts)
         self.search = QLineEdit()
-        self.search.setPlaceholderText('Search applications…')
+        self.search.setPlaceholderText('Search programs…')
+        self.search.addAction(QIcon.fromTheme('edit-find'), QLineEdit.ActionPosition.LeadingPosition)
         self.search.setAccessibleName('Search applications')
         self.programs = QPushButton('All Programs')
+        self.programs.setObjectName('programsButton')
         self.programs.clicked.connect(self.toggle_programs)
         self.recent_button = QPushButton('Recent programs')
         self.recent_button.clicked.connect(lambda: self.category.setCurrentText('Recent'))
@@ -452,10 +463,7 @@ class StartMenu(QWidget):
         places_panel = QWidget()
         places_panel.setObjectName('placesPanel')
         right = QVBoxLayout(places_panel)
-        right.setContentsMargins(10, 8, 10, 8)
-        places = QLabel('YOUR FOLDERS')
-        places.setObjectName('section')
-        right.addWidget(places)
+        right.setContentsMargins(4, 38, 3, 2)
         self.folder_settings = FolderSettings(self.state.with_name('folders.json'))
         area = QScrollArea()
         area.setWidgetResizable(True)
@@ -491,7 +499,7 @@ class StartMenu(QWidget):
         options_menu.addAction('DoroShell settings…', lambda: self.run_desktop('doroshell-settings.desktop'))
         options.setMenu(options_menu)
         right.addWidget(options)
-        right.addStretch()
+
         settings = QPushButton(QIcon.fromTheme('preferences-system'), 'LXQt settings')
         settings.setObjectName('menuControl')
         settings.clicked.connect(lambda: self.run_desktop('lxqt-config.desktop'))
@@ -521,27 +529,24 @@ class StartMenu(QWidget):
         power.addWidget(self.power_arrow)
         right.addLayout(power)
         body.addWidget(places_panel, 2)
-        root.addLayout(body)
-        self.status = QLabel('Right-click an application to pin it • Tab to move between columns')
-        self.status.setWordWrap(True)
-        root.addWidget(self.status)
+        self.list.setToolTip('Drag pins to reorder. Right-click a program for more options.')
         self.setStyleSheet('''
             QWidget { color: #351329; background: transparent; }
-            QWidget#doroShellStart {
-                background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #f9d7eb,stop:0.42 #df82b6,stop:0.52 #cb649d,stop:1 #f0b2d2);
-                border: 2px solid #fff0f8; border-radius: 12px;
+            QWidget#glassFrame {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0.78,stop:0 #f8b9df,stop:0.12 #993d71,stop:0.28 #e19dc5,stop:0.46 #86345e,stop:0.49 #b54e83,stop:0.68 #713452,stop:0.86 #b85187,stop:1 #f6b2d5);
+                border: 3px solid #ffe2f3; border-radius: 15px;
             }
-            QLabel#heading { font-weight: 600; padding-bottom: 10px; color: #5b143d; }
-            QWidget#applicationsPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff9fd,stop:1 #f7d3e7); border: 1px solid #fff0f8; border-radius: 9px; }
-            QLabel#personalStartImage { background: #fff1fa; border: 2px solid #b75d91; border-radius: 8px; }
-            QWidget#placesPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #a84e7c,stop:0.5 #803656,stop:1 #ab507b); border: 1px solid #f7d4e7; border-radius: 9px; }
+            QWidget#applicationsPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:0.7,stop:0 #fff9fd,stop:0.44 #fbeaf5,stop:0.47 #fff5fc,stop:0.76 #f8d9ed,stop:1 #fff5fb); border: 2px solid #fff6fc; border-radius: 9px; }
+            QLabel#personalStartImage { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #ffffff,stop:0.52 #ffe0f2,stop:1 #e7aaca); border: 3px solid #883c69; border-radius: 11px; }
+            QWidget#placesPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:0.8,stop:0 #a24877,stop:0.39 #783251,stop:0.43 #9e4672,stop:0.65 #773353,stop:1 #9d4772); border-radius: 7px; }
             QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton { color: #fff5fb; }
-            QLabel#pinnedHeading { font-weight: bold; padding: 5px 8px; }
-            QLabel#section { padding: 8px; }
+            QLabel#pinnedHeading { font-weight: bold; padding: 4px 7px; }
             QListWidget, QLineEdit, QComboBox { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff7fc,stop:1 #f8d7e9); border: 1px solid #b75d91; border-radius: 6px; }
-            QListWidget::item { padding: 7px; border: 1px solid transparent; }
+            QWidget#applicationsPanel QListWidget { background: transparent; border: none; }
+            QListWidget::item { padding: 4px; border: 1px solid transparent; }
             QListWidget::item:selected { background: #edafd2; border: 1px solid #ad5086; color: #351329; border-radius: 4px; }
             QPushButton { text-align: left; padding: 12px; border: 1px solid transparent; border-radius: 5px; }
+            QListWidget::item:hover { background: #f5d1e6; border-radius: 4px; }
             QPushButton#folderLink { padding: 6px 8px; }
             QPushButton#menuControl { padding: 5px 8px; }
             QPushButton[sessionPrimary="true"] { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #934369,stop:1 #6f294c); border: 1px solid #dca5c5; border-top-right-radius: 0; border-bottom-right-radius: 0; }
@@ -550,7 +555,8 @@ class StartMenu(QWidget):
             QWidget#placesPanel QPushButton:disabled { color: #fff5fb; }
             QPushButton:hover, QPushButton:focus { background: #f3c6e0; border: 1px solid #914069; }
             QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus { background: #642644; border: 1px solid #fff0f8; }
-            QLineEdit { padding: 12px; placeholder-text-color: #795369; } QComboBox { padding: 8px; }
+            QPushButton#programsButton { border-top: 1px solid #c48caa; border-radius: 0; font-weight: 600; padding: 6px; }
+            QLineEdit { padding: 6px; placeholder-text-color: #795369; } QComboBox { padding: 8px; }
             QComboBox QAbstractItemView { background: #fff7fc; color: #351329; selection-background-color: #edafd2; selection-color: #351329; }
             QComboBox QAbstractItemView::item:selected { background: #edafd2; color: #351329; }
             QMessageBox { background: #fff2f9; color: #351329; }
@@ -615,22 +621,17 @@ class StartMenu(QWidget):
         helper = Path(__file__).resolve().parents[1] / 'runtime/menu_capture.py'
         if not helper.is_file():
             helper = Path.home() / '.local/share/doroshell/toolkit/runtime/menu_capture.py'
-        screen = self.screen()
-        image = screen.grabWindow(0).toImage()
-        data = QByteArray(); buffer = QBuffer(data)
-        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-        if image.isNull() or not image.save(buffer, 'PNG') or not helper.is_file():
-            self.error('The open menu could not be captured. Clipboard unchanged.')
-            return
-        geometry = screen.geometry()
-        command = [sys.executable, str(helper), '--geometry', str(geometry.x()), str(geometry.y()), str(geometry.width()), str(geometry.height())]
         try:
-            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+            process = subprocess.Popen([sys.executable, str(helper), '--notify'], stdout=subprocess.PIPE,
                                        stderr=subprocess.DEVNULL, start_new_session=True)
-            process.stdin.write(bytes(data))
-            process.stdin.close()
-        except OSError as error:
-            self.error('Capture could not start; clipboard unchanged: ' + str(error))
+            with process.stdout as reply:
+                status = reply.readline()
+            if status == b'BUSY\n':
+                return
+            if status != b'FROZEN\n':
+                raise RuntimeError('The desktop could not be frozen.')
+        except (OSError, RuntimeError) as error:
+            self.error('Capture could not start. Clipboard unchanged: ' + str(error))
             return
         self.launching = True
         self.close()
@@ -722,10 +723,46 @@ class StartMenu(QWidget):
             self.list.addItem(item)
         self.list.setDragEnabled(self.can_reorder_pins())
         self.list.setCurrentRow(0)
-        if not back:
-            self.status.setText('Drag pins to reorder' if pinned else 'To pin an app, open All Programs and right-click it.')
-        else:
-            self.status.setText(f'{self.list.count()} applications • Right-click to pin or reorder')
+        self.shortcuts.clear()
+        if not back and len(pinned) < 4:
+            defaults = [Gio.AppInfo.get_default_for_uri_scheme('https'),
+                        Gio.AppInfo.get_default_for_type('inode/directory', False),
+                        Gio.DesktopAppInfo.new('qterminal.desktop'),
+                        Gio.AppInfo.get_default_for_type('text/plain', False),
+                        Gio.AppInfo.get_default_for_type('image/png', False),
+                        Gio.AppInfo.get_default_for_type('audio/mpeg', False),
+                        Gio.DesktopAppInfo.new('lxqt-config.desktop')]
+            seen = set(self.favorites)
+            for app in defaults:
+                if app and app.get_id() in self.by_id and app.get_id() not in seen:
+                    item = QListWidgetItem(icon_for(app), app.get_display_name())
+                    item.setData(Qt.ItemDataRole.UserRole, app.get_id())
+                    self.shortcuts.addItem(item)
+                    seen.add(app.get_id())
+        show_shortcuts = bool(self.shortcuts.count())
+        self.shortcuts.setVisible(show_shortcuts)
+        self.shortcuts_heading.setVisible(show_shortcuts)
+        self.list.setMaximumHeight(max(1, self.list.sizeHintForRow(0)) * len(pinned) + 4
+                                   if show_shortcuts else 16777215)
+        self.list.setVisible(bool(pinned) or not show_shortcuts)
+        self.pinned_heading.setVisible(not back and (bool(pinned) or not show_shortcuts))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if getattr(self, 'mascot', None):
+            self.mascot.move(round(self.width() * 0.80 - self.mascot.width() / 2), 2)
+            self.mascot.raise_()
+        # An X11 server without a compositor paints transparent popup margins black.
+        if QApplication.platformName() == 'xcb':
+            outline = QPainterPath()
+            outline.setFillRule(Qt.FillRule.WindingFill)
+            outline.addRoundedRect(QRectF(self.frame.geometry()), 15, 15)
+            if self.mascot:
+                portrait = QRectF(self.mascot.geometry())
+                if self.mascot.styleSheet():
+                    portrait.adjust(2, 2, -2, -2)
+                outline.addRoundedRect(portrait, 11, 11)
+            self.setMask(QRegion(outline.toFillPolygon().toPolygon(), Qt.FillRule.WindingFill))
 
     def can_reorder_pins(self):
         return not self.search.text() and self.category.currentText() in ('Home', 'Pinned') and not self.state_error
@@ -918,7 +955,7 @@ def main():
     window.exit_on_hide = True
     screen = QApplication.screenAt(QCursor.pos()) or app.primaryScreen()
     area = screen.availableGeometry()
-    window.resize(min(680, area.width()), min(610, area.height()))
+    window.resize(min(MENU_SIZE.width(), area.width()), min(MENU_SIZE.height(), area.height()))
     window.move(area.left(), area.bottom() - window.height() + 1)
     window.show()
     if args.screenshot:

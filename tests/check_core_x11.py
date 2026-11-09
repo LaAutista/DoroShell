@@ -113,7 +113,7 @@ def exercise(home, rc, panel, shortcuts, binary):
             wait(1.3)
             start = window.mapToGlobal(window.rect().topLeft())
             for kind, x, y in [(X.MotionNotify, 15, 15), (X.ButtonPress, 15, 15),
-                               (X.MotionNotify, 135, 105), (X.ButtonRelease, 135, 105)]:
+                               (X.MotionNotify, 134, 104), (X.ButtonRelease, 134, 104)]:
                 if kind == X.MotionNotify:
                     xtest.fake_input(d, kind, x=start.x()+x, y=start.y()+y)
                 else:

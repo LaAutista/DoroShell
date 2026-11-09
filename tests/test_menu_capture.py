@@ -3,13 +3,13 @@ os.environ['QT_QPA_PLATFORM']='offscreen'
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import shiboken6
 from PySide6.QtCore import QRect, QPoint, Qt
 from PySide6.QtGui import QImage, QColor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
-from runtime.menu_capture import FrozenCapture, publish
+from runtime.menu_capture import FrozenCapture, publish, compose_screens
 
 class MenuCaptureTests(unittest.TestCase):
     @classmethod
@@ -24,10 +24,10 @@ class MenuCaptureTests(unittest.TestCase):
         QTest.mouseMove(dialog,QPoint(80,130))
         QTest.mouseRelease(dialog,Qt.MouseButton.LeftButton,pos=QPoint(80,130))
 
-    def test_cancel_and_empty_capture_never_publish(self):
+    def test_fullscreen_enter_and_cancel_never_publishes(self):
         sink=Mock()
         dialog=FrozenCapture(self.image(),QRect(0,0,400,300))
-        dialog.accept();self.assertIsNone(dialog.selected_image())
+        QTest.keyClick(dialog,Qt.Key.Key_Return);self.assertEqual(dialog.selected_image(),self.image())
         self.select(dialog);QTest.keyClick(dialog,Qt.Key.Key_Escape)
         self.assertFalse(publish(dialog.selected_image(),sink))
         sink.clipboard.assert_not_called();shiboken6.delete(dialog)
@@ -40,11 +40,88 @@ class MenuCaptureTests(unittest.TestCase):
         QTest.keyClick(dialog,Qt.Key.Key_Return)
         result=dialog.selected_image()
         self.assertIsNotNone(result)
-        self.assertEqual(result.width(),round(dialog.selection.width()*image.width()/dialog.width()))
+        self.assertEqual(result.size().toTuple(), (121,101))
         self.assertEqual(result.pixelColor(0,0),QColor('#e9a4cd'))
         sink=Mock();self.assertTrue(publish(result,sink));sink.clipboard().setImage.assert_called_once()
         with tempfile.TemporaryDirectory() as tmp:
             output=Path(tmp)/'capture.png';self.assertTrue(publish(result,sink,output))
             self.assertEqual(output.stat().st_mode & 0o777,0o600)
             with self.assertRaises(FileExistsError):publish(result,sink,output)
+        shiboken6.delete(dialog)
+
+
+    def test_resize_move_annotate_undo_and_export(self):
+        dialog=FrozenCapture(self.image(),QRect(0,0,400,300))
+        self.select(dialog)
+        def drag(start,end):
+            QTest.mousePress(dialog,Qt.MouseButton.LeftButton,pos=start)
+            QTest.mouseMove(dialog,end)
+            QTest.mouseRelease(dialog,Qt.MouseButton.LeftButton,pos=end)
+        drag(QPoint(80,130),QPoint(100,150))
+        self.assertEqual(dialog.pixel_rect(),QRect(20,80,81,71))
+        drag(QPoint(50,100),QPoint(60,110))
+        self.assertEqual(dialog.pixel_rect(),QRect(30,90,81,71))
+        dialog.set_tool('Redact')
+        drag(QPoint(40,100),QPoint(60,120))
+        dialog.undo()
+        self.assertFalse(dialog.strokes)
+        dialog.redo()
+        dialog.accept()
+        result=dialog.selected_image()
+        self.assertEqual(result.size().toTuple(),(81,71))
+        self.assertEqual(result.pixelColor(20,20),QColor('black'))
+        self.assertEqual(result.pixelColor(0,0),QColor('#e9a4cd'))
+        shiboken6.delete(dialog)
+
+    def test_composite_negative_origin_and_mixed_density(self):
+        left=QImage(150,120,QImage.Format.Format_RGB32);left.fill(QColor('red'))
+        right=QImage(100,80,QImage.Format.Format_RGB32);right.fill(QColor('blue'))
+        image,bounds=compose_screens([(QRect(-100,-20,100,80),left),(QRect(0,0,100,80),right)])
+        self.assertEqual(bounds,QRect(-100,-20,200,100))
+        self.assertEqual(image.size().toTuple(),(300,150))
+        self.assertEqual(image.pixelColor(149,60),QColor('red'))
+        self.assertEqual(image.pixelColor(150,60),QColor('blue'))
+        self.assertEqual(image.pixelColor(151,0),QColor('black'))
+
+
+    def test_save_exports_final_annotations_and_cancelled_save_stays_open(self):
+        dialog=FrozenCapture(self.image(),QRect(0,0,400,300))
+        self.select(dialog)
+        dialog.set_tool('Pen')
+        QTest.mousePress(dialog,Qt.MouseButton.LeftButton,pos=QPoint(30,95))
+        QTest.mouseRelease(dialog,Qt.MouseButton.LeftButton,pos=QPoint(55,95))
+        with patch('runtime.menu_capture.QFileDialog.getSaveFileName',return_value=('','')):
+            dialog.choose_save()
+        self.assertIsNone(dialog.selected_image())
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'marked.png'
+            with patch('runtime.menu_capture.QFileDialog.getSaveFileName',return_value=(str(path),'PNG')):
+                dialog.choose_save()
+            result=dialog.selected_image()
+            saved=QImage(str(path))
+            self.assertEqual(saved.size(),result.size())
+            self.assertEqual(saved.pixelColor(20,15),QColor('#f04761'))
+            self.assertEqual(saved.pixelColor(20,15),result.pixelColor(20,15))
+        shiboken6.delete(dialog)
+
+    def test_strokes_keep_independent_colors_and_widths(self):
+        dialog=FrozenCapture(self.image(),QRect(0,0,400,300))
+        dialog.show()
+        self.app.processEvents()
+        dialog.set_tool('Pen')
+        for y,width,color in [(100,3,'#1040d0'),(125,11,'#007830')]:
+            with patch('runtime.menu_capture.QColorDialog.getColor',return_value=QColor(color)):
+                dialog.choose_color()
+            dialog.stroke_width.setValue(width)
+            QTest.mousePress(dialog,Qt.MouseButton.LeftButton,pos=QPoint(25,y))
+            QTest.mouseRelease(dialog,Qt.MouseButton.LeftButton,pos=QPoint(90,y))
+        dialog.set_tool('Highlight')
+        self.assertEqual(dialog.stroke_width.value(),15)
+        dialog.set_tool('Pen')
+        self.assertEqual(dialog.stroke_width.value(),11)
+        dialog.accept()
+        image=dialog.selected_image()
+        self.assertEqual(image.pixelColor(50,100),QColor('#1040d0'))
+        self.assertEqual(image.pixelColor(50,104),QColor('#e9a4cd'))
+        self.assertEqual(image.pixelColor(50,129),QColor('#007830'))
         shiboken6.delete(dialog)

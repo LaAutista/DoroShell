@@ -17,7 +17,7 @@ PACKAGES={
  'kate-dark':['kate','breeze'], 'dolphin-dark':['dolphin','breeze'],
  'single-desktop':['openbox'], 'taskbar':['lxqt-panel'],
  'cursor':['python-pillow'],
- 'taskbar-drag':['python-gobject'],
+ 'taskbar-drag':['python-gobject'], 'taskbar-size':['lxqt-panel'],
 }
 DEFAULT=['menu']
 
@@ -33,7 +33,9 @@ def main():
     p.add_argument('--gif',type=Path,help='Local animated loading cursor; never copied into the repository')
     p.add_argument('--pink-pointer',action='store_true')
     p.add_argument('--icon',type=Path,help='Personal Start image; stored locally, never bundled')
+    p.add_argument('--taskbar-size',choices=('small','medium','large'),default='medium')
     p.add_argument('--taskbar-style',choices=('icons','standard'),default='icons')
+    p.add_argument('--native-preview',type=Path,help='Import-enabled native ScreenGrab executable for screenshots')
     p.add_argument('--keep-panel-edits',action='store_true',help='Back up changed native panel settings before rollback')
     p.add_argument('--prepared',type=Path,help='Prepared native panel profile directory')
     p.add_argument('--gui',action='store_true',help='Open DoroShell settings')
@@ -47,6 +49,8 @@ def main():
     selected=list(dict.fromkeys(args.modules))
     if args.keep_panel_edits and (not args.rollback or 'native-panel' not in selected):
         p.error('--keep-panel-edits requires native-panel --rollback')
+    if args.native_preview and ('screenshots' not in selected or args.rollback):
+        p.error('--native-preview requires the screenshots module and an install or preview action')
     packages=sorted({pkg for m in selected for pkg in PACKAGES[m]})
     print('Required packages: '+', '.join(packages),flush=True)
     if args.packages:
@@ -93,6 +97,8 @@ def main():
         cmd += ['--home',str(args.home.absolute())]
         if args.apply: cmd += ['--apply']
         if args.rollback: cmd += ['--rollback']
+        if module=='screenshots' and args.native_preview: cmd += ['--native-preview',str(args.native_preview.resolve())]
+        if module=='taskbar-size': cmd += ['--taskbar-size',args.taskbar_size]
         if module=='taskbar': cmd += ['--taskbar-style',args.taskbar_style]
         if args.live and module not in ('menu','cursor','single-desktop','kate','dolphin','kate-dark','dolphin-dark'): cmd += ['--live']
         print('\n'+module+':',flush=True)

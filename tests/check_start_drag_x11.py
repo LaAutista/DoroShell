@@ -55,6 +55,8 @@ try:
         state=directory/'lxqt-comfort/favorites.json';state.parent.mkdir();state.write_text(json.dumps(ids))
         with patch.object(m,'applications',return_value=apps):
             window=m.StartMenu();window.move(80,80);window.show();wait(.3)
+            assert not window.mask().contains(QPoint(8, 8)), 'Transparent header still covers the wallpaper'
+            assert window.mask().contains(window.mascot.geometry().center()), 'Portrait was clipped'
             drag(window,0,2)
             expected=[ids[1],ids[2],ids[0]]
             assert json.loads(state.read_text())==expected,'Pointer drag did not persist pin order'

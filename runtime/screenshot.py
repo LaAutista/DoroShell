@@ -83,6 +83,9 @@ class Capture:
 def main():
     if os.environ.get('XDG_SESSION_TYPE', 'x11') != 'x11':
         raise SystemExit('This screenshot integration is validated for X11 only.')
+    if '--native-region' not in sys.argv:
+        helper = Path(__file__).with_name('menu_capture.py')
+        os.execv(sys.executable,[sys.executable,str(helper)])
     app = QApplication(sys.argv[:1])
     app.setQuitOnLastWindowClosed(False)
     name = 'doroshell-capture-' + str(os.getuid())

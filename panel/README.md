@@ -5,12 +5,12 @@ A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden
 ## Built behavior
 
 - Opt-in pink gradient styling (`panel1/doroshellTheme=true`), with pale task highlights and a pink hidden-tray popup.
-- Bottom-oriented, 40-pixel candidate profile with 28-pixel icons and compact native task buttons.
+- Bottom-oriented, 40-pixel candidate profile with the existing panel icon size (28 pixels by default) and compact native task buttons.
 - Narrow Show Desktop target at the far right, after the clock. Preparation reuses an existing Show Desktop widget and preserves its other settings. The optional `doroshellEdge` style keeps the native action, tooltip and accessible name; `doroshellEdgeWidth` defaults to 12 pixels and is bounded to 8–32 pixels. Vertical panels use that extent as the target height.
 - Unified pinned/running application buttons: a closed pin launches its desktop entry through GIO; the matching window reuses that button. Running apps have an underline. Click to activate/restore and drag to reorder.
 - DockBarX pinned launchers migrate in order into the native taskbar, using desktop entries. Existing widgets, clock settings and tray hide/auto-hide preferences are retained. The old panel file is never overwritten.
 - A small upward arrow opens a separate grid of hidden notification icons. The popup uses LXQt's native StatusNotifierItem buttons, supports mouse activation, Enter/Space and Escape, and closes if a represented service disconnects.
-- User-configured Hide/Auto-hide lists determine which icons appear in overflow. The arrow appears only when there are hidden icons. Right-click the notification area and use its Configure dialog to choose icons; `profile.py prepare --hide TITLE` can explicitly supply hidden titles instead.
+- The generated profile places a two-line local clock just before Show Desktop. Click it to open the calendar. With a stock tray configuration, new notification icons go behind the up arrow. Choose Always show in the notification area settings to keep an icon on the bar. Existing Hide/Auto-hide lists retain their selection. The arrow appears only when there are hidden icons. Right-click the notification area and use its Configure dialog to choose icons; `profile.py prepare --hide TITLE` can explicitly supply hidden titles instead.
 
 **Pinned order persists across panel restarts.** Matching uses `StartupWMClass`, falling back to the desktop filename without `.desktop`; unmatched windows retain normal task buttons. Ambiguous identities are refused during preparation. Unpinned running-task order, thumbnail/peek polish and further glass-like visual polish remain development work. This does not claim all Open-Shell functionality or an exact Windows 7 reproduction.
 

@@ -52,6 +52,7 @@ class SettingsTests(unittest.TestCase):
             window = settings.Settings(Path(d))
             window.show(); self.app.processEvents()
             self.assertEqual(set(window.choices), {module for module, _ in settings.OPTIONS})
+            window.other_taskbars.click()
             for index, (_, modules_on_page) in enumerate(settings.PAGES):
                 window.categories.setCurrentRow(index); self.app.processEvents()
                 self.assertEqual(window.pages.currentIndex(), index)
@@ -67,6 +68,69 @@ class SettingsTests(unittest.TestCase):
             window.choices['kate'].setCurrentIndex(0)
             self.assertEqual(window.selection_summary.text(), 'No changes selected')
             window.close(); shiboken6.delete(window)
+
+    def test_settings_pages_fit_and_results_use_space_only_when_needed(self):
+        from PySide6.QtGui import QFont
+        with tempfile.TemporaryDirectory() as tmp:
+            original=self.app.font()
+            try:
+                for width,height,points in [(880,650,11),(600,480,16)]:
+                    font=QFont(original)
+                    font.setPointSize(points)
+                    self.app.setFont(font)
+                    window=settings.Settings(Path(tmp))
+                    try:
+                        window.resize(width,height)
+                        window.show()
+                        for i in range(window.pages.count()):
+                            window.categories.setCurrentRow(i)
+                            self.app.processEvents()
+                            page=window.pages.currentWidget()
+                            self.assertEqual(page.horizontalScrollBar().maximum(),0)
+                            if width==880:
+                                self.assertEqual(page.verticalScrollBar().maximum(),0)
+                        self.assertTrue(window.output.isHidden())
+                        window.preview.click()
+                        self.assertTrue(window.output.isVisible())
+                        self.assertIn('No changes selected',window.output.toPlainText())
+                        window.output.clear()
+                        self.assertTrue(window.output.isHidden())
+                    finally:
+                        shiboken6.delete(window)
+            finally:
+                self.app.setFont(original)
+
+    def test_taskbar_sizes_preview_apply_and_restore(self):
+        import subprocess, sys
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home/'.local/state/doroshell').mkdir(parents=True)
+            (home/'.local/state/doroshell/native-panel.json').write_text('{}')
+            panel = home/'.config/doroshell/panel.conf'
+            panel.parent.mkdir(parents=True)
+            original = '[panel1]\niconSize=25\n[doroshellTasks]\ntype=taskbar\nbuttonWidth=43\n[worldclock]\nshowDate=true\n'
+            panel.write_text(original)
+            window = settings.Settings(home)
+            try:
+                choice = window.choices['taskbar-size']
+                for size, pixels, width in [('small',20,36), ('medium',28,48), ('large',36,56)]:
+                    choice.setCurrentIndex(choice.findData(size))
+                    before = panel.read_bytes()
+                    subprocess.run([sys.executable, *window.commands(False)[0]], check=True)
+                    self.assertEqual(panel.read_bytes(), before)
+                    subprocess.run([sys.executable, *window.commands(True)[0]], check=True)
+                    text = panel.read_text()
+                    self.assertEqual(modules.ini_value(text,'panel1','iconSize'), str(pixels))
+                    self.assertEqual(modules.ini_value(text,'doroshellTasks','buttonWidth'), str(width))
+                panel.write_text(panel.read_text().replace('buttonWidth=56','buttonWidth=52'))
+                with self.assertRaises(RuntimeError):
+                    modules.run(home,'taskbar-size',rollback=True)
+                panel.write_text(panel.read_text().replace('buttonWidth=52','buttonWidth=56'))
+                choice.setCurrentIndex(choice.findData('restore'))
+                subprocess.run([sys.executable, *window.commands(True)[0]], check=True)
+                self.assertEqual(panel.read_text(), original)
+            finally:
+                shiboken6.delete(window)
 
     def test_defaults_and_dark_repeat_restore_preserve_unrelated_settings(self):
         with tempfile.TemporaryDirectory() as d:
@@ -116,6 +180,9 @@ class SettingsTests(unittest.TestCase):
             target=home/'.local/share/lxqt-comfort/start-icon.png'
             self.assertTrue(target.exists())
             install.install(home,True)
-            self.assertIn('start-icon.png',(home/'.local/share/applications/lxqt-comfort.desktop').read_text())
+            framed = target.with_name('framed-start-icon.png')
+            self.assertEqual(QImage(str(framed)).width(),96)
+            self.assertEqual(QImage(str(target)).pixelColor(0,0),QColor('pink'))
+            self.assertIn('framed-start-icon.png',(home/'.local/share/applications/lxqt-comfort.desktop').read_text())
             install.rollback(home)
-            self.assertTrue(icon.exists()); self.assertFalse(target.exists())
+            self.assertTrue(icon.exists()); self.assertFalse(target.exists()); self.assertFalse(framed.exists())

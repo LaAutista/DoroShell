@@ -51,7 +51,7 @@ def worker():
     assert os.environ.get('DOROSHELL_TEST_DISPLAY')==os.environ.get('DISPLAY') and os.environ['DISPLAY']!=':0','A private display is required'
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QImage,QColor
-    from Xlib import display,X,XK
+    from Xlib import display,X,XK,error
     from Xlib.ext import xtest
     app=QApplication([]);app.setQuitOnLastWindowClosed(False)
     d=display.Display();children=[]
@@ -80,7 +80,9 @@ def worker():
             result=app.clipboard().image()
             assert (result.width(),result.height())==(120,90)
             assert result.pixelColor(0,0)==color and result.pixelColor(119,89)==color
-            assert capture.poll() is None,'Clipboard owner exited too early'
+            owner_window=d.get_selection_owner(d.intern_atom('CLIPBOARD'))
+            assert owner_window
+            assert capture.wait(timeout=3)==0,'Capture UI did not exit after clipboard handoff'
             cancelled=start();event(X.MotionNotify,x=300,y=200);event(X.ButtonPress,1)
             event(X.MotionNotify,x=400,y=300);key('Escape');event(X.ButtonRelease,1);cancelled.wait(timeout=3)
             assert app.clipboard().image()==result,'Mid-drag cancellation replaced completed clipboard image'
@@ -88,7 +90,13 @@ def worker():
                 exported=QImage(str(paste_office(kind,base)))
                 assert (exported.width(),exported.height())==(120,90)
                 assert all(exported.pixelColor(x,y)==color for x in range(120) for y in range(90)),kind
-            app.clipboard().setText('replacement');wait(.4);capture.wait(timeout=3)
+            app.clipboard().setText('replacement');wait(.4);assert app.clipboard().text()=='replacement'
+            try:
+                owner_window.get_attributes()
+            except error.BadWindow:
+                pass
+            else:
+                raise AssertionError('The old clipboard owner still has its X11 window')
             print('PASS private X11: capture → cancellation preserves image → Writer/Draw Paste matches every pixel; owner exits on replacement; personal clipboard never used',flush=True)
     finally:
         for p in children:

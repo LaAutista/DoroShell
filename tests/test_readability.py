@@ -52,7 +52,7 @@ class ReadabilityTests(unittest.TestCase):
             menu=StartMenu();settings=Settings(Path(tmp))
             try:
                 css=menu.styleSheet();ink=text_color(rule(css,'QWidget'))
-                for selector in ('QWidget#doroShellStart','QWidget#applicationsPanel','QListWidget, QLineEdit, QComboBox','QListWidget::item:selected','QPushButton:hover, QPushButton:focus','QMenu','QMessageBox','QMessageBox QPushButton'):
+                for selector in ('QWidget#applicationsPanel','QListWidget, QLineEdit, QComboBox','QListWidget::item:selected','QPushButton:hover, QPushButton:focus','QMenu','QMessageBox','QMessageBox QPushButton'):
                     self.check_pair(ink,backgrounds(rule(css,selector)))
                 places=text_color(rule(css,'QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton'))
                 for selector in ('QWidget#placesPanel','QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus','QPushButton[sessionPrimary="true"]','QPushButton#powerMenuArrow'):

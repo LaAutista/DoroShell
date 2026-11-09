@@ -45,14 +45,17 @@ def encode_cursor(frames):
 
 def build(gif, base, pink=False):
     with Image.open(gif) as source:
-        if source.n_frames < 2:
+        poster = int(source.info.get('default_image', False))
+        if getattr(source, 'n_frames', 1) - poster < 2:
             raise ValueError('An animated image is required')
-        frames = [(f.convert('RGBA'), max(10, f.info.get('duration', 100))) for f in ImageSequence.Iterator(source)]
-    # Crop a shared bounding box so the character remains stable while turning.
+        canvas = (0, 0, *source.size) if source.format == 'PNG' else None
+        frames = [(f.convert('RGBA'), max(10, round(f.info.get('duration', 100))))
+                  for i, f in enumerate(ImageSequence.Iterator(source)) if i >= poster]
+    # APNG's authored canvas retains positioning. Preserve existing GIF/WebP crop behavior.
     boxes = [im.getbbox() for im,_ in frames if im.getbbox()]
     if not boxes:
         raise ValueError('Animation is empty')
-    crop = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    crop = canvas or (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
     busy, progress, pointers = [], [], []
     for size in SIZES:
         arrow, hot = decode_cursor(base/'cursors/default', size)
@@ -109,10 +112,11 @@ def run(home, gif=None, base=Path('/usr/share/icons/breeze_cursors'), apply=Fals
         if not gif:
             raise ValueError('Provide --gif /path/to/animation.gif')
         files=targets(home,gif,base,pink)
-        # Remove optional overrides when returning to the ordinary pointer.
+        # Return optional pointer overrides to their original contents or absence.
         for key in record:
             if home/key not in files:
-                files[home/key] = None
+                before = record[key]['before']
+                files[home/key] = base64.b64decode(before) if before is not None else None
     for path,data in files.items():
         safe(path,home)
         current=path.read_bytes() if path.exists() else None

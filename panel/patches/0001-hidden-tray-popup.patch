@@ -114,16 +114,97 @@ index f6bc826..0d8e889 100644
      virtual QWidget *widget() override { return &mButton; }
      virtual QString themeId() const override { return QStringLiteral("ShowDesktop"); }
 
+diff --git a/plugin-statusnotifier/statusnotifierconfiguration.cpp b/plugin-statusnotifier/statusnotifierconfiguration.cpp
+index f644c26..702e3b4 100644
+--- a/plugin-statusnotifier/statusnotifierconfiguration.cpp
++++ b/plugin-statusnotifier/statusnotifierconfiguration.cpp
+@@ -60,17 +60,31 @@ void StatusNotifierConfiguration::loadSettings()
+     ui->orderCB->setChecked(settings().value(QStringLiteral("reverseOrder"), false).toBool());
+     ui->attentionSB->setValue(settings().value(QStringLiteral("attentionPeriod"), 5).toInt());
+     mAutoHideList = settings().value(QStringLiteral("autoHideList")).toStringList();
++    mCollapseNew = settings().value(QStringLiteral("doroshellPopup"), false).toBool()
++        && settings().value(QStringLiteral("doroshellCollapseNew"), false).toBool();
++    mVisibleList = settings().value(QStringLiteral("doroshellVisibleList")).toStringList();
+     mHideList = settings().value(QStringLiteral("hideList")).toStringList();
+ }
+
+ void StatusNotifierConfiguration::saveSettings()
+ {
++    if (mCollapseNew)
++        settings().setValue(QStringLiteral("doroshellVisibleList"), mVisibleList);
+     settings().setValue(QStringLiteral("reverseOrder"), ui->orderCB->isChecked());
+     settings().setValue(QStringLiteral("attentionPeriod"), ui->attentionSB->value());
+     settings().setValue(QStringLiteral("autoHideList"), mAutoHideList);
+     settings().setValue(QStringLiteral("hideList"), mHideList);
+ }
+
++int StatusNotifierConfiguration::visibility(const QString &title) const
++{
++    if (mAutoHideList.contains(title))
++        return 1;
++    if (mHideList.contains(title) || (mCollapseNew && !mVisibleList.contains(title)))
++        return 2;
++    return 0;
++}
++
+ void StatusNotifierConfiguration::addItems(const QStringList &items)
+ {
+     ui->tableWidget->setRowCount(items.size());
+@@ -85,11 +99,11 @@ void StatusNotifierConfiguration::addItems(const QStringList &items)
+         // second column
+         QComboBox *cb = new QComboBox();
+         cb->addItems(QStringList() << tr("Always show") << tr("Auto-hide") << tr("Always hide"));
+-        if (mAutoHideList.contains(item))
+-            cb->setCurrentIndex(1);
+-        else if (mHideList.contains(item))
+-            cb->setCurrentIndex(2);
++        cb->setCurrentIndex(visibility(item));
+         connect(cb, &QComboBox::currentIndexChanged, this, [this, item] (int indx) {
++            mVisibleList.removeAll(item);
++            if (mCollapseNew && indx == 0)
++                mVisibleList << item;
+             if (indx == 0)
+             {
+                 mAutoHideList.removeAll(item);
+@@ -131,12 +145,7 @@ void StatusNotifierConfiguration::dialogButtonsAction(QAbstractButton *btn)
+                 if (QTableWidgetItem *widgetItem = ui->tableWidget->item(i, 0))
+                 {
+                     cb->blockSignals(true); // we neither change visibility lists nor save settings here
+-                    if (mAutoHideList.contains(widgetItem->text()))
+-                        cb->setCurrentIndex(1);
+-                    else if (mHideList.contains(widgetItem->text()))
+-                        cb->setCurrentIndex(2);
+-                    else
+-                        cb->setCurrentIndex(0);
++                    cb->setCurrentIndex(visibility(widgetItem->text()));
+                     cb->blockSignals(false);
+                 }
+             }
+diff --git a/plugin-statusnotifier/statusnotifierconfiguration.h b/plugin-statusnotifier/statusnotifierconfiguration.h
+index 3e2d520..4fb8b14 100644
+--- a/plugin-statusnotifier/statusnotifierconfiguration.h
++++ b/plugin-statusnotifier/statusnotifierconfiguration.h
+@@ -48,6 +48,9 @@ private:
+
+     QStringList mAutoHideList;
+     QStringList mHideList;
++    QStringList mVisibleList;
++    bool mCollapseNew = false;
++    int visibility(const QString &title) const;
+
+     void loadSettings();
+
 diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
-index 6410519..52da3a2 100644
+index 6410519..aea5e41 100644
 --- a/plugin-statusnotifier/statusnotifierwidget.cpp
 +++ b/plugin-statusnotifier/statusnotifierwidget.cpp
-@@ -31,6 +31,49 @@
+@@ -31,6 +31,50 @@
  #include "../panel/pluginsettings.h"
  #include "../panel/ilxqtpanelplugin.h"
 
 +// DoroShell modification: optional native hidden-icon popup, LGPL-2.1-or-later.
 +#include <QFrame>
++#include <QPainter>
 +#include <QGridLayout>
 +#include <QScreen>
 +#include <QKeyEvent>
@@ -168,7 +249,7 @@ index 6410519..52da3a2 100644
  StatusNotifierWidget::StatusNotifierWidget(ILXQtPanelPlugin *plugin, QWidget *parent) :
      QWidget(parent),
      mPlugin(plugin),
-@@ -45,9 +88,17 @@ StatusNotifierWidget::StatusNotifierWidget(ILXQtPanelPlugin *plugin, QWidget *pa
+@@ -45,9 +89,17 @@ StatusNotifierWidget::StatusNotifierWidget(ILXQtPanelPlugin *plugin, QWidget *pa
      mShowBtn->setAutoRaise(true);
      mShowBtn->setToolButtonStyle(Qt::ToolButtonTextOnly);
      mShowBtn->setText(QStringLiteral("+"));
@@ -186,7 +267,34 @@ index 6410519..52da3a2 100644
          if (mForceVisible)
              return; // all items are visible; nothing to do
          mShowBtn->hide();
-@@ -166,6 +217,8 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
+@@ -71,7 +123,7 @@ StatusNotifierWidget::StatusNotifierWidget(ILXQtPanelPlugin *plugin, QWidget *pa
+         {
+             if (btn->hasAttention()
+                 || (!mAutoHideList.contains(btn->title())
+-                     && !mHideList.contains(btn->title())))
++                     && !isHidden(btn->title())))
+             {
+                 continue;
+             }
+@@ -121,7 +173,7 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
+                 mShowBtn->show();
+             button->setAutoHide(true, mAttentionPeriod, mForceVisible);
+         }
+-        else if (mHideList.contains(title))
++        else if (isHidden(title))
+         {
+             button->setAutoHide(false);
+             if (!mForceVisible)
+@@ -144,7 +196,7 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
+                         // or shown only because mShowBtn was clicked
+                         || (mForceVisible && !btn->hasAttention()
+                             && (mAutoHideList.contains(btn->title())
+-                                || mHideList.contains(btn->title()))))
++                                || isHidden(btn->title()))))
+                     {
+                         return;
+                     }
+@@ -166,6 +218,8 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
 
  void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
  {
@@ -195,21 +303,70 @@ index 6410519..52da3a2 100644
      StatusNotifierButton *button = mServices.value(serviceAndPath, nullptr);
      if (button)
      {
-@@ -196,6 +249,13 @@ void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
+@@ -175,7 +229,7 @@ void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
+             bool showBtn = false;
+             for (const auto &name : std::as_const(mItemTitles))
+             {
+-                if (mAutoHideList.contains(name) || mHideList.contains(name))
++                if (mAutoHideList.contains(name) || isHidden(name))
+                 {
+                     showBtn = true;
+                     break;
+@@ -194,8 +248,35 @@ void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
+     }
+ }
 
++bool StatusNotifierWidget::isHidden(const QString &title) const
++{
++    return mHideList.contains(title) || (mCollapseNew && !mVisibleList.contains(title));
++}
++
  void StatusNotifierWidget::settingsChanged()
  {
 +    if (mOverflow)
 +        mOverflow->close();
 +    const bool drawer = mPlugin->settings()->value(QStringLiteral("doroshellPopup"), false).toBool();
 +    mShowBtn->setToolButtonStyle(drawer ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextOnly);
-+    mShowBtn->setArrowType(drawer ? Qt::UpArrow : Qt::NoArrow);
++    if (drawer)
++    {
++        const qreal scale = devicePixelRatioF();
++        QPixmap icon(QSize(16, 16) * scale);
++        icon.setDevicePixelRatio(scale);
++        icon.fill(Qt::transparent);
++        QPainter painter(&icon);
++        painter.setRenderHint(QPainter::Antialiasing);
++        painter.setPen(QPen(mShowBtn->palette().buttonText().color(), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
++        painter.drawPolyline(QPolygonF{QPointF(2, 10), QPointF(8, 4), QPointF(14, 10)});
++        painter.end();
++        mShowBtn->setIcon(QIcon(icon));
++        mShowBtn->setIconSize(QSize(16, 16));
++    }
++    else
++        mShowBtn->setIcon(QIcon());
 +    mShowBtn->setMinimumSize(drawer ? QSize(24, 24) : QSize(0, 0));
 +    mShowBtn->setText(drawer ? QString() : QStringLiteral("+"));
      LXQt::GridLayout *layout = qobject_cast<LXQt::GridLayout*>(this->layout());
      if (mPlugin->settings()->value(QStringLiteral("reverseOrder"), false).toBool())
      {
-@@ -273,3 +333,63 @@ QStringList StatusNotifierWidget::itemTitles() const
+@@ -206,6 +287,8 @@ void StatusNotifierWidget::settingsChanged()
+         layout->setItemsOrder(LXQt::GridLayout::ItemsOrder::FirstToLast);
+     }
+
++    mCollapseNew = drawer && mPlugin->settings()->value(QStringLiteral("doroshellCollapseNew"), false).toBool();
++    mVisibleList = mPlugin->settings()->value(QStringLiteral("doroshellVisibleList")).toStringList();
+     mAttentionPeriod = mPlugin->settings()->value(QStringLiteral("attentionPeriod"), 5).toInt();
+     mAutoHideList = mPlugin->settings()->value(QStringLiteral("autoHideList")).toStringList();
+     mHideList = mPlugin->settings()->value(QStringLiteral("hideList")).toStringList();
+@@ -225,7 +308,7 @@ void StatusNotifierWidget::settingsChanged()
+                 showBtn = true;
+             }
+         }
+-        else if (mHideList.contains(btn->title()))
++        else if (isHidden(btn->title()))
+         {
+             showBtn = true;
+             btn->setAutoHide(false);
+@@ -273,3 +356,63 @@ QStringList StatusNotifierWidget::itemTitles() const
      names.removeDuplicates();
      return names;
  }
@@ -274,7 +431,7 @@ index 6410519..52da3a2 100644
 +        first->setFocus();
 +}
 diff --git a/plugin-statusnotifier/statusnotifierwidget.h b/plugin-statusnotifier/statusnotifierwidget.h
-index 379722e..069de31 100644
+index 379722e..dd61f81 100644
 --- a/plugin-statusnotifier/statusnotifierwidget.h
 +++ b/plugin-statusnotifier/statusnotifierwidget.h
 @@ -29,6 +29,7 @@
@@ -285,15 +442,25 @@ index 379722e..069de31 100644
 
  #include <LXQt/GridLayout>
 
-@@ -60,6 +61,8 @@ protected:
+@@ -60,6 +61,9 @@ protected:
      void enterEvent(QEnterEvent *event) override;
 
  private:
++    bool isHidden(const QString &title) const;
 +    void showOverflow();
 +    QPointer<QWidget> mOverflow;
      ILXQtPanelPlugin *mPlugin;
 
      QTimer mHideTimer;
+@@ -69,6 +73,8 @@ private:
+     QStringList mItemTitles;
+     QStringList mAutoHideList;
+     QStringList mHideList;
++    QStringList mVisibleList;
++    bool mCollapseNew = false;
+     QToolButton *mShowBtn;
+     int mAttentionPeriod;
+     bool mForceVisible;
 diff --git a/plugin-taskbar/CMakeLists.txt b/plugin-taskbar/CMakeLists.txt
 index 1d627f2..3646632 100644
 --- a/plugin-taskbar/CMakeLists.txt

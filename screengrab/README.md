@@ -1,0 +1,5 @@
+# Native ScreenGrab image import
+
+DoroShell builds ScreenGrab 3.2.0 at commit `1fc2d35a4449706de9a2c279d6c5f79c5fbcd883` with a small change to its startup path. The new `--import-png` flag reads a bounded PNG from standard input and displays it in a separate native main window without taking another screenshot. Regular ScreenGrab startup keeps upstream behavior. The modified ScreenGrab code and patch use GPL-2.0-or-later under the upstream file notices. [Upstream source](https://github.com/lxqt/screengrab/tree/1fc2d35a4449706de9a2c279d6c5f79c5fbcd883) · [License text](COPYING).
+
+Use the build and installation commands in the [project README](../README.md). The build directory retains the exact patched source. A distributor of the modified binary must comply with the GPL, including the applicable corresponding-source requirements. Setup installs a private executable under the screenshots module. Its rollback restores prior managed files and the Print shortcut. The build directory remains user-owned.

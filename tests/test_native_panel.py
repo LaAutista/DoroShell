@@ -45,6 +45,23 @@ class NativePanelTests(unittest.TestCase):
                 profile.prepare(home, home/'conflict', Path('/usr/bin/true'))
             self.assertFalse((home/'conflict').exists())
 
+    def test_standalone_profile_loads_inherited_clock_and_tray_types(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            for clock in ('', ', worldclock'):
+                raw = '[panel1]\nplugins=taskbar, statusnotifier, volume'+clock+'\n'
+                path = home/('existing.conf' if clock else 'new.conf')
+                path.write_bytes(profile.profile(raw, home, [], None))
+                cfg = QSettings(str(path), QSettings.Format.IniFormat)
+                widgets = cfg.value('panel1/plugins')
+                self.assertTrue(all(cfg.value(name+'/type') for name in widgets))
+                clock_name = widgets[-2]
+                self.assertEqual(cfg.value(clock_name+'/type'), 'worldclock')
+                self.assertEqual(cfg.value(clock_name+'/alignment'), 'Right')
+                self.assertTrue(cfg.value(clock_name+'/showDate', type=bool))
+                self.assertEqual(cfg.value(clock_name+'/datePosition'), 'below')
+                self.assertTrue(cfg.value('statusnotifier/doroshellCollapseNew', type=bool))
+
     def test_next_login_enable_restore_and_conflict(self):
         with tempfile.TemporaryDirectory() as tmp:
             home,panel,launcher=self.fixture(tmp);before=panel.read_bytes();prepared=home/'prepared'

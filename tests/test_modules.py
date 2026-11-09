@@ -29,6 +29,10 @@ class ModulesTests(unittest.TestCase):
     def test_all_modules_repeat_and_independent_rollback(self):
         with tempfile.TemporaryDirectory() as d:
             home=self.home(d)
+            (home/'.config/doroshell').mkdir()
+            (home/'.config/doroshell/panel.conf').write_text('[panel1]\niconSize=24\n[doroshellTasks]\ntype=taskbar\nbuttonWidth=40\n')
+            (home/'.local/state/doroshell').mkdir(parents=True)
+            (home/'.local/state/doroshell/native-panel.json').write_text('{}')
             before={p.relative_to(home):p.read_bytes() for p in home.rglob('*') if p.is_file()}
             for m in modules.MODULES:
                 modules.run(home,m,apply=True)
@@ -55,6 +59,23 @@ class ModulesTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             home=Path(d); (home/'.config').symlink_to('/tmp')
             with self.assertRaises(RuntimeError): modules.run(home,'dolphin',apply=True)
+
+    def test_renumbered_print_shortcut_keeps_backup_and_refuses_command_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home=self.home(tmp)
+            path=home/'.config/lxqt/globalkeyshortcuts.conf'
+            original=path.read_text().replace('[Print.30]', '[Print.42]')
+            modules.run(home,'screenshots',apply=True)
+            moved=path.read_text().replace('[Print.30]', '[Print.42]')
+            edited=moved.replace('doroshell-screenshot','another-command')
+            path.write_text(edited)
+            with self.assertRaisesRegex(RuntimeError,'renumbered'):
+                modules.run(home,'screenshots',apply=True)
+            self.assertEqual(path.read_text(),edited)
+            path.write_text(moved)
+            modules.run(home,'screenshots',apply=True)
+            modules.run(home,'screenshots',rollback=True)
+            self.assertEqual(path.read_text(),original)
 
     def test_geometry_odd_width_and_monitor_panel(self):
         self.assertEqual(snap.half((1920,20,1921,1060),'left'),(1920,20,960,1060))

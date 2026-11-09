@@ -315,8 +315,10 @@ class MenuTests(unittest.TestCase):
             places = window.findChild(menu.QWidget, 'placesPanel')
             self.assertFalse(portrait.pixmap().isNull())
             center = portrait.mapTo(window, portrait.rect().center())
-            self.assertTrue(places.geometry().left() <= center.x() <= places.geometry().right())
-            self.assertLess(portrait.mapTo(window, portrait.rect().bottomLeft()).y(), places.geometry().top())
+            self.assertTrue(places.mapTo(window, places.rect().topLeft()).x() <= center.x() <= places.mapTo(window, places.rect().topRight()).x())
+            frame = window.findChild(menu.QWidget, 'glassFrame')
+            self.assertLess(portrait.y(), frame.y())
+            self.assertGreater(portrait.y() + portrait.height(), frame.y())
             for width, height in ((680, 570), (480, 450), (900, 700)):
                 window.resize(width, height)
                 self.app.processEvents()

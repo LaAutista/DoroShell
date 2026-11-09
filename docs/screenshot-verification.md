@@ -1,22 +1,21 @@
 # Screenshot verification
 
-## Current evidence
+Print uses a DoroShell Qt Widgets overlay on X11. Its interaction follows the Plasma 6.4 capture announcement. KDE’s CaptureOverlay.qml carries LGPL-2.0-or-later and uses private Spectacle components. DoroShell implements its overlay independently and does not bundle KDE code. The optional private build of ScreenGrab 3.2.0 adds a PNG input flag and shows the imported pixmap in its native main window. The builder pins the upstream commit and keeps its corresponding source. The changes to ScreenGrab are licensed under GPL-2.0-or-later, matching the modified upstream files. The upstream license text is included in `screengrab/COPYING`. [Plasma 6.4 announcement](https://kde.org/announcements/plasma/6/6.4.0/) · [Spectacle overlay source](https://github.com/KDE/spectacle/blob/master/src/Gui/CaptureOverlay.qml) · [LXQt ScreenGrab CLI source](https://github.com/lxqt/screengrab/blob/3.2.0/src/core/core.cpp).
 
-The 34-test suite runs offscreen with temporary installation homes. Screenshot lifecycle tests use a synthetic child through real QProcess signals. See the [current verification report](verification.md) for exact scope.
+## Checks
 
-A real local X11 check now passed: ScreenGrab drag + Enter capture → Escape cancellation → another capture. Both captures were 120×90 with the expected synthetic pixels. Isolated LibreOffice Writer and Draw test instances pasted the image after ScreenGrab exited, and their graphic dimensions and pixels matched. Cancellation retained the preceding image. No personal settings changed or screenshot artifacts were committed.
+- On a private X11 display, real Print input froze an open Start menu before dismissal. A selected region retained the expected menu pixels. Escape before selection and during a drag preserved the previous clipboard contents.
+- Global Print in a private LXQt/Openbox environment produced the expected crop, ignored incomplete work, and survived setup repeat and rollback. Writer and Draw pasted every expected pixel after the capture UI process exited. The separate X11 clipboard owner released its window when another client replaced the contents.
+- Offscreen tests exercised full-desktop Enter, moving and resizing, drawing and undo/redo, saving final PNG pixels, cancelling the save dialog, negative virtual coordinates and mixed image densities. A changed Print command is refused, and a matching command renumbered by LXQt can be updated and restored.
+- Two private Xephyr Xinerama heads at 640×480 each were arranged side by side. The same drag spanning the boundary produced an 80×60 image with pixels from both heads at 100% and 150%. Qt exposed their combined Xinerama desktop as one surface. Physical mixed-DPI hardware and Wayland remain unverified.
+- A private-display check opened a 260×180 annotated crop in the native ScreenGrab window and used its own Copy command. Every pixel matched the rendered crop. Repeat installation retained the importer and screenshot rollback removed its managed executable. Color and stroke width changes on successive marks were checked against final pixels. The overlay provides raster annotations and rectangular cropping. It does not reproduce Spectacle’s complete tool set, window detection, video or sharing integrations.
 
-ScreenGrab initially aborted inside the restricted task sandbox. Authorized tests outside that sandbox connected to X11 without changing display settings. Its selection UI required Enter after the drag. Source inspection of [ScreenGrab core](https://github.com/lxqt/screengrab/blob/master/src/core/core.cpp) and [configuration loading](https://github.com/lxqt/screengrab/blob/master/src/core/config.cpp) supported the command/config choices; the actual tests above are separate evidence.
+From the checkout, the clipboard and cross-monitor checks are:
 
-## Live acceptance still required
+```sh
+python tests/check_screengrab_import_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/import-enabled/screengrab
+python tests/check_menu_clipboard_x11.py --run --xvfb /path/to/Xvfb
+python tests/check_overlay_multimonitor_x11.py --run --xvfb /path/to/Xvfb --xephyr /path/to/Xephyr
+```
 
-Perform these checks from a working X11 session at a user-chosen time. Use non-sensitive sample content and scratch documents; do not add desktop screenshots or private configuration to the repository. A successful capture intentionally replaces the clipboard, so first preserve anything needed from it.
-
-1. Review the screenshot module's preview and existing Print binding before any installation. Test the checkout helper directly with `python runtime/screenshot.py` before changing shortcuts. It stays running to own the clipboard; subsequent invocations request another capture from that owner. Ensure the owner is running the intended checkout version. An older installed owner can receive requests instead.
-2. Select a small sample region. After ScreenGrab exits, paste into two independent image-capable applications. Verify actual content and dimensions, then repeat after switching applications and waiting several seconds. Keep the helper running during paste checks.
-3. Capture A, cancel B with Escape, then capture C. Check that A remains after B and C replaces it only after success. Repeat cancellation before selection, mid-drag and with a zero-size selection. Begin a separate cancellation check with plain text and rich text already copied.
-4. Press Print rapidly during selection: there should be one overlay. Repeat successful captures and confirm no stuck input grab. Check each monitor and a crossing selection, including differing scales and negative screen origins.
-5. Verify clipboard persistence with and without the usual clipboard manager in a disposable test session. Record tool versions, monitor layout and results. Window/full-screen capture acceptance remains outstanding: the current helper requests region capture only.
-6. End only the helper started for this test when finished (Ctrl+C in its terminal). Clipboard persistence after the owner exits is not guaranteed. No logout, panel restart or application closure is needed for these checks.
-
-Installation and rollback must be reviewed separately. `python modules.py screenshots` previews changes; apply/repeat/rollback tests currently use temporary homes. Do not infer live shortcut activation, fresh-login persistence or clean-install support from those tests. Plan any login or VM test separately; never force a session restart to complete this checklist.
+The clipboard test requires LibreOffice and Python UNO. These checks use private displays, temporary homes and synthetic pixels. The full core check also exercises the installed Print binding and rollback. See [core release verification](verification.md).

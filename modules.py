@@ -13,7 +13,8 @@ from install import atomic, safe, set_ini
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent
-MODULES = ('snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
+TASKBAR_SIZES = {'small': (20, 36), 'medium': (28, 48), 'large': (36, 56)}
+MODULES = ('taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
 
 
 def ini_value(text, section, key):
@@ -38,7 +39,7 @@ def ini_set(text, section, key, value):
     return text[:match.end()]+body+text[stop:]
 
 
-def plans(home, module, taskbar_style="icons"):
+def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None):
     edits = []
     def file(name, data, mode=0o644):
         edits.append({'file':name,'kind':'file','after':base64.b64encode(data).decode(),'mode':mode})
@@ -46,6 +47,13 @@ def plans(home, module, taskbar_style="icons"):
         edits.append({'file':name,'kind':'ini','section':section,'key':key,'after':value})
     if module in ('snapping','screenshots'):
         script = 'snap' if module=='snapping' else 'screenshot'
+        if module=='screenshots':
+            if native_preview is not None:
+                preview = Path(native_preview)
+                if not preview.is_file() or not os.access(preview,os.X_OK):
+                    raise ValueError('Choose the executable produced by screengrab/build.py')
+                file('.local/share/doroshell/screengrab-import',preview.read_bytes(),0o755)
+            file('.local/share/doroshell/menu_capture.py', (ROOT/'runtime/menu_capture.py').read_bytes())
         file('.local/share/doroshell/'+script+'.py', (ROOT/'runtime'/f'{script}.py').read_bytes())
         target = home/'.local/share/doroshell'/f'{script}.py'
         wrapper = '#!/bin/sh\nexec /usr/bin/python3 '+shlex.quote(str(target))+' "$@"\n'
@@ -67,7 +75,7 @@ def plans(home, module, taskbar_style="icons"):
             if len(groups)>1:
                 raise RuntimeError('Multiple Print bindings found; refusing duplicate shortcut')
             section = groups[0] if groups else 'Print.1'
-            for key,value in [('Exec', str(home/'.local/bin/doroshell-screenshot')), ('Enabled','true'),('Comment','DoroShell ScreenGrab selection'),('path',None)]:
+            for key,value in [('Exec', str(home/'.local/bin/doroshell-screenshot')), ('Enabled','true'),('Comment','DoroShell screenshot'),('path',None)]:
                 ini('.config/lxqt/globalkeyshortcuts.conf',section,key,value)
     elif module=='taskbar-drag':
         if not Path('/usr/share/dockbarx/lxqt-panel-applet.py').is_file():
@@ -91,6 +99,15 @@ def plans(home, module, taskbar_style="icons"):
     elif module=='single-desktop':
         edits.append({'file':'.config/openbox/rc.xml','kind':'desktop','after':'1'})
         edits.append({'file':'.config/openbox/rc.xml','kind':'firstdesk','after':'1'})
+    elif module=='taskbar-size':
+        if not (home/'.local/state/doroshell/native-panel.json').is_file():
+            raise RuntimeError('Stage the DoroShell taskbar before changing its icon size.')
+        name = '.config/doroshell/panel.conf'
+        if ini_value((home/name).read_text(), 'doroshellTasks', 'type') != 'taskbar':
+            raise RuntimeError('The configured DoroShell task widget could not be found.')
+        icon, width = TASKBAR_SIZES[taskbar_size]
+        ini(name, 'panel1', 'iconSize', str(icon))
+        ini(name, 'doroshellTasks', 'buttonWidth', str(width))
     elif module=='taskbar':
         name='.config/lxqt/panel.conf'
         text=(home/name).read_text()
@@ -222,7 +239,7 @@ def live_print_change(path, original, desired):
     return apply
 
 
-def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False):
+def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None):
     if module not in MODULES:
         raise ValueError("Unknown module")
     manifest=home/'.local/state/doroshell'/f'{module}.json'
@@ -231,7 +248,22 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
     if rollback and not saved:
         print(module+': nothing to restore')
         return
-    edits=saved['edits'] if rollback else plans(home,module,taskbar_style)
+    if module=='screenshots' and saved:
+        # LXQt can assign a new numeric action ID to the same Print binding at login.
+        managed_print = [e for e in saved['edits'] if e['kind']=='ini' and e['file']=='.config/lxqt/globalkeyshortcuts.conf']
+        if managed_print:
+            path = home/managed_print[0]['file']
+            safe(path,home)
+            current = path.read_bytes()
+            groups = re.findall(r'(?m)^\[(Print\.\d+)\]$',current.decode())
+            if len(groups)!=1:
+                raise RuntimeError('Expected one managed Print shortcut; refusing to change it.')
+            if any(e['section']!=groups[0] for e in managed_print):
+                for edit in managed_print:
+                    edit['section'] = groups[0]
+                    if read_value(edit,current)!=edit['after']:
+                        raise RuntimeError('The renumbered Print shortcut was edited; refusing to change it.')
+    edits=saved['edits'] if rollback else plans(home,module,taskbar_style,taskbar_size,native_preview)
     if not edits:
         print(module+': existing icon taskbar retained')
         return
@@ -320,6 +352,8 @@ if __name__=='__main__':
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--home',type=Path,default=Path.home())
     parser.add_argument('--live',action='store_true')
+    parser.add_argument('--native-preview', type=Path)
+    parser.add_argument('--taskbar-size', choices=TASKBAR_SIZES, default='medium')
     parser.add_argument('--taskbar-style', choices=('icons','standard'), default='icons')
     actions=parser.add_mutually_exclusive_group()
     actions.add_argument('--apply',action='store_true')
@@ -330,7 +364,7 @@ if __name__=='__main__':
     components={'screenshots':['lxqt-globalkeysd'], 'taskbar':['lxqt-panel']}.get(args.module,[])
     if args.module == 'screenshots' and (args.apply or args.rollback) and args.home.resolve() == Path.home().resolve():
         if subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', '^/usr/bin/lxqt-globalkeysd$'], stdout=subprocess.DEVNULL).returncode == 0:
-            run(args.home, args.module, args.apply, args.rollback, active_print=True)
+            run(args.home, args.module, args.apply, args.rollback, active_print=True, native_preview=args.native_preview)
             raise SystemExit(0)
     if args.live and not (args.apply or args.rollback):
         parser.error('--live requires --apply or --rollback')
@@ -353,8 +387,8 @@ if __name__=='__main__':
         from integrate import live_run
         # Preflight; desktop component restarts are refused by live_run.
         if not args.rollback:
-            run(args.home,args.module,taskbar_style=args.taskbar_style)
-        live_run(args.home, operation=lambda:run(args.home,args.module,args.apply,args.rollback,args.taskbar_style), components=components)
+            run(args.home,args.module,taskbar_style=args.taskbar_style,taskbar_size=args.taskbar_size,native_preview=args.native_preview)
+        live_run(args.home, operation=lambda:run(args.home,args.module,args.apply,args.rollback,args.taskbar_style,taskbar_size=args.taskbar_size,native_preview=args.native_preview), components=components)
         if args.module in ('snapping','single-desktop'):
             subprocess.run(['openbox','--reconfigure'],check=True)
         if args.module=='snapping' and args.apply:
@@ -366,4 +400,4 @@ if __name__=='__main__':
             for name in components:
                 if subprocess.run(['pgrep','-u',str(os.getuid()),'-f','^/usr/bin/'+name+'$'],stdout=subprocess.DEVNULL).returncode==0:
                     parser.error('Component is running; live restarts are disabled. Use the native panel next-login workflow or apply while the component is stopped.')
-        run(args.home,args.module,args.apply,args.rollback,args.taskbar_style)
+        run(args.home,args.module,args.apply,args.rollback,args.taskbar_style,taskbar_size=args.taskbar_size,native_preview=args.native_preview)

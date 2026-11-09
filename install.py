@@ -31,6 +31,47 @@ def set_ini(text, section, key, value):
     return text[:match.end()]+body+text[end:]
 
 
+def start_tile(data):
+    from PySide6.QtCore import Qt, QRect, QByteArray, QBuffer, QIODevice
+    from PySide6.QtGui import QColor, QImage, QPainter, QLinearGradient, QPen
+
+    art = QImage.fromData(data)
+    if art.isNull():
+        raise ValueError('Start image could not be decoded')
+    art = art.scaled(192, 192, Qt.AspectRatioMode.KeepAspectRatio,
+                     Qt.TransformationMode.SmoothTransformation)
+    visible = QRect()
+    for y in range(art.height()):
+        for x in range(art.width()):
+            if art.pixelColor(x, y).alpha() > 10:
+                visible |= QRect(x, y, 1, 1)
+    if not visible.isEmpty():
+        art = art.copy(visible)
+    tile = QImage(96, 96, QImage.Format.Format_ARGB32_Premultiplied)
+    tile.fill(Qt.GlobalColor.transparent)
+    brush = QLinearGradient(0, 0, 68, 96)
+    for stop, color in [(0, '#fffaff'), (.43, '#ffe2f4'), (.49, '#efadd0'), (1, '#ce74a7')]:
+        brush.setColorAt(stop, QColor(color))
+    painter = QPainter(tile)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+    painter.setBrush(brush)
+    painter.setPen(QPen(QColor('#723255'), 3))
+    painter.drawRoundedRect(2, 2, 92, 92, 12, 12)
+    painter.setPen(QPen(QColor('#fff6fc'), 2))
+    painter.drawRoundedRect(5, 5, 86, 86, 10, 10)
+    size = art.size().scaled(78, 78, Qt.AspectRatioMode.KeepAspectRatio)
+    painter.drawImage(QRect((96-size.width())//2, (96-size.height())//2,
+                            size.width(), size.height()), art)
+    painter.end()
+    encoded = QByteArray()
+    buf = QBuffer(encoded)
+    buf.open(QIODevice.OpenModeFlag.WriteOnly)
+    if not tile.save(buf, 'PNG'):
+        raise ValueError('Start tile encoding failed')
+    return bytes(encoded)
+
+
 def targets(home, icon=None):
     app = home / '.local/share/lxqt-comfort/start_menu.py'
     launcher = home / '.local/bin/lxqt-comfort-menu'
@@ -57,12 +98,16 @@ def targets(home, icon=None):
             for line in old_entry.read_text().splitlines():
                 if line.startswith('Icon=') and Path(line[5:]).is_absolute() and Path(line[5:]).is_file():
                     icon_path = Path(line[5:])
+    if custom_data is not None:
+        icon_path = custom.with_name('framed-start-icon.png')
     desktop = '[Desktop Entry]\nType=Application\nName=DoroShell Start\nComment=Two-column application and personal folder menu\nExec="' + quoted + '"\nIcon=' + str(icon_path) + '\nTerminal=false\nCategories=Utility;\n'
     files = {app: (SOURCE.joinpath('menu/start_menu.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/start.svg': (SOURCE.joinpath('menu/start.svg').read_bytes(), 0o644),
             launcher: (wrapper.encode(), 0o755),
             home / '.local/share/applications/lxqt-comfort.desktop': (desktop.encode(), 0o644)}
-    if custom_data is not None: files[custom] = (custom_data, 0o644)
+    if custom_data is not None:
+        files[custom] = (custom_data, 0o644)
+        files[icon_path] = (start_tile(custom_data), 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
     for name in ['settings.py','setup.py','modules.py','cursor.py','install.py','integrate.py',
                  'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/start.svg']:

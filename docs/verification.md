@@ -1,6 +1,20 @@
 # Verification checkpoint — 2026-11-08
 
-## Core release candidate — 2026-11-09
+## Current core acceptance — 2026-11-09
+
+The current suite passes 79 automated tests. Global Print and open-Start Print use the same selection and annotation overlay. The native ScreenGrab importer was checked against every pixel of the finished crop. See [screenshot verification](screenshot-verification.md).
+
+The development desktop was running the earlier native panel build at inspection. Its autostart wrapper points to the corrected clock/tray build. That build passed startup, interaction and rollback on a private X11 display. Verification on the user’s own next login and installation on a clean CachyOS LXQt machine remain open.
+
+The personal 28-frame GIF rebuilt the installed wait/progress Xcursor files byte for byte. A disposable X11 window loaded them at the configured 30 px size. XFixes returned every one of the 16 distinct visible poses over time for wait, watch, progress and left_ptr_watch. The source delays total 930 ms per cycle. Visual inspection showed a single turning character, or a single animated badge beside the arrow in progress. The source has an opaque white background. The ordinary arrow matched the inherited Breeze pixels and hotspot. Opting into pink changed the pointer color while preserving its alpha and hotspot. Disabling pink restored the original pixels, and rollback restored the temporary configuration bytes. A separate regression covers restoring a pre-existing pointer override and its mode. Personal artwork remained local, and the live cursor was not changed.
+
+The approved transparent APNG was installed through the cursor module after a temporary-home upgrade/repeat/rollback check. The original GIF remains private and intact. The generated wait/progress cursors and aliases matched the private X11 candidate byte for byte at all five sizes, with the original timings, hotspots and ordinary-pointer choice. No live cursor refresh was requested.
+
+## Source package acceptance
+
+The source ZIP is made from the release revision with `git archive --format=zip --prefix=DoroShell/`. It contains the neutral SVG, pinned native build scripts, patches, upstream license notices, installer, runtime and tests. Build instructions are in the [README](../README.md) and [ScreenGrab importer notes](../screengrab/README.md). From a fresh extraction, run `python -m unittest discover -s tests -v`. The private X11 checks in `tests/check_core_x11.py`, `tests/check_screengrab_import_x11.py` and `tests/check_menu_clipboard_x11.py` exercise startup, native import, clipboard handoff and rollback using temporary homes. The builds need their development dependencies and network access to the pinned upstream repositories. The X11 checks also require Xvfb, xauth, Openbox and Python Xlib. The paste check uses LibreOffice and Python UNO.
+
+## Earlier core checkpoint — 2026-11-09
 
 The 69-test offscreen and temporary-home suite passed. A separate acceptance run used a fresh personal-prefix build of the pinned native panel, an authenticated private X11 display, Openbox and the LXQt shortcut daemon. It installed the menu, snapping and screenshot modules through the setup CLI, repeated the apply, staged the panel and started the installed LXQt session manager on the private display. With both the system and user autostart entries present, LXQt selected the user override. The only dock window belonged to the newly built panel executable. Real Super+Left/Right/Down keypresses positioned and restored a fixture window. Print cancellation retained the clipboard, and a completed region matched all 120×90 expected pixels. A separate private-display run pasted an open-menu capture into Writer and Draw and compared every pixel.
 

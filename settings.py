@@ -6,17 +6,18 @@ import sys
 from PySide6.QtCore import QProcess, Qt
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QCheckBox, QLineEdit, QFileDialog,
-    QPlainTextEdit, QFormLayout, QScrollArea, QStyledItemDelegate, QListWidget, QStackedWidget)
+    QPlainTextEdit, QFormLayout, QScrollArea, QStyledItemDelegate, QListWidget, QStackedWidget, QToolButton, QStyle)
 
 ROOT = Path(__file__).resolve().parent
 OPTIONS = [
     ('menu', 'Pink Start menu'),
     ('panel', 'Start button and Alt+F1'),
-    ('native-panel', 'DoroShell taskbar (next login)'),
+    ('native-panel', 'Enable at next login'),
+    ('taskbar-size', 'Taskbar icon and button size'),
     ('taskbar', 'LXQt taskbar style'),
     ('taskbar-drag', 'DockBarX icon dragging'),
     ('snapping', 'Drag windows to screen edges'),
-    ('screenshots', 'Print Screen → clipboard'),
+    ('screenshots', 'Print Screen capture overlay'),
     ('single-desktop', 'One desktop (next login)'),
     ('kate', 'Kate for plain text'),
     ('dolphin', 'Dolphin for folders'),
@@ -27,7 +28,7 @@ OPTIONS = [
 
 PAGES = [
     ('Start Menu', ('menu', 'panel')),
-    ('Taskbar & Windows', ('native-panel', 'taskbar', 'taskbar-drag', 'snapping', 'single-desktop')),
+    ('Taskbar & Windows', ('native-panel', 'taskbar-size', 'snapping', 'single-desktop', 'taskbar', 'taskbar-drag')),
     ('Screenshots', ('screenshots',)),
     ('Apps & Themes', ('kate', 'dolphin', 'kate-dark', 'dolphin-dark')),
     ('Cursor', ('cursor',)),
@@ -47,28 +48,28 @@ class Settings(QWidget):
     def __init__(self, home=None):
         super().__init__()
         self.home = home or Path.home()
-        self.setWindowTitle('DoroShell settings')
+        self.setWindowTitle('DoroShell Settings')
         self.setObjectName('doroShellSettings')
         self.resize(880, 650)
         self.process = None
         self.queue = []
         layout = QVBoxLayout(self)
-        title = QLabel('Make LXQt feel like home')
+        title = QLabel('DoroShell Settings')
         title_font = title.font()
         if title_font.pointSizeF() > 0: title_font.setPointSizeF(title_font.pointSizeF() * 1.6)
         elif title_font.pixelSize() > 0: title_font.setPixelSize(round(title_font.pixelSize() * 1.6))
         title.setFont(title_font)
         title.setStyleSheet(' font-weight: 600; color: #743b59; background: #f7d6e4; padding: 10px;')
         layout.addWidget(title)
-        intro = QLabel('Choose only what you want to change. Restore uses the saved settings from before DoroShell.\n'
-                       'Packages are never installed here. One desktop takes effect at your next login.')
+        intro = QLabel('Choose a change to preview or apply. Restore uses your saved settings.')
         intro.setWordWrap(True)
         layout.addWidget(intro)
         body = QHBoxLayout()
         self.categories = QListWidget()
         self.categories.setAccessibleName('Settings categories')
         self.categories.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.categories.setMinimumWidth(self.categories.fontMetrics().horizontalAdvance('Taskbar & Windows') + 30)
+        self.categories.setMinimumWidth(self.categories.fontMetrics().horizontalAdvance('Taskbar & Windows') + 30
+                                        + self.categories.style().pixelMetric(QStyle.PixelMetric.PM_ScrollBarExtent))
         self.pages = QStackedWidget()
         self.pages.setAccessibleName('Settings page')
         body.addWidget(self.categories, 1); body.addWidget(self.pages, 3)
@@ -84,32 +85,73 @@ class Settings(QWidget):
             heading = QLabel(title); heading.setStyleSheet('font-weight: 600; padding: 8px 0;')
             form.addRow(heading)
             for module in modules:
+                group = {'native-panel':'DoroShell taskbar', 'snapping':'Windows'}.get(module)
+                if group:
+                    section = QLabel(group)
+                    section.setStyleSheet('font-weight: 600; color: #743b59;')
+                    form.addRow(section)
+                if module=='taskbar':
+                    self.other_taskbars = QToolButton()
+                    self.other_taskbars.setText('Other taskbars')
+                    self.other_taskbars.setToolTip('Stock LXQt taskbar and DockBarX options')
+                    self.other_taskbars.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+                    self.other_taskbars.setArrowType(Qt.ArrowType.RightArrow)
+                    self.other_taskbars.setCheckable(True)
+                    form.addRow(self.other_taskbars)
+                    alternative = QWidget()
+                    form.addRow(alternative)
+                    form = QFormLayout(alternative)
+                    form.setContentsMargins(8,0,0,0)
+                    form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+                    form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+                    alternative.hide()
+                    self.other_taskbars.toggled.connect(alternative.setVisible)
+                    self.other_taskbars.toggled.connect(lambda open_: self.other_taskbars.setArrowType(
+                        Qt.ArrowType.DownArrow if open_ else Qt.ArrowType.RightArrow))
+                    self.note(form,'Use LXQt taskbar style for the stock taskbar. Icon dragging applies to the DockBarX applet.')
+                if module=='screenshots':
+                    self.note(form,'Print freezes the desktop, including Start. Select an area or press Enter for the full desktop. Annotate, then choose Copy or Save. Open in ScreenGrab sends the finished image to the native window when the importer is installed.')
                 label = dict(OPTIONS)[module]
                 choice = QComboBox()
                 choice.setItemDelegate(QStyledItemDelegate(choice))
                 choice.setAccessibleName(label)
+                choice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+                choice.setMinimumContentsLength(12)
                 choice.addItem('Keep unchanged', 'keep')
-                if module == 'taskbar':
+                if module == 'taskbar-size':
+                    for name, pixels in [('Small', 20), ('Medium', 28), ('Large', 36)]:
+                        choice.addItem(f'{name} ({pixels} px icons)', name.lower())
+                    choice.setToolTip('Applies to the DoroShell panel at its next startup.')
+                elif module == 'taskbar':
                     choice.addItem('Grouped application icons', 'icons')
                     choice.addItem('LXQt icons and labels', 'standard')
                 else:
                     choice.addItem('Enable / update', 'enable')
-                choice.addItem('Restore panel and back up panel edits' if module == 'native-panel' else 'Restore previous settings', 'restore')
+                choice.addItem('Restore previous panel' if module == 'native-panel' else 'Restore previous settings', 'restore')
+                if module == 'native-panel':
+                    choice.setItemData(choice.count()-1,'Backs up edited panel settings before restoring the previous panel.',Qt.ItemDataRole.ToolTipRole)
                 choice.model().item(choice.count()-1).setEnabled(managed(self.home, module))
                 caption = QLabel(label); caption.setWordWrap(True); caption.setBuddy(choice)
                 form.addRow(caption, choice)
                 self.choices[module] = choice
-            area.setWidget(content); self.pages.addWidget(area); forms[title] = form
+                if module=='taskbar-size':
+                    self.panel_plan = self.file_row(form,'Prepared taskbar plan','Panel plan (plan.json)')
+                    self.panel_plan.setPlaceholderText('Default prepared profile')
+                if module=='single-desktop':
+                    self.live = QCheckBox('Start edge snapping now')
+                    self.live.setToolTip('Start the snapping helper in this session when applying the snapping module.')
+                    form.addRow(self.live)
+            area.setWidget(content); self.pages.addWidget(area); forms[title] = content.layout()
         self.icon = self.file_row(forms['Start Menu'], 'Personal Start image', 'Images (*.png *.jpg *.webp *.svg)')
-        self.panel_plan = self.file_row(forms['Taskbar & Windows'], 'Prepared taskbar plan', 'Panel plan (plan.json)')
-        self.panel_plan.setPlaceholderText(str(self.home/'.local/state/doroshell/core-panel-profile/plan.json'))
-        self.gif = self.file_row(forms['Cursor'], 'Spinning animation', 'Animations (*.gif *.webp)')
+        self.note(forms['Start Menu'],'In Start, right-click an app to pin it and drag pins to reorder them. Menu options controls recent programs and history. Edit folder links changes the shortcuts in the right column.')
+        self.start_link = QPushButton('Open Start menu')
+        self.start_link.clicked.connect(self.open_start)
+        self.start_link.setEnabled(self.start_entry().is_file())
+        forms['Start Menu'].addRow(self.start_link)
+        self.gif = self.file_row(forms['Cursor'], 'Spinning animation', 'Animations (*.gif *.webp *.apng *.png)')
         self.pink = QCheckBox('Use pink ordinary pointer')
         self.pink.setToolTip('Off keeps your normal inherited pointer; only the loading cursor changes.')
         forms['Cursor'].addRow(self.pink)
-        self.live = QCheckBox('Start edge snapping now')
-        self.live.setToolTip('Starts the snapping helper only. Panel and shortcut services are never restarted.')
-        forms['Taskbar & Windows'].addRow(self.live)
         self.categories.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.categories.setCurrentRow(0)
         self.selection_summary = QLabel('No changes selected')
@@ -119,6 +161,8 @@ class Settings(QWidget):
             choice.currentIndexChanged.connect(self.update_summary)
         self.output = QPlainTextEdit(); self.output.setReadOnly(True)
         self.output.setAccessibleName('Change preview and results')
+        self.output.hide()
+        self.output.textChanged.connect(lambda: self.output.setVisible(bool(self.output.toPlainText())))
         layout.addWidget(self.output, 1)
         row = QHBoxLayout()
         self.preview = QPushButton('Preview changes')
@@ -145,6 +189,24 @@ class Settings(QWidget):
             QPushButton:hover, QPushButton:focus { border: 1px solid #672044; background: #ffd9ee; }
             QPushButton:disabled { color: #684b5c; background: #eadce4; }
         ''')
+
+    @staticmethod
+    def note(form,text):
+        label = QLabel(text)
+        label.setWordWrap(True)
+        form.addRow(label)
+
+    def start_entry(self):
+        return self.home/'.local/share/applications/lxqt-comfort.desktop'
+
+    def open_start(self):
+        from gi.repository import Gio, GLib
+        try:
+            entry = Gio.DesktopAppInfo.new_from_filename(str(self.start_entry()))
+            if entry is None or not entry.launch([],None):
+                raise RuntimeError('The Start menu launcher is unavailable.')
+        except (GLib.Error, RuntimeError) as error:
+            self.output.setPlainText(str(error))
 
     def update_summary(self):
         count = sum(choice.currentData() != 'keep' for choice in self.choices.values())
@@ -182,6 +244,7 @@ class Settings(QWidget):
                 if plan.name != 'plan.json' or not plan.is_file():
                     raise ValueError('Choose the plan.json created by panel/profile.py prepare.')
                 cmd += ['--prepared', str(plan.parent)]
+            if module=='taskbar-size' and action!='restore': cmd += ['--taskbar-size', action]
             if module=='taskbar' and action in ('icons','standard'):
                 cmd += ['--taskbar-style', action]
             if module=='cursor' and action!='restore':
@@ -208,6 +271,7 @@ class Settings(QWidget):
     def next_command(self):
         if not self.queue:
             self.process = None
+            self.start_link.setEnabled(self.start_entry().is_file())
             self.preview.setEnabled(True); self.apply.setEnabled(True)
             for module, choice in self.choices.items():
                 choice.model().item(choice.count()-1).setEnabled(managed(self.home, module))

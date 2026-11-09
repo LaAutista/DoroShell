@@ -6,7 +6,7 @@ The first module is a two-column Qt Start menu: application search, categories, 
 
 ## Status and support
 
-The core release candidate targets CachyOS LXQt 2.4 on X11 with Openbox and Python 3.14. The supported core consists of Start, the native taskbar with notification overflow, snapping, region screenshots and reversible setup. The repository version has been tested with automated offscreen tests and temporary installation homes. Its predecessor was exercised on a live LXQt session, including panel activation and keyboard toggling. **No fresh-install VM, logout/login, Wayland, or other-distribution validation has been completed.**
+The core release candidate targets CachyOS LXQt 2.4 on X11 with Openbox and Python 3.14. The supported core consists of Start, the native taskbar with notification overflow, snapping, desktop and region screenshots with annotation, and reversible setup. The repository version has been tested with automated offscreen tests and temporary installation homes. The earlier native panel was observed running on the development desktop. The corrected clock/tray build passed private LXQt session startup and is staged there for the next normal login. Clean-machine dependency and login validation for this corrected build remain open.
 
 Integration currently expects `panel1`, the Fancy Menu plugin, and the standard `Alt+F1.1` Fancy Menu shortcut. It rejects custom shortcut mappings and unsupported layouts rather than replacing them silently. Other LXQt layouts need inspection and adaptation. Multi-monitor/panel-edge positioning and long-session behavior need more testing. Folder links respect the existing default file manager; this module does not install or select Dolphin.
 
@@ -20,6 +20,10 @@ python setup.py menu snapping screenshots --apply
 python setup.py snapping --apply --live  # optional: start snapping in this session
 ```
 
+Check runtime package requirements for the selected modules with `python setup.py menu snapping screenshots native-panel cursor --packages`. This prints the package-manager command for review. Setup checks the installed packages on apply.
+
+To build from source, provide Git, CMake, Ninja, a C/C++ toolchain and pkg-config. The native panel needs Qt 6 Widgets, DBus, XML, Linguist and private headers, LXQt, lxqt-globalkeys-ui, lxqt-menu-data, KDE WindowSystem, LayerShellQt, GIO Unix headers, X11/XCB and xkbcommon-x11. The default plugin build also uses KF6 Solid, libdbusmenu-lxqt and libsysstat. CMake reports missing build dependencies. The panel builder fetches its pinned lxqt-build-tools revision into the private work directory. The native ScreenGrab build can reuse that prefix.
+
 Build the native panel once in a permanent, initially empty user directory. Prepare its profile **after** installing Start. Preparation reads DockBarX pins when that applet is present. Stock LXQt layouts need no DockBarX installation. The prepared panel reuses an existing Start launcher or adds one alongside the original widgets.
 
 ```sh
@@ -31,7 +35,7 @@ python setup.py native-panel           # inspect the next-login changes
 python setup.py native-panel --apply
 ```
 
-LXQt loads the staged taskbar on its next normal startup. A private X11 session verified that LXQt selected the user autostart entry over the stock panel. Start opens on pins. The tray arrow appears when an icon is configured to be hidden. The far-right strip toggles Show Desktop. In **DoroShell Settings → Taskbar & Windows**, the DoroShell taskbar option previews, stages or restores the prepared panel. A nondefault profile can be selected using its `plan.json`.
+LXQt loads the staged taskbar on its next normal startup. A private X11 session verified that LXQt selected the user autostart entry over the stock panel. Start opens on pins. The right-hand clock shows time above the date and opens a calendar when clicked. On stock tray settings, notification apps appear in a popup behind the up chevron. Choose Always show in the notification area settings to put an icon on the bar. The far-right strip toggles Show Desktop. In **DoroShell Settings → Taskbar & Windows**, the DoroShell taskbar option previews, stages or restores the prepared panel. A nondefault profile can be selected using its `plan.json`. **Taskbar icon and button size** offers Small (20 px icons, 36 px buttons), Medium (28/48) and Large (36/56). Keep unchanged preserves the existing size. Restore previous settings recovers the values from before the first size change. The selection takes effect on the panel’s next startup.
 
 To switch back, run `python setup.py native-panel --rollback --keep-panel-edits`. This restores the previous autostart entry and preserves any changed candidate settings in a private recovery file. The previous panel returns at the following normal login. To remove snapping while it is active, run `python setup.py snapping --rollback --live`. Restore screenshots with `python setup.py screenshots --rollback`. Restore legacy Start-button integration, if installed, before removing the menu with `python setup.py menu --rollback`. Original personal artwork and pins remain governed by their existing settings and backups.
 
@@ -104,17 +108,17 @@ The working-tree menu now includes the pink theme, Home / All programs navigatio
 
 The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The [roadmap](docs/roadmap.md) separates implemented features from remaining design and acceptance work.
 
-Current validation: **69 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
+Current validation: **79 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
 
 Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
 
 ## DoroShell settings
 
-Run `python setup.py --gui` from the checkout, or **DoroShell Settings** after installing/updating the menu. It is also available under Start → Menu options. Settings uses five category pages: **Start Menu**, **Taskbar & Windows**, **Screenshots**, **Apps & Themes**, and **Cursor**. Selections stay selected when changing pages, and a summary shows the total pending changes across all pages. Every option begins at **Keep unchanged**. Choose the components you want, preview, then apply. Existing rollback manifests enable **Restore previous settings**. Modules apply sequentially; if one fails, the log identifies it and earlier successful modules can be restored individually.
+Run `python setup.py --gui` from the checkout, or **DoroShell Settings** after installing/updating the menu. It is also available under Start → Menu options. Settings uses five category pages: **Start Menu**, **Taskbar & Windows**, **Screenshots**, **Apps & Themes**, and **Cursor**. Start Menu links to the installed launcher for pins, recent programs and folder links. Taskbar & Windows groups DoroShell controls separately from optional LXQt and DockBarX settings. Preview and apply results appear when there is output. Selections stay selected when changing pages, and a summary shows the total pending changes across all pages. Every option begins at **Keep unchanged**. Choose the components you want, preview, then apply. Existing rollback manifests enable **Restore previous settings**. Modules apply sequentially; if one fails, the log identifies it and earlier successful modules can be restored individually.
 
 - **Legacy taskbar module:** grouped application icons or LXQt icons with labels. This configures the installed LXQt taskbar: click an open app's icon to activate/restore it; grouped windows use LXQt's group UI. Launch closed apps from Start or existing Quick Launch icons. Existing Quick Launch entries remain; this is not Plasma's unified pinned-launcher/task-manager plugin. The explicit option can detach a known DockBarX entry while retaining its configuration for rollback. For unified pinned/running buttons and the hidden-tray popup, use the separate [native panel candidate](panel/README.md); it is not activated by this legacy option.
 - **Snapping:** Openbox/X11 mouse-drag left/right halves, plus Super+Left/Right and Super+Down to restore. Existing conflicting bindings are refused. Enable the refresh checkbox to start the helper now; otherwise it starts at the next login.
-- **Screenshots:** Print uses ScreenGrab region selection. Drag, then Enter to confirm; Escape cancels. The helper owns the completed clipboard image until replaced, so pasting works after ScreenGrab exits. Other capture modes are not exposed yet.
+- **Screenshots:** Print freezes the desktop, including an open Start menu. Enter copies the full desktop, or drag a region and move or resize it before copying. Draw, highlight, add text, or redact in the overlay. Save writes a PNG and copies the finished image. Escape cancels. **Open in ScreenGrab** passes the finished image to the optional native importer.
 - **One desktop:** saves Openbox's desktop count and initial desktop as 1. It does not migrate live windows or restart the session. Application rules targeting other desktops are refused. Verify at a user-chosen next login.
 - **Kate/Dolphin:** separate opt-ins for `text/plain`, `inode/directory`, and each app's Breeze Dark color scheme. Other MIME choices and global themes are retained. Apps must already be installed. Save work and close the affected app yourself before applying or restoring its theme so it cannot overwrite the file. DoroShell never closes it.
 - **Personal artwork:** choose a Start image and select menu Enable/update. A local managed PNG is backed up; future menu upgrades preserve it. The cursor uses your animated GIF frames and their timing, with one character per frame. The normal pointer remains inherited by default; pink is an explicit option. No Doro reference or animation is bundled.
@@ -136,7 +140,7 @@ The settings checkbox starts only the edge-snapping helper. Live panel and short
 
 ## Personal animated loading cursor
 
-`cursor.py` creates an inherited Breeze theme that replaces only wait/watch and progress/left_ptr_watch. The progress cursor retains the original Breeze arrow and hotspot. All other shapes come from Breeze. It accepts a local animated GIF, preserves frame timing, and builds 24/30/32/48/64-pixel Xcursors with Pillow (distribution package `python-pillow`); no compiler or xcursorgen is required. No artwork is included or uploaded.
+`cursor.py` creates an inherited Breeze theme that replaces only wait/watch and progress/left_ptr_watch. The progress cursor retains the original Breeze arrow and hotspot. All other shapes come from Breeze. It accepts an animated GIF, WebP or APNG and preserves frame timing. APNG keeps its authored canvas and skips an optional still poster. It builds 24/30/32/48/64-pixel Xcursors with Pillow (distribution package `python-pillow`); no compiler or xcursorgen is required. No artwork is included or uploaded.
 
 ```sh
 python cursor.py --gif /path/to/personal-animation.gif          # preview planned files
@@ -144,7 +148,7 @@ python cursor.py --gif /path/to/personal-animation.gif --apply
 python cursor.py --rollback
 ```
 
-The module updates the LXQt cursor theme, the user default cursor theme, and the Xresources theme entry. It preserves cursor size and the rest of each configuration file. Original bytes/modes are backed up in `~/.local/state/lxqt-comfort/cursor-install.json`. Repeat application is supported. Rollback refuses any managed file changed since installation rather than overwriting personal edits. Keep that private backup. There is no automatic package installation or session restart. Restart applications that cache cursors; log out and back in when convenient for consistent session-wide pickup. The installer does not force-refresh running applications or the X server resource database. Automated tests use temporary homes and synthetic artwork; live X11 validation is separate. Wayland is untested.
+The module updates the LXQt cursor theme, the user default cursor theme, and the Xresources theme entry. It preserves cursor size and the rest of each configuration file. Original bytes/modes are backed up in `~/.local/state/lxqt-comfort/cursor-install.json`. Repeat application is supported. Rollback refuses any managed file changed since installation rather than overwriting personal edits. Keep that private backup. There is no automatic package installation or session restart. Restart applications that cache cursors; log out and back in when convenient for consistent session-wide pickup. The installer does not force-refresh running applications or the X server resource database. The transparent personal cursor is installed locally on the development machine. The source distribution includes only the neutral Start SVG. Automated cursor tests use temporary homes and synthetic artwork. A separate private X11 check sampled the installed personal animation and ordinary/pink/restored pointer pixels at 30 px. Wayland is untested.
 
 ## Edit the Start menu's folder links
 
@@ -270,9 +274,18 @@ The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` chec
 
 ### Capture an open Start menu
 
-With DoroShell Start open, press **Print Screen**. DoroShell snapshots the screen before releasing the menu, then opens a region selector over that snapshot. Drag a region and press **Enter** or **Copy** to confirm. **Escape** or **Cancel** leaves the clipboard unchanged; selecting a region alone does not copy it. The captured pixels retain the open menu.
+Press **Print Screen** with Start open or closed. Drag to select, drag inside the selection to move it, or pull its handles to resize. The toolbar reports the selected size in pixels. Choose an annotation tool above the selection. **Color** sets the ink or highlighter color, and the width control sets the stroke in pixels. Each mark retains the settings it was drawn with. Ctrl+Z undoes an annotation and Ctrl+Shift+Z redoes it.
 
-This does not change the global Print binding used when Start is closed. It is validated on a single-screen X11 session; Wayland and mixed-DPI/multi-monitor capture remain unverified. The capture process stays alive only to serve its clipboard image until another owner replaces it. The file-output test path never writes the real clipboard.
+**Enter**, **Copy**, or **Ctrl+C** copies the selection, or the full desktop when there is no selection. **Save** or **Ctrl+S** saves the final pixels as a PNG and copies them. Cancelling the save dialog returns to editing. **Escape** or **Cancel** closes the overlay and preserves the clipboard. On X11 a separate owner supplies the image after the editor exits and releases it when replaced.
+
+**Open in ScreenGrab** imports the exact cropped and annotated pixels into the native LXQt window. Its Copy and Save actions work on that image. To enable the importer on another installation, build the pinned ScreenGrab source in an empty user directory and apply the screenshots module with the resulting executable:
+
+```sh
+python screengrab/build.py --work "$HOME/.local/share/doroshell/screengrab-import-build"
+python setup.py screenshots --apply --native-preview "$HOME/.local/share/doroshell/screengrab-import-build/build/screengrab"
+```
+
+This build requires the ScreenGrab 3.2.0 development dependencies, including CMake, Ninja, Qt 6, lxqt-build-tools, libqtxdg, LayerShellQt, KWindowSystem and XCB development files. If using the build-tools prefix from the panel build, set `CMAKE_PREFIX_PATH` to its `deps` directory for the build command. The installer manages a private executable and keeps the system ScreenGrab package. The overlay’s Copy and Save work independently of the importer. [Screenshot verification and limits](docs/screenshot-verification.md).
 
 ### Readability and reference behavior
 
