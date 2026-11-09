@@ -231,7 +231,7 @@ Start now exposes application-provided tasks in the application right-click menu
 
 ## DoroShell Panel development
 
-A separately built native LXQt Panel prototype now provides a hidden-tray arrow and popup, native grouped tasks and a reversible next-login profile migration from DockBarX. The current desktop is not switched automatically. Its unified pinned/running icons launch through GIO, reuse matching application buttons and save dragged pin order across panel restarts. The pink glass-like styling follows the supplied concept. See [build, verification, limitations and rollback](panel/README.md). A graphical pin editor, broader application matching and final Windows 7 visual polish remain unfinished.
+A separately built native LXQt Panel prototype now provides a hidden-tray arrow and popup, native grouped tasks and a reversible next-login profile migration from DockBarX. The current desktop is not switched automatically. Its unified pinned/running icons launch through GIO, reuse matching application buttons and save dragged pin order across panel restarts. The pink glass-like styling follows the supplied concept. See [build, verification, limitations and rollback](panel/README.md). Broader application matching and final Windows 7 visual polish remain unfinished.
 
 
 ### Reorder Start pins
@@ -239,3 +239,18 @@ A separately built native LXQt Panel prototype now provides a hidden-tray arrow 
 Drag a pinned app before or after another pin in **Home** or **Pinned**. Escape cancels the drag. Search results and recent-only entries cannot be dragged. The right-click **Move pin up/down** commands remain available with keyboard menu navigation. Saved order survives reopening Start; existing favorites are backed up and concurrent edits are refused.
 
 The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` check uses synthetic desktop entries and a temporary favorites file. It moves the real pointer, then restores it. It verifies reorder, Escape cancellation, keyboard movement, persistence, and that dragging never launches an app.
+
+
+### Capture an open Start menu
+
+With DoroShell Start open, press **Print Screen**. DoroShell snapshots the screen before releasing the menu, then opens a region selector over that snapshot. Drag a region and press **Enter** or **Copy** to confirm. **Escape** or **Cancel** leaves the clipboard unchanged; selecting a region alone does not copy it. The captured pixels retain the open menu.
+
+This does not change the global Print binding used when Start is closed. It is validated on a single-screen X11 session; Wayland and mixed-DPI/multi-monitor capture remain unverified. The capture process stays alive only to serve its clipboard image until another owner replaces it. The file-output test path never writes the real clipboard.
+
+### Readability and reference behavior
+
+Body text inherits the system font size. Pink surfaces use dark plum text, the darker places pane uses light text, and dropdown selected/disabled states have explicit colors. Contrast regression checks cover menu/settings text and the native panel gradient; rendered light/dark palettes and 16-point body text were inspected. Long app names elide instead of creating horizontal scrolling. Custom third-party widget/theme combinations still need broader testing.
+
+Behavior follows the [original Windows 7 taskbar guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-taskbar) and [Classic/Open-Shell customization reference](https://www.classicshell.net/faq/), while the supplied concept sets the pink/Doro appearance. Native Windows-only integrations remain listed separately in the parity plan.
+
+Current increment: 55 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. No login or clean-install test is implied.

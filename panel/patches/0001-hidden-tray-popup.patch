@@ -1,27 +1,58 @@
 diff --git a/panel/lxqtpanel.cpp b/panel/lxqtpanel.cpp
-index 317b01b..5226a8f 100644
+index 317b01b..cd72348 100644
 --- a/panel/lxqtpanel.cpp
 +++ b/panel/lxqtpanel.cpp
-@@ -1165,6 +1165,19 @@ void LXQtPanel::updateStyleSheet()
+@@ -1165,6 +1165,20 @@ void LXQtPanel::updateStyleSheet()
      if (QFileInfo::exists(mBackgroundImage))
          sheet << QString(QStringLiteral("LXQtPanel #BackgroundWidget { background-image: url('") + mBackgroundImage + QStringLiteral("');}"));
 
 +    // DoroShell's opt-in native theme. Original artwork is not embedded.
 +    if (mSettings->value(QStringLiteral("doroshellTheme"), false).toBool())
 +    {
-+        sheet << QStringLiteral("LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #f9d7ed,stop:0.08 #e9a4cd,stop:0.47 #c975a5,stop:0.5 #a94a80,stop:1 #d783b3); border-top: 1px solid #fff0fa; }");
-+        sheet << QStringLiteral("Plugin * { color: #fff5fb; }");
++        sheet << QStringLiteral("LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #f9d7ed,stop:0.08 #e9a4cd,stop:0.47 #c975a5,stop:0.5 #c078a2,stop:1 #d783b3); border-top: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("QLabel#WorldClockContent, LXQtTaskButton, QuickLaunchButton { color: #351329; }");
 +        sheet << QStringLiteral("LXQtTaskButton, QuickLaunchButton { background: transparent; border: 1px solid transparent; border-radius: 5px; margin: 2px; }");
 +        sheet << QStringLiteral("LXQtTaskButton:hover, QuickLaunchButton:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
-+        sheet << QStringLiteral("LXQtTaskButton[doroshellRunning=\"true\"] { border-bottom: 2px solid #fff0fa; }");
++        sheet << QStringLiteral("LXQtTaskButton[doroshellRunning=\"true\"] { border-bottom: 2px solid #5b143d; }");
 +        sheet << QStringLiteral("LXQtTaskButton:checked { background: rgba(255,230,247,160); border: 1px solid #fff0fa; }");
-+        sheet << QStringLiteral("QToolButton#doroshellTrayArrow { color: white; background: transparent; border: 1px solid transparent; border-radius: 4px; }");
++        sheet << QStringLiteral("QToolButton#doroshellTrayArrow { color: #351329; background: transparent; border: 1px solid transparent; border-radius: 4px; }");
 +        sheet << QStringLiteral("QToolButton#doroshellTrayArrow:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("LXQtGroupPopup { background: #fff0f8; border: 1px solid #a84e7c; }");
 +        sheet << QStringLiteral("QFrame#doroshellTrayPopup { background: #fff0f8; border: 1px solid #a84e7c; border-radius: 5px; }");
 +    }
      setStyleSheet(sheet.join(QStringLiteral("\n")));
  }
 
+diff --git a/panel/pluginsettings.cpp b/panel/pluginsettings.cpp
+index 3f6c864..11524b1 100644
+--- a/panel/pluginsettings.cpp
++++ b/panel/pluginsettings.cpp
+@@ -163,6 +163,13 @@ void PluginSettings::clear()
+     emit settingsChanged();
+ }
+
++void PluginSettings::syncKeepingResetState()
++{
++    Q_D(PluginSettings);
++    d->mSettings->sync();
++    emit settingsChanged();
++}
++
+ void PluginSettings::sync()
+ {
+     Q_D(PluginSettings);
+diff --git a/panel/pluginsettings.h b/panel/pluginsettings.h
+index a1a3785..23dbef2 100644
+--- a/panel/pluginsettings.h
++++ b/panel/pluginsettings.h
+@@ -72,6 +72,7 @@ public:
+
+     void clear();
+     void sync();
++    void syncKeepingResetState();
+
+     QStringList allKeys() const;
+     QStringList childGroups() const;
 diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
 index 6410519..52da3a2 100644
 --- a/plugin-statusnotifier/statusnotifierwidget.cpp
@@ -203,17 +234,28 @@ index 379722e..069de31 100644
 
      QTimer mHideTimer;
 diff --git a/plugin-taskbar/CMakeLists.txt b/plugin-taskbar/CMakeLists.txt
-index 1d627f2..d582309 100644
+index 1d627f2..3646632 100644
 --- a/plugin-taskbar/CMakeLists.txt
 +++ b/plugin-taskbar/CMakeLists.txt
-@@ -1,4 +1,6 @@
+@@ -1,6 +1,9 @@
  set(PLUGIN "taskbar")
 +find_package(PkgConfig REQUIRED)
 +pkg_check_modules(DORO_GIO REQUIRED IMPORTED_TARGET gio-unix-2.0)
 
  set(HEADERS
++    doroshellpinsdialog.h
      lxqttaskbar.h
-@@ -23,6 +25,7 @@ set(UIS
+     lxqttaskbutton.h
+     lxqttaskbarconfiguration.h
+@@ -10,6 +13,7 @@ set(HEADERS
+ )
+
+ set(SOURCES
++    doroshellpinsdialog.cpp
+     lxqttaskbar.cpp
+     lxqttaskbutton.cpp
+     lxqttaskbarconfiguration.cpp
+@@ -23,6 +27,7 @@ set(UIS
  )
 
  set(LIBRARIES
@@ -221,6 +263,158 @@ index 1d627f2..d582309 100644
      lxqt
      lxqt-globalkeys
      Qt6Xdg
+diff --git a/plugin-taskbar/doroshellpinsdialog.cpp b/plugin-taskbar/doroshellpinsdialog.cpp
+new file mode 100644
+index 0000000..861de74
+--- /dev/null
++++ b/plugin-taskbar/doroshellpinsdialog.cpp
+@@ -0,0 +1,120 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++#include "doroshellpinsdialog.h"
++#include <QDialogButtonBox>
++#include <QFileDialog>
++#include <QFileInfo>
++#include <QHBoxLayout>
++#include <QLabel>
++#include <QListWidget>
++#include <QMessageBox>
++#include <QPalette>
++#include <QColor>
++#include <QPushButton>
++#include <QSet>
++#include <QStandardPaths>
++#include <QVBoxLayout>
++#include <XdgDesktopFile>
++#include <XdgIcon>
++
++DoroShellPinsDialog::DoroShellPinsDialog(const QStringList &paths, QWidget *parent)
++    : QDialog(parent), mList(new QListWidget(this))
++{
++    setWindowTitle(tr("Pinned applications"));
++    setObjectName(QStringLiteral("doroshellPinsEditor"));
++    QPalette colors = palette();
++    for (auto role : {QPalette::Window, QPalette::Button}) colors.setColor(role, QColor(QStringLiteral("#f7d6e4")));
++    colors.setColor(QPalette::Base, QColor(QStringLiteral("#fff9fc")));
++    for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText, QPalette::HighlightedText})
++        colors.setColor(role, QColor(QStringLiteral("#351329")));
++    colors.setColor(QPalette::Highlight, QColor(QStringLiteral("#edafd2")));
++    for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
++        colors.setColor(QPalette::Disabled, role, QColor(QStringLiteral("#684b5c")));
++    setPalette(colors);
++
++    resize(520, 400);
++    auto layout = new QVBoxLayout(this);
++    auto help = new QLabel(tr("Choose application desktop entries. Changes apply only when you save. Unified pins require task grouping."), this);
++    help->setWordWrap(true);
++    layout->addWidget(help);
++    mList->setObjectName(QStringLiteral("pinnedApplications"));
++    mList->setAccessibleName(tr("Pinned applications in taskbar order"));
++    layout->addWidget(mList);
++    for (const QString &path : paths) addPath(path);
++    mList->setCurrentRow(0);
++    auto row = new QHBoxLayout;
++    auto add = new QPushButton(tr("Add application…"), this);
++    auto remove = new QPushButton(tr("Remove"), this);
++    auto up = new QPushButton(tr("Move up"), this);
++    auto down = new QPushButton(tr("Move down"), this);
++    add->setObjectName(QStringLiteral("addPin"));
++    remove->setObjectName(QStringLiteral("removePin"));
++    up->setObjectName(QStringLiteral("movePinUp"));
++    down->setObjectName(QStringLiteral("movePinDown"));
++    for (auto button : {add, remove, up, down}) row->addWidget(button);
++    layout->addLayout(row);
++    connect(add, &QPushButton::clicked, this, [this] {
++        const auto files = QFileDialog::getOpenFileNames(this, tr("Choose applications"),
++            QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("applications"), QStandardPaths::LocateDirectory),
++            tr("Desktop entries (*.desktop)"), nullptr, QFileDialog::DontUseNativeDialog);
++        for (const auto &path : files) if (!this->paths().contains(path)) addPath(path);
++    });
++    connect(remove, &QPushButton::clicked, this, [this] { delete mList->takeItem(mList->currentRow()); });
++    connect(up, &QPushButton::clicked, this, [this] { moveCurrent(-1); });
++    connect(down, &QPushButton::clicked, this, [this] { moveCurrent(1); });
++    auto buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
++    buttons->setObjectName(QStringLiteral("pinEditorButtons"));
++    layout->addWidget(buttons);
++    connect(buttons, &QDialogButtonBox::accepted, this, &DoroShellPinsDialog::accept);
++    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
++}
++
++void DoroShellPinsDialog::addPath(const QString &path)
++{
++    XdgDesktopFile entry;
++    const bool valid = entry.load(path);
++    auto item = new QListWidgetItem(valid ? XdgIcon::fromTheme(entry.value(QStringLiteral("Icon")).toString()) : QIcon(),
++        valid ? entry.name() : tr("Unavailable: %1").arg(QFileInfo(path).fileName()), mList);
++    item->setData(Qt::UserRole, path);
++    item->setToolTip(path);
++}
++
++QStringList DoroShellPinsDialog::paths() const
++{
++    QStringList result;
++    for (int i = 0; i < mList->count(); ++i) result << mList->item(i)->data(Qt::UserRole).toString();
++    return result;
++}
++
++void DoroShellPinsDialog::moveCurrent(int delta)
++{
++    const int from = mList->currentRow(), to = from + delta;
++    if (from < 0 || to < 0 || to >= mList->count()) return;
++    auto item = mList->takeItem(from);
++    mList->insertItem(to, item);
++    mList->setCurrentRow(to);
++}
++
++void DoroShellPinsDialog::accept()
++{
++    QSet<QString> identities;
++    for (const auto &path : paths())
++    {
++        XdgDesktopFile entry;
++        if (!QFileInfo(path).isAbsolute() || !QFileInfo(path).isFile() || !entry.load(path)
++            || entry.value(QStringLiteral("Type")).toString() != QStringLiteral("Application"))
++        {
++            QMessageBox::warning(this, tr("Cannot save pins"), tr("Remove or replace this unavailable application:\n%1").arg(path));
++            return;
++        }
++        QString identity = entry.value(QStringLiteral("StartupWMClass")).toString();
++        if (identity.isEmpty()) identity = QFileInfo(path).completeBaseName();
++        identity = identity.toCaseFolded();
++        if (identities.contains(identity))
++        {
++            QMessageBox::warning(this, tr("Cannot save pins"), tr("Two entries use the same application identity: %1").arg(identity));
++            return;
++        }
++        identities.insert(identity);
++    }
++    QDialog::accept();
++}
+diff --git a/plugin-taskbar/doroshellpinsdialog.h b/plugin-taskbar/doroshellpinsdialog.h
+new file mode 100644
+index 0000000..5cb5caf
+--- /dev/null
++++ b/plugin-taskbar/doroshellpinsdialog.h
+@@ -0,0 +1,20 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++#ifndef DOROSHELLPINSDIALOG_H
++#define DOROSHELLPINSDIALOG_H
++#include <QDialog>
++#include <QStringList>
++class QListWidget;
++
++class DoroShellPinsDialog : public QDialog
++{
++public:
++    explicit DoroShellPinsDialog(const QStringList &paths, QWidget *parent = nullptr);
++    QStringList paths() const;
++protected:
++    void accept() override;
++private:
++    QListWidget *mList;
++    void addPath(const QString &path);
++    void moveCurrent(int delta);
++};
++#endif
 diff --git a/plugin-taskbar/lxqttaskbar.cpp b/plugin-taskbar/lxqttaskbar.cpp
 index edc4d81..7336ed2 100644
 --- a/plugin-taskbar/lxqttaskbar.cpp
@@ -404,6 +598,44 @@ index 769e3f6..36f296e 100644
      void addWindow(WId window);
      windowMap_t::iterator removeWindow(windowMap_t::iterator pos);
      void buttonMove(LXQtTaskGroup * dst, LXQtTaskGroup * src, QPoint const & pos);
+diff --git a/plugin-taskbar/lxqttaskbarconfiguration.cpp b/plugin-taskbar/lxqttaskbarconfiguration.cpp
+index c4eaba6..f37f546 100644
+--- a/plugin-taskbar/lxqttaskbarconfiguration.cpp
++++ b/plugin-taskbar/lxqttaskbarconfiguration.cpp
+@@ -28,6 +28,9 @@
+  * END_COMMON_COPYRIGHT_HEADER */
+
+ #include "lxqttaskbarconfiguration.h"
++#include "doroshellpinsdialog.h"
++#include <QMessageBox>
++#include <QPushButton>
+ #include "ui_lxqttaskbarconfiguration.h"
+
+ #include "../panel/lxqtpanelapplication.h"
+@@ -40,6 +43,23 @@ LXQtTaskbarConfiguration::LXQtTaskbarConfiguration(PluginSettings *settings, QWi
+     setAttribute(Qt::WA_DeleteOnClose);
+     setObjectName(QStringLiteral("TaskbarConfigurationWindow"));
+     ui->setupUi(this);
++    auto pins = new QPushButton(tr("Pinned applications…"), this);
++    pins->setObjectName(QStringLiteral("editPinnedApplications"));
++    ui->verticalLayout->insertWidget(ui->verticalLayout->count() - 2, pins);
++    connect(pins, &QPushButton::clicked, this, [this] {
++        const auto original = this->settings().value(QStringLiteral("doroshellPinned")).toStringList();
++        DoroShellPinsDialog editor(original, this);
++        if (editor.exec() != QDialog::Accepted) return;
++        this->settings().syncKeepingResetState();
++        if (this->settings().value(QStringLiteral("doroshellPinned")).toStringList() != original)
++        {
++            QMessageBox::warning(this, tr("Pins changed"), tr("The pinned applications changed while the editor was open. Reopen it before saving."));
++            return;
++        }
++        this->settings().setValue(QStringLiteral("doroshellPinned"), editor.paths());
++        this->settings().syncKeepingResetState();
++    });
++
+
+     connect(ui->buttons, &QDialogButtonBox::clicked, this, &LXQtTaskbarConfiguration::dialogButtonsAction);
+
 diff --git a/plugin-taskbar/lxqttaskbutton.cpp b/plugin-taskbar/lxqttaskbutton.cpp
 index 5ae03af..49de713 100644
 --- a/plugin-taskbar/lxqttaskbutton.cpp

@@ -65,7 +65,7 @@ def targets(home, icon=None):
     if custom_data is not None: files[custom] = (custom_data, 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
     for name in ['settings.py','setup.py','modules.py','cursor.py','install.py','integrate.py',
-                 'runtime/snap.py','runtime/screenshot.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/start.svg']:
+                 'runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/start.svg']:
         files[toolkit/name] = ((SOURCE/name).read_bytes(), 0o644)
     settings_launcher = home / '.local/bin/doroshell-settings'
     files[settings_launcher] = (('#!/usr/bin/python\nimport runpy\nrunpy.run_path('+repr(str(toolkit/'settings.py'))+', run_name="__main__")\n').encode(), 0o755)

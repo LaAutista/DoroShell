@@ -8,17 +8,18 @@ import sys
 import copy
 import tempfile
 import time
+import subprocess
 
 import gi
 gi.require_version('Gio', '2.0')
 from gi.repository import Gio, GLib
-from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize
+from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QByteArray, QBuffer, QIODevice
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
-    QTableWidgetItem, QFileDialog, QAbstractItemView, QScrollArea)
+    QTableWidgetItem, QFileDialog, QAbstractItemView, QScrollArea, QStyledItemDelegate)
 
 FOLDERS = [('Home', 'HomeLocation', 'user-home'),
            ('Documents', 'DocumentsLocation', 'folder-documents'),
@@ -373,6 +374,10 @@ class StartMenu(QWidget):
         root.setContentsMargins(18, 18, 18, 18)
         heading = QLabel('Start')
         heading.setObjectName('heading')
+        heading_font = heading.font()
+        if heading_font.pointSizeF() > 0: heading_font.setPointSizeF(heading_font.pointSizeF() * 1.8)
+        elif heading_font.pixelSize() > 0: heading_font.setPixelSize(round(heading_font.pixelSize() * 1.8))
+        heading.setFont(heading_font)
         header = QHBoxLayout()
         header.addWidget(heading)
         header.addStretch()
@@ -391,11 +396,14 @@ class StartMenu(QWidget):
         left = QVBoxLayout(apps_panel)
         left.setContentsMargins(5, 5, 5, 5)
         self.category = QComboBox()
+        self.category.setItemDelegate(QStyledItemDelegate(self.category))
         self.category.addItems(['Home', 'All applications', 'Pinned', 'Recent'] + CATEGORIES)
         self.category.setAccessibleName('Application category')
         left.addWidget(self.category)
         self.list = ApplicationList(self)
         self.list.setIconSize(QSize(28, 28))
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.list.setAccessibleName('Applications')
         self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list.customContextMenuRequested.connect(self.context_menu)
@@ -459,16 +467,16 @@ class StartMenu(QWidget):
         self.status.setWordWrap(True)
         root.addWidget(self.status)
         self.setStyleSheet('''
-            QWidget { color: #351329; font-size: 14px; background: transparent; }
+            QWidget { color: #351329; background: transparent; }
             QWidget#doroShellStart {
                 background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #f9d7eb,stop:0.42 #df82b6,stop:0.52 #cb649d,stop:1 #f0b2d2);
                 border: 2px solid #fff0f8; border-radius: 12px;
             }
-            QLabel#heading { font-size: 27px; font-weight: 600; padding-bottom: 10px; color: #5b143d; }
+            QLabel#heading { font-weight: 600; padding-bottom: 10px; color: #5b143d; }
             QWidget#applicationsPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff9fd,stop:1 #f7d3e7); border: 1px solid #fff0f8; border-radius: 9px; }
             QWidget#placesPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #a84e7c,stop:0.5 #803656,stop:1 #ab507b); border: 1px solid #f7d4e7; border-radius: 9px; }
             QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton { color: #fff5fb; }
-            QLabel#section { font-size: 12px; padding: 8px; }
+            QLabel#section { padding: 8px; }
             QListWidget, QLineEdit, QComboBox { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff7fc,stop:1 #f8d7e9); border: 1px solid #b75d91; border-radius: 6px; }
             QListWidget::item { padding: 7px; border: 1px solid transparent; }
             QListWidget::item:selected { background: #edafd2; border: 1px solid #ad5086; color: #351329; border-radius: 4px; }
@@ -477,13 +485,16 @@ class StartMenu(QWidget):
             QPushButton#menuControl { padding: 5px 8px; }
             QPushButton:hover, QPushButton:focus { background: #f3c6e0; border: 1px solid #914069; }
             QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus { background: #642644; border: 1px solid #fff0f8; }
-            QLineEdit { padding: 12px; } QComboBox { padding: 8px; }
+            QLineEdit { padding: 12px; placeholder-text-color: #795369; } QComboBox { padding: 8px; }
+            QComboBox QAbstractItemView { background: #fff7fc; color: #351329; selection-background-color: #edafd2; selection-color: #351329; }
+            QComboBox QAbstractItemView::item:selected { background: #edafd2; color: #351329; }
             QMenu { background: #fff2f9; color: #351329; border: 1px solid #aa4a7c; }
             QMenu::item:selected { background: #eaa6c8; }
         ''')
         self.search.textChanged.connect(self.refresh)
         self.category.currentTextChanged.connect(self.refresh)
         self.search.returnPressed.connect(lambda: self.launch_item(self.list.currentItem()))
+        QShortcut(QKeySequence('Print'), self, activated=self.capture_menu)
         QShortcut(QKeySequence('Escape'), self, activated=self.close)
         QShortcut(QKeySequence('Alt+F1'), self, activated=self.close)
         QShortcut(QKeySequence('Ctrl+F'), self, activated=self.search.setFocus)
@@ -528,6 +539,32 @@ class StartMenu(QWidget):
             self.search.setFocus()
             self.exit_on_hide = exit_on_hide
             app.setQuitOnLastWindowClosed(quit_on_close)
+
+    def capture_menu(self):
+        if self.launching:
+            return
+        helper = Path(__file__).resolve().parents[1] / 'runtime/menu_capture.py'
+        if not helper.is_file():
+            helper = Path.home() / '.local/share/doroshell/toolkit/runtime/menu_capture.py'
+        screen = self.screen()
+        image = screen.grabWindow(0).toImage()
+        data = QByteArray(); buffer = QBuffer(data)
+        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+        if image.isNull() or not image.save(buffer, 'PNG') or not helper.is_file():
+            self.error('The open menu could not be captured. Clipboard unchanged.')
+            return
+        geometry = screen.geometry()
+        command = [sys.executable, str(helper), '--geometry', str(geometry.x()), str(geometry.y()), str(geometry.width()), str(geometry.height())]
+        try:
+            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL, start_new_session=True)
+            process.stdin.write(bytes(data))
+            process.stdin.close()
+        except OSError as error:
+            self.error('Capture could not start; clipboard unchanged: ' + str(error))
+            return
+        self.launching = True
+        self.close()
 
     def hideEvent(self, event):
         super().hideEvent(event)

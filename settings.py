@@ -6,7 +6,7 @@ import sys
 from PySide6.QtCore import QProcess
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QCheckBox, QLineEdit, QFileDialog,
-    QPlainTextEdit, QFormLayout, QScrollArea)
+    QPlainTextEdit, QFormLayout, QScrollArea, QStyledItemDelegate)
 
 ROOT = Path(__file__).resolve().parent
 OPTIONS = [
@@ -45,7 +45,11 @@ class Settings(QWidget):
         self.queue = []
         layout = QVBoxLayout(self)
         title = QLabel('Make LXQt feel like home')
-        title.setStyleSheet('font-size: 24px; font-weight: 600; color: #743b59; background: #f7d6e4; padding: 10px;')
+        title_font = title.font()
+        if title_font.pointSizeF() > 0: title_font.setPointSizeF(title_font.pointSizeF() * 1.6)
+        elif title_font.pixelSize() > 0: title_font.setPixelSize(round(title_font.pixelSize() * 1.6))
+        title.setFont(title_font)
+        title.setStyleSheet(' font-weight: 600; color: #743b59; background: #f7d6e4; padding: 10px;')
         layout.addWidget(title)
         intro = QLabel('Choose only what you want to change. Restore uses the saved settings from before DoroShell.\n'
                        'Packages are never installed here. One desktop takes effect at your next login.')
@@ -56,6 +60,7 @@ class Settings(QWidget):
         self.choices = {}
         for module, label in OPTIONS:
             choice = QComboBox()
+            choice.setItemDelegate(QStyledItemDelegate(choice))
             choice.setAccessibleName(label)
             choice.addItem('Keep unchanged', 'keep')
             if module == 'taskbar':
@@ -86,14 +91,18 @@ class Settings(QWidget):
         row.addWidget(self.preview); row.addWidget(self.apply)
         layout.addLayout(row)
         self.setStyleSheet('''
-            QWidget { color: #351329; font-size: 14px; }
+            QWidget { color: #351329; }
             QWidget#doroShellSettings { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff1fa,stop:1 #e7a3c9); }
             QScrollArea, QScrollArea > QWidget > QWidget { background: #fff4fa; border: 0; }
             QComboBox, QLineEdit { min-height: 26px; background: #fff9fc; border: 1px solid #b66a93; border-radius: 5px; padding: 3px; }
+            QComboBox QAbstractItemView { background: #fff9fc; color: #351329; selection-background-color: #edafd2; selection-color: #351329; }
+            QComboBox QAbstractItemView::item:disabled { color: #684b5c; }
+            QComboBox QAbstractItemView::item:selected { background: #edafd2; color: #351329; }
+            QLineEdit { placeholder-text-color: #795369; }
             QPlainTextEdit { background: #fff9fc; border: 1px solid #b66a93; border-radius: 5px; }
             QPushButton { padding: 8px; background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #ffebf7,stop:0.49 #f3b6d7,stop:0.5 #e899c2,stop:1 #f5c4df); border: 1px solid #a75b83; border-radius: 5px; }
             QPushButton:hover, QPushButton:focus { border: 1px solid #672044; background: #ffd9ee; }
-            QPushButton:disabled { color: #806675; background: #eadce4; }
+            QPushButton:disabled { color: #684b5c; background: #eadce4; }
         ''')
 
     def file_row(self, form, label, pattern):
