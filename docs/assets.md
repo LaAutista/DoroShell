@@ -28,3 +28,14 @@ For a future bundled asset, record the exact original image URL, author, applica
 ## Official-art request follow-up
 
 The supplied DoroShell concept sheet was visually inspected as a layout reference; it does not establish official provenance and is not the original spinning GIF. An official licensed product reference is [Good Smile DORO](https://www.goodsmile.com/en/product/1138582/DORO%2BDorothy), credited ©SHIFT UP CORP. No software-asset redistribution permission was found on that product page. The original official image/animation URL and applicable permission remain required before bundling. Current personal artwork was preserved; no concept crop, replacement character or product photograph was installed. See the [parity plan](open-shell-parity.md).
+
+
+## Personal assets installed — follow-up
+
+The user supplied a transparent Doro PNG and two files named as GIFs. Inspection of their downloaded bytes found that both GIF attachments were single-frame PNGs. The first was visually matched to [Tenor's Spin Doro sticker](https://tenor.com/view/spin-doro-gif-13259137076345501588). The original 480×480 GIF was retrieved from that page: 28 frames, 30/40 ms frame delays, 930 ms loop. It retains its original background. The second attachment is a separate expression image, not the chosen spin.
+
+The chosen PNG and recovered spinning GIF were installed locally, with a private before/after snapshot and conflict-checked restore script. The ordinary pointer inherits Breeze; only loading/progress shapes are replaced. The menu header now displays the locally selected Start image. No personal artwork, cursor binaries or screenshots were committed. Existing application/panel caches were not forcibly refreshed.
+
+Personal installation is separate from bundling in the toolkit: unclear redistribution rights did not block the user's chosen local files. Exact original authorship and software redistribution permission remain unverified; the Tenor uploader is not asserted to be the artist. The repository still ships the neutral SVG. Earlier requests for an asset source in this document no longer block personal installation.
+
+Validation: 42 automated tests; temporary-home installation and rollback of these assets; frame counts/timing at all five cursor sizes; offscreen menu rendering visually checked; actual X11 loading of both installed cursor files. No live on-screen animation, cached panel-icon refresh, fresh login or clean installation was verified.

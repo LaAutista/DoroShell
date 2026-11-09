@@ -65,3 +65,8 @@ Use the exact official image/animation when its original source and applicable p
 ## Verification of this increment
 
 42 automated tests passed (Qt offscreen, mocks and temporary homes). New checks exercise task selection without changing favorites, invalid-action rejection and duplicate dispatch prevention. A separate real GIO desktop-action check launched a synthetic Python helper and verified its output file in a temporary directory. It did not launch a personal application. No real pointer/keyboard acceptance of the new context items, fresh-login or clean-install test was performed. No panel, applet, desktop session or personal application was restarted.
+
+
+### Personal artwork resolution
+
+Subsequent user-supplied assets enabled personal installation of the chosen Doro image and the visually matching original spinning animation recovered from Tenor. See [asset provenance and validation](assets.md#personal-assets-installed--follow-up). Redistribution permission remains unverified, but no longer blocks that personal installation. The full Open-Shell parity gaps above remain open.
