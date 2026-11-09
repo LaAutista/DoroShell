@@ -4,9 +4,15 @@
 
 The current suite passes **58 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
 
-The native panel candidate includes the Show Desktop edge target from `f2c66ae`; a separate X11 panel rendered it at 12 pixels on the far right. Show/restore was not activated on personal windows. The personal panel was not replaced or restarted. Fresh-login, clean-install, multi-monitor/Wayland and actual paste from the new open-menu helper remain outstanding. The [roadmap](roadmap.md) and [native panel scope](../panel/README.md) describe remaining work.
+The native panel candidate includes the Show Desktop edge target from `f2c66ae`; a separate X11 panel rendered it at 12 pixels on the far right. Show/restore was not activated on personal windows. The personal panel was not replaced or restarted. Fresh-login, clean-install and multi-monitor/Wayland acceptance remain outstanding. The [roadmap](roadmap.md) and [native panel scope](../panel/README.md) describe remaining work.
 
 Personal Doro image and animated busy cursor were installed in a later increment; the early missing-artwork notes below are historical. Likewise, the separate native panel now provides unified pinned/running tasks, beyond the older taskbar module described below.
+
+### Production menu-capture clipboard path
+
+`tests/check_menu_clipboard_x11.py` passed on an authenticated private Xvfb display with TCP disabled and a private session bus. It used synthetic image data, temporary homes and separate LibreOffice profiles. Escape before selection preserved a sentinel; a confirmed region published a 120×90 image; Escape during a later drag preserved that completed image. Actual Writer and Draw Paste each inserted one graphic, and all exported pixels matched. The clipboard owner stayed alive after capture and exited after the private clipboard was replaced. The personal clipboard was never addressed.
+
+For this check, the official Arch Xvfb package was downloaded, its packager signature verified, and only its executable extracted into a private test directory. No system package was installed or changed. This verifies the real production helper's clipboard lifecycle, not every desktop clipboard manager or display configuration.
 
 ## Earlier verification history
 

@@ -253,4 +253,15 @@ Body text inherits the system font size. Pink surfaces use dark plum text, the d
 
 Behavior follows the [original Windows 7 taskbar guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-taskbar) and [Classic/Open-Shell customization reference](https://www.classicshell.net/faq/), while the supplied concept sets the pink/Doro appearance. Native Windows-only integrations remain listed separately in the parity plan.
 
-Current increment: 58 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. No login or clean-install test is implied.
+Current increment: 58 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. A separate private-X11 test then exercised the production clipboard path: successful capture, mid-drag cancellation retaining the image, actual Writer/Draw Paste with matching pixels, and clipboard-owner exit after replacement. No login or clean-install test is implied.
+
+
+### Isolated clipboard-paste acceptance
+
+```sh
+python tests/check_menu_clipboard_x11.py --run --xvfb /path/to/Xvfb
+```
+
+Requires Xvfb, xauth, Python Xlib/PySide6, and LibreOffice with Python UNO. The test creates an authenticated private X11 display with TCP disabled, a private D-Bus session, temporary homes and separate LibreOffice profiles. It never connects to the personal display or clipboard. It runs the production menu-capture helper without the file-output test sink, checks cancellation before selection and during a later drag, then pastes the completed 120×90 image into Writer and Draw and checks every exported pixel. Finally it replaces the private clipboard and verifies the helper releases ownership and exits.
+
+The test display is an isolated acceptance environment, not a clean CachyOS installation. No system package installation is performed by the test.

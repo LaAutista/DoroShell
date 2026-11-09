@@ -12,7 +12,7 @@ DoroShell customizes an existing LXQt desktop. The Windows 7 layout with pink Do
 
 ## Verified scope
 
-The current suite passes 58 automated tests using offscreen Qt, mocks and temporary homes. Separate X11 checks cover synthetic pin dragging, menu navigation and click-away, native task restore and pin launch/reopen, notification overflow, edge snapping, and screenshot capture/cancellation. The original global ScreenGrab path was pasted into isolated Writer and Draw instances. The newer open-menu capture path was tested with private PNG output and preserved the existing clipboard; its actual clipboard paste remains unverified.
+The current suite passes 58 automated tests using offscreen Qt, mocks and temporary homes. Separate X11 checks cover synthetic pin dragging, menu navigation and click-away, native task restore and pin launch/reopen, notification overflow, edge snapping, and screenshot capture/cancellation. The original global ScreenGrab path was pasted into isolated Writer and Draw instances. The newer open-menu capture path was tested both with private PNG output on the desktop and with real clipboard publication on an authenticated private Xvfb display. Writer and Draw pasted matching pixels; mid-drag cancellation preserved the completed capture, and replacement released the helper.
 
 Kate/Dolphin default resolution and dark appearance were checked in temporary homes and separate application instances. The far-right Show Desktop target was visually inspected without activating it on personal windows. These are local checks, not clean-install or fresh-login acceptance. See [verification history](verification.md).
 
