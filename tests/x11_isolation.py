@@ -14,6 +14,12 @@ def isolated(xvfb, command):
         screen=f':{number}'
         subprocess.run(['xauth','-f',str(auth),'add',screen,'MIT-MAGIC-COOKIE-1',secrets.token_hex(16)],check=True,stdout=subprocess.DEVNULL)
         env=dict(os.environ,DISPLAY=screen,XAUTHORITY=str(auth),HOME=tmp,XDG_CONFIG_HOME=tmp+'/.config',XDG_DATA_HOME=tmp+'/.local/share',XDG_CACHE_HOME=tmp+'/.cache',QT_QPA_PLATFORM='xcb',DOROSHELL_TEST_DISPLAY=screen)
+        for key, leaf in [('XDG_RUNTIME_DIR', 'run'), ('TMPDIR', 'tmp')]:
+            directory = base/leaf
+            directory.mkdir(mode=0o700)
+            env[key] = str(directory)
+        env['XDG_STATE_HOME'] = str(base/'.local/state')
+        env['XDG_SESSION_TYPE'] = 'x11'
         # No inherited Wayland socket or session bus can route a test to personal applications.
         env.pop('WAYLAND_DISPLAY',None);env.pop('DBUS_SESSION_BUS_ADDRESS',None)
         with open(base/'xvfb.log','w') as log:

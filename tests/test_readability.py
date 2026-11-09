@@ -90,6 +90,7 @@ class ReadabilityTests(unittest.TestCase):
                         combo=window.category if isinstance(window,StartMenu) else window.choices['menu']
                         window.show();self.app.processEvents()
                         self.assertEqual(combo.font().pointSize(),16)
+                        if isinstance(window, StartMenu): window.programs.click()
                         combo.showPopup();self.app.processEvents()
                         view=combo.view();rect=view.visualRect(view.model().index(0,0))
                         rendered=view.viewport().grab().toImage()

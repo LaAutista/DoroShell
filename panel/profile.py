@@ -33,6 +33,11 @@ def profile(original, home, launchers, hidden):
         plugins=cfg.value('panel1/plugins',[])
         if isinstance(plugins,str):plugins=[plugins]
         if not plugins:raise ValueError('Missing panel1 plugin list')
+        if launchers is None:
+            dockbarx = any(cfg.value(name+'/type', name) == 'dockbarx' for name in plugins)
+            if dockbarx and home.resolve() != Path.home().resolve():
+                raise ValueError('Alternate-home DockBarX migration requires explicit launcher data')
+            launchers = launchers_from_dockbarx() if dockbarx else []
         result=[];inserted=False
         for name in plugins:
             kind=cfg.value(name+'/type',name)
@@ -42,6 +47,18 @@ def profile(original, home, launchers, hidden):
             else:result.append(name)
         if not inserted:
             result[1:1]=['doroshellTasks']
+        start = home/'.local/share/applications/lxqt-comfort.desktop'
+        if start.is_file() and not any(
+            cfg.value(key) == str(start) for name in result for key in cfg.allKeys()
+            if key.startswith(name+'/apps/') and key.endswith('/desktop')
+        ):
+            name = 'doroshellStart'
+            if name in cfg.childGroups() or name in result:
+                raise ValueError('Panel widget name conflict: '+name)
+            cfg.setValue(name+'/type', 'quicklaunch')
+            cfg.setValue(name+'/apps/1/desktop', str(start))
+            cfg.setValue(name+'/apps/size', 1)
+            result.insert(0, name)
         if cfg.contains('doroshellTasks/type') and cfg.value('doroshellTasks/type')!='taskbar':
             raise ValueError('Panel widget name conflict: doroshellTasks')
         cfg.setValue('doroshellTasks/type','taskbar')
@@ -61,7 +78,10 @@ def profile(original, home, launchers, hidden):
             cfg.setValue('doroshellTasks/'+key,value)
         notifier=next((n for n in result if cfg.value(n+'/type',n)=='statusnotifier'),None)
         if notifier is None:
-            notifier='doroshellNotifier';result.append(notifier);cfg.setValue(notifier+'/type','statusnotifier')
+            notifier='doroshellNotifier'
+            if cfg.contains(notifier+'/type') and cfg.value(notifier+'/type') != 'statusnotifier':
+                raise ValueError('Panel widget name conflict: '+notifier)
+            result.append(notifier);cfg.setValue(notifier+'/type','statusnotifier')
         cfg.setValue(notifier+'/alignment','Right');cfg.setValue(notifier+'/doroshellPopup',True)
         if hidden is not None:cfg.setValue(notifier+'/hideList',hidden)
         desktop=next((name for name in result if cfg.value(name+'/type',name)=='showdesktop'),None)
@@ -98,9 +118,6 @@ def prepare(home, output, binary, hidden=None, launchers=None):
     if output.exists() and any(output.iterdir()):raise ValueError('Preparation directory must be empty')
     source=home/'.config/lxqt/panel.conf'
     original=source.read_bytes()
-    if launchers is None:
-        if home.resolve()!=Path.home().resolve():raise ValueError('Alternate-home preparation requires explicit launcher data')
-        launchers=launchers_from_dockbarx()
     content=profile(original.decode(),home,launchers,hidden)
     output.mkdir(parents=True,exist_ok=True);output.chmod(0o700)
     atomic(output/'panel.conf',content)
@@ -108,15 +125,18 @@ def prepare(home, output, binary, hidden=None, launchers=None):
     print('Prepared:',output,'— current panel and autostart unchanged')
 
 
-def switch(home, prepared=None, rollback=False):
+def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=False):
     manifest=home/'.local/state/doroshell/native-panel.json'
     safe(manifest,home)
+    saved = json.loads(manifest.read_text()) if manifest.exists() else None
+    targets = {'.config/doroshell/panel.conf', '.local/bin/doroshell-native-panel', '.config/autostart/lxqt-panel.desktop'}
+    if saved is not None and set(saved) != targets:
+        raise RuntimeError('Unexpected native panel manifest targets')
     if rollback:
-        if not manifest.exists():return
-        record=json.loads(manifest.read_text())
+        if saved is None:return
+        record=saved
         files={home/k:base64.b64decode(v['before']) if v['before'] is not None else None for k,v in record.items()}
     else:
-        if manifest.exists():raise RuntimeError('Already staged; restore before preparing another switch')
         plan=json.loads((prepared/'plan.json').read_text());binary=Path(plan['binary'])
         content=(prepared/'panel.conf').read_bytes()
         if digest((home/'.config/lxqt/panel.conf').read_bytes())!=plan['source_hash'] or digest(content)!=plan['profile_hash']:
@@ -129,13 +149,33 @@ def switch(home, prepared=None, rollback=False):
         quoted=str(wrapper).replace('\\','\\\\').replace('"','\\"').replace('`','\\`').replace('$','\\$').replace('%','%%')
         desktop='[Desktop Entry]\nType=Application\nName=DoroShell Panel\nExec="'+quoted+'"\nOnlyShowIn=LXQt;\nX-LXQt-Module=true\n'
         files={config:content,wrapper:script.encode(),home/'.config/autostart/lxqt-panel.desktop':desktop.encode()}
-        record={}
+        record=saved if saved is not None else {}
+    edited_config = None
     for path,data in files.items():
         safe(path,home);key=str(path.relative_to(home));current=path.read_bytes() if path.exists() else None
-        if rollback:
-            if digest(current)!=record[key]['after']:raise RuntimeError('Personal edit; refusing restore: '+key)
+        if saved is not None:
+            before = base64.b64decode(record[key]['before'], validate=True) if record[key]['before'] is not None else None
+            if current != before and digest(current) != record[key]['after']:
+                if rollback and key == '.config/doroshell/panel.conf' and current is not None:
+                    if not keep_panel_edits:
+                        raise RuntimeError('Panel settings changed. Restore with --keep-panel-edits to save a private copy before switching back.')
+                    edited_config = current
+                else:
+                    raise RuntimeError('Personal edit; refusing to change: '+key)
+            if not rollback and digest(data) != record[key]['after']:
+                raise RuntimeError('Another switch is staged; restore it before changing profiles')
         else:record[key]={'before':base64.b64encode(current).decode() if current is not None else None,'mode':path.stat().st_mode&0o777 if path.exists() else 0o600,'after':digest(data)}
-    if not rollback:atomic(manifest,json.dumps(record,indent=2).encode())
+    if preview:
+        for path in files:
+            print('Would configure for next login:', path.relative_to(home))
+        return
+    if edited_config is not None:
+        with tempfile.NamedTemporaryFile(prefix='panel-edited-', suffix='.conf', dir=manifest.parent, delete=False) as backup:
+            backup.write(edited_config)
+            backup.flush()
+            os.fsync(backup.fileno())
+        print('Saved edited panel settings:', backup.name)
+    if saved is None:atomic(manifest,json.dumps(record,indent=2).encode())
     for path,data in files.items():
         if data is None:path.unlink(missing_ok=True)
         else:atomic(path,data,record[str(path.relative_to(home))]['mode'] if rollback else (0o755 if path.name=='doroshell-native-panel' else 0o600))
@@ -144,13 +184,14 @@ def switch(home, prepared=None, rollback=False):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['prepare','enable-next-login','restore-next-login'])
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['prepare','preview-next-login','enable-next-login','restore-next-login'])
     p.add_argument('--home',type=Path,default=Path.home());p.add_argument('--prepared',type=Path);p.add_argument('--binary',type=Path);p.add_argument('--hide',action='append',default=None)
+    p.add_argument('--keep-panel-edits', action='store_true', help='Save changed panel settings privately before restoring the previous panel')
     a=p.parse_args()
     if a.action=='prepare':
         if not a.prepared or not a.binary:p.error('prepare needs --prepared and --binary')
         prepare(a.home,a.prepared,a.binary,a.hide)
-    elif a.action=='enable-next-login':
+    elif a.action in ('preview-next-login', 'enable-next-login'):
         if not a.prepared:p.error('enable-next-login needs --prepared')
-        switch(a.home,a.prepared)
-    else:switch(a.home,rollback=True)
+        switch(a.home,a.prepared,preview=a.action=='preview-next-login')
+    else:switch(a.home,rollback=True,keep_panel_edits=a.keep_panel_edits)

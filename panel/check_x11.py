@@ -70,7 +70,7 @@ def windows(pid):
  scan(root);return found
 with tempfile.TemporaryDirectory(prefix='doroshell-native-tray-') as tmp:
  home=Path(tmp);conf=home/'panel.conf'
- conf.write_text('panels=panel1\n[panel1]\nplugins=taskbar,statusnotifier\nposition=Bottom\ndoroshellTheme=true\nwidth=1400\nwidth-percent=false\nreserve-space=false\npanelSize=40\n[taskbar]\ntype=taskbar\nbuttonStyle=Icon\nbuttonWidth=48\niconByClass=false\ngroupingEnabled=true\nshowOnlyOneDesktopTasks=false\n[statusnotifier]\ntype=statusnotifier\nalignment=Right\ndoroshellPopup=true\nhideList=DoroShellSyntheticTray\n')
+ conf.write_text('panels=panel1\n[panel1]\nplugins=taskbar,statusnotifier\nposition=Bottom\ndoroshellTheme=true\nwidth=900\nwidth-percent=false\nreserve-space=false\npanelSize=40\n[taskbar]\ntype=taskbar\nbuttonStyle=Icon\nbuttonWidth=48\niconByClass=false\ngroupingEnabled=true\nshowOnlyOneDesktopTasks=false\n[statusnotifier]\ntype=statusnotifier\nalignment=Right\ndoroshellPopup=true\nhideList=DoroShellSyntheticTray\n')
  env=dict(os.environ,HOME=tmp,XDG_CONFIG_HOME=tmp+'/.config',XDG_DATA_HOME=tmp+'/.local/share',XDG_CACHE_HOME=tmp+'/.cache')
  testwindow=QWidget();testwindow.setWindowTitle('DoroShell disposable task');testwindow.resize(240,160)
  taskpix=QPixmap(28,28);taskpix.fill(QColor('#01e3c7'));testwindow.setWindowIcon(QIcon(taskpix));testwindow.show();d.create_resource_object('window',int(testwindow.winId())).set_wm_class('DoroOne','DoroOne');d.sync();wait(.3);testwindow.showMinimized()
@@ -92,7 +92,7 @@ with tempfile.TemporaryDirectory(prefix='doroshell-native-tray-') as tmp:
   # Single notifier in this isolated panel: the arrow occupies its last icon slot.
   xtest.fake_input(d,X.MotionNotify,x=pos.x+g.width-12,y=pos.y+g.height//2);xtest.fake_input(d,X.ButtonPress,1);xtest.fake_input(d,X.ButtonRelease,1);d.sync();wait(.8)
   popups=[w for w in windows(panel.pid) if w.get_wm_name()=='Hidden icons']
-  assert len(popups)==1,'Hidden tray popup did not open'
+  assert len(popups)==1, ('Hidden tray popup did not open', pos.x, pos.y, g.width, g.height, root.get_geometry().width)
   popup=popups[0]
   pp=root.translate_coords(popup,0,0);pg=popup.get_geometry()
   xtest.fake_input(d,X.MotionNotify,x=pp.x+pg.width//2,y=pp.y+pg.height//2);xtest.fake_input(d,X.ButtonPress,1);xtest.fake_input(d,X.ButtonRelease,1);d.sync();wait(.4)

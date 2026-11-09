@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import os
-import shutil
+import tempfile
 import re
 import sys
 
@@ -65,7 +65,7 @@ def targets(home, icon=None):
     if custom_data is not None: files[custom] = (custom_data, 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
     for name in ['settings.py','setup.py','modules.py','cursor.py','install.py','integrate.py',
-                 'runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/start.svg']:
+                 'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/start.svg']:
         files[toolkit/name] = ((SOURCE/name).read_bytes(), 0o644)
     settings_launcher = home / '.local/bin/doroshell-settings'
     files[settings_launcher] = (('#!/usr/bin/python\nimport runpy\nrunpy.run_path('+repr(str(toolkit/'settings.py'))+', run_name="__main__")\n').encode(), 0o755)
@@ -73,6 +73,20 @@ def targets(home, icon=None):
     files[home/'.local/share/applications/doroshell-settings.desktop'] = (
         ('[Desktop Entry]\nType=Application\nName=DoroShell Settings\nExec="'+quoted_settings+'"\nIcon=preferences-desktop\nTerminal=false\nCategories=Settings;DesktopSettings;\n').encode(), 0o644)
     return files
+
+
+def atomic(path, data, mode=0o600):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix='.doroshell-', dir=path.parent)
+    try:
+        with os.fdopen(fd,'wb') as out:
+            out.write(data)
+            out.flush()
+            os.fsync(out.fileno())
+        os.chmod(name, mode)
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)
 
 
 def safe(path, home):
@@ -93,7 +107,8 @@ def install(home, apply=False, icon=None):
         if current == data and (path.stat().st_mode & 0o777) == mode:
             print('Unchanged:', key)
             continue
-        if key in record and current is not None and digest(current) != record[key]['installed']:
+        if key in record and (digest(current) if current is not None else None) not in (
+                record[key]['installed'], record[key].get('pending_from', record[key]['installed'])):
             raise RuntimeError(f'Locally modified file; preserve or move it before updating: {path}')
         print('Write:', key)
     if not apply:
@@ -102,30 +117,34 @@ def install(home, apply=False, icon=None):
     state.mkdir(parents=True, exist_ok=True)
     # Snapshot desktop settings for reference only. We never edit or automatically restore them.
     snapshot = state / 'desktop-before'
+    safe(snapshot, home)
     snapshot.mkdir(exist_ok=True)
     for name in ['panel.conf', 'globalkeyshortcuts.conf']:
         original = home / '.config/lxqt' / name
         dest = snapshot / name
+        safe(dest, home)
         if original.exists() and not dest.exists():
-            shutil.copy2(original, dest)
+            safe(original, home)
+            atomic(dest, original.read_bytes())
     for path, (data, mode) in files.items():
         key = str(path.relative_to(home))
         if key not in record:
             record[key] = {'original': base64.b64encode(path.read_bytes()).decode() if path.exists() else None,
                            'mode': path.stat().st_mode & 0o777 if path.exists() else None}
+        current = path.read_bytes() if path.exists() else None
+        if current != data:
+            record[key]['pending_from'] = digest(current) if current is not None else None
         record[key]['installed'] = digest(data)
     # Save rollback evidence before writing any managed files.
-    manifest.write_text(json.dumps(record, indent=2) + '\n')
-    manifest.chmod(0o600)
+    atomic(manifest, (json.dumps(record, indent=2) + '\n').encode())
     for path, (data, mode) in files.items():
         if path.exists() and path.read_bytes() == data and path.stat().st_mode & 0o777 == mode:
             continue
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_name(path.name + '.comfort-tmp')
-        safe(temporary, home)
-        temporary.write_bytes(data)
-        temporary.chmod(mode)
-        temporary.replace(path)
+        atomic(path, data, mode)
+    if any('pending_from' in entry for entry in record.values()):
+        for entry in record.values():
+            entry.pop('pending_from', None)
+        atomic(manifest, (json.dumps(record, indent=2) + '\n').encode())
     print('Installed. Run:', home / '.local/bin/lxqt-comfort-menu')
 
 
@@ -136,22 +155,31 @@ def rollback(home):
         print('Nothing installed.')
         return
     record = json.loads(manifest.read_text())
+    if (manifest.parent / 'menu-integration.json').exists():
+        raise RuntimeError('Restore the Start button and shortcut integration before removing its launcher.')
+    if (home/'.local/state/doroshell/native-panel.json').is_file():
+        from PySide6.QtCore import QSettings
+        cfg = QSettings(str(home/'.config/doroshell/panel.conf'), QSettings.Format.IniFormat)
+        desktop = str(home/'.local/share/applications/lxqt-comfort.desktop')
+        if any(cfg.value(key) == desktop for key in cfg.allKeys() if key.endswith('/desktop')):
+            raise RuntimeError('Restore the native panel integration before removing its Start launcher.')
     allowed = set(targets(home)) | {home/".local/share/lxqt-comfort/start-icon.png"}
     for name, entry in record.items():
         path = home / name
         safe(path, home)
         if path not in allowed:
             raise RuntimeError(f'Unexpected manifest target: {path}')
-        if path.exists() and digest(path.read_bytes()) != entry['installed']:
+        current = path.read_bytes() if path.exists() else None
+        before = base64.b64decode(entry['original'], validate=True) if entry['original'] is not None else None
+        if current != before and (digest(current) if current is not None else None) not in (
+                entry['installed'], entry.get('pending_from', entry['installed'])):
             raise RuntimeError(f'Refusing to overwrite an edited file during rollback: {path}')
     for name, entry in record.items():
         path = home / name
         if entry['original'] is None:
             path.unlink(missing_ok=True)
         else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(base64.b64decode(entry['original']))
-            path.chmod(entry['mode'])
+            atomic(path, base64.b64decode(entry['original']), entry['mode'])
     manifest.unlink()
     print('Menu files rolled back. Favorites and desktop backup retained; panel was never changed.')
 

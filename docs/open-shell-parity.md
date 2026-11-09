@@ -15,7 +15,7 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | Program discovery / search | GIO application catalog, names/keywords/categories; automated and limited real search checks. | Refresh catalog after installs; test duplicate names, hidden entries and international text. |
 | Expanded search | Document/content/settings/provider search absent. | Explicit opt-in providers, cancellation and bounds; no unsolicited indexing of private files. |
 | Pins / organization | Ordered pins, Home/Pinned drag reordering and context-menu movement; conflict-safe saved order. Taskbar dragging is a separate feature. | Verified with synthetic real pointer dragging, Escape cancellation, keyboard move commands and reopening persistence; broader DPI/accessibility coverage remains. |
-| Recency / frequency | Opt-in recent apps and clear history; frequency ranking absent. | Configurable count and retention, privacy controls, deterministic ranking. |
+| Recency / frequency | Recent apps with a configurable count, recording toggle and clear-history command. | Time-based retention, privacy controls and frequency ranking. |
 | Recent documents | Absent. | Opt-in desktop recent-file store, unavailable-file handling and clear-history semantics. |
 | App tasks / jump lists | New desktop actions through GIO. This is only the common-task portion; Windows jump-list data is not read. | Real action dispatch plus action-less apps; later per-app documents with explicit backend support. |
 | Folder cascades | Folder links open the configured file manager; inline nested folders absent. | Lazy listing, symlink-loop handling, inaccessible/network paths, keyboard traversal. |

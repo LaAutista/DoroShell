@@ -15,7 +15,7 @@ gi.require_version('Gio', '2.0')
 from gi.repository import Gio, GLib
 from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QByteArray, QBuffer, QIODevice
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
@@ -145,30 +145,39 @@ def save_json(path, value, original):
 class RecentPrograms:
     def __init__(self, path):
         self.path = path
-        self.original = path.read_bytes() if path.exists() else None
+        self.original = None
         self.value = {'enabled': True, 'items': []}
         self.error = None
         try:
+            self.original = path.read_bytes() if path.exists() else None
             if self.original is not None:
                 value = json.loads(self.original)
                 if (not isinstance(value, dict) or type(value.get('enabled')) is not bool
                         or not isinstance(value.get('items'), list)
-                        or len(value['items']) > 20 or not all(isinstance(x, str) for x in value['items'])):
+                        or type(value.get('limit', 20)) is not int
+                        or not 1 <= value.get('limit', 20) <= 50
+                        or len(value['items']) > value.get('limit', 20)
+                        or not all(isinstance(x, str) for x in value['items'])):
                     raise ValueError('Invalid recent-program preferences')
                 self.value = value
         except (ValueError, OSError) as error:
             self.error = str(error)
 
-    def save(self, enabled=None, launched=None, clear=False):
+    def save(self, enabled=None, launched=None, clear=False, limit=None):
         if self.error:
             raise ValueError(self.error)
         value = copy.deepcopy(self.value)
+        if limit is not None:
+            if type(limit) is not int or not 1 <= limit <= 50:
+                raise ValueError('Recent-program count must be between 1 and 50.')
+            value['limit'] = limit
         if enabled is not None:
             value['enabled'] = enabled
         if clear or not value['enabled']:
             value['items'] = []
         if launched and value['enabled']:
-            value['items'] = ([launched] + [x for x in value['items'] if x != launched])[:20]
+            value['items'] = [launched] + [x for x in value['items'] if x != launched]
+        value['items'] = value['items'][:value.get('limit', 20)]
         self.original = save_json(self.path, value, self.original)
         self.value = value
 
@@ -411,6 +420,9 @@ class StartMenu(QWidget):
         apps_panel.setObjectName('applicationsPanel')
         left = QVBoxLayout(apps_panel)
         left.setContentsMargins(5, 5, 5, 5)
+        self.pinned_heading = QLabel('Pinned')
+        self.pinned_heading.setObjectName('pinnedHeading')
+        left.addWidget(self.pinned_heading)
         self.category = QComboBox()
         self.category.setItemDelegate(QStyledItemDelegate(self.category))
         self.category.addItems(['Home', 'All applications', 'Pinned', 'Recent'] + CATEGORIES)
@@ -431,6 +443,9 @@ class StartMenu(QWidget):
         self.search.setAccessibleName('Search applications')
         self.programs = QPushButton('All Programs')
         self.programs.clicked.connect(self.toggle_programs)
+        self.recent_button = QPushButton('Recent programs')
+        self.recent_button.clicked.connect(lambda: self.category.setCurrentText('Recent'))
+        left.addWidget(self.recent_button)
         left.addWidget(self.programs)
         left.addWidget(self.search)
         body.addWidget(apps_panel, 3)
@@ -462,6 +477,15 @@ class StartMenu(QWidget):
         self.remember.setCheckable(True)
         self.remember.setChecked(self.recent.value['enabled'])
         self.remember.toggled.connect(self.set_remember)
+        count_menu = options_menu.addMenu('Recent program count')
+        self.recent_counts = QActionGroup(self)
+        for count in sorted({5, 10, 15, 20, 30, 50, self.recent.value.get('limit', 20)}):
+            action = count_menu.addAction(str(count))
+            action.setCheckable(True)
+            action.setData(count)
+            self.recent_counts.addAction(action)
+            action.setChecked(count == self.recent.value.get('limit', 20))
+        self.recent_counts.triggered.connect(lambda action: self.set_recent_limit(action.data()))
         options_menu.addAction('Clear recent programs', self.clear_recent)
         options_menu.addSeparator()
         options_menu.addAction('DoroShell settings…', lambda: self.run_desktop('doroshell-settings.desktop'))
@@ -512,6 +536,7 @@ class StartMenu(QWidget):
             QLabel#personalStartImage { background: #fff1fa; border: 2px solid #b75d91; border-radius: 8px; }
             QWidget#placesPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #a84e7c,stop:0.5 #803656,stop:1 #ab507b); border: 1px solid #f7d4e7; border-radius: 9px; }
             QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton { color: #fff5fb; }
+            QLabel#pinnedHeading { font-weight: bold; padding: 5px 8px; }
             QLabel#section { padding: 8px; }
             QListWidget, QLineEdit, QComboBox { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff7fc,stop:1 #f8d7e9); border: 1px solid #b75d91; border-radius: 6px; }
             QListWidget::item { padding: 7px; border: 1px solid transparent; }
@@ -646,6 +671,15 @@ class StartMenu(QWidget):
             self.error(str(error))
         self.refresh()
 
+    def set_recent_limit(self, limit):
+        try:
+            self.recent.save(limit=limit)
+        except (OSError, ValueError) as error:
+            self.error(str(error))
+        for action in self.recent_counts.actions():
+            action.setChecked(action.data() == self.recent.value.get('limit', 20))
+        self.refresh()
+
     def clear_recent(self):
         try:
             self.recent.save(clear=True)
@@ -660,16 +694,16 @@ class StartMenu(QWidget):
         back = bool(query) or category != 'Home'
         self.programs.setText('Back' if back else 'All Programs')
         self.programs.setIcon(QIcon.fromTheme('go-previous' if back else 'go-next'))
-        self.programs.setAccessibleName('Back to pinned and recent applications' if back else 'All Programs')
+        self.programs.setAccessibleName('Back to pinned applications' if back else 'All Programs')
+        self.pinned_heading.setVisible(not back)
+        self.category.setVisible(category != 'Home')
+        self.list.setAccessibleName('Pinned applications' if not back else 'Applications')
         pinned = [self.by_id[x] for x in self.favorites if x in self.by_id]
         recent = [self.by_id[x] for x in self.recent.value['items'] if x in self.by_id] if self.recent.value['enabled'] else []
+        self.recent_button.setVisible(not back and bool(recent))
         if query:
             apps = self.apps
-        elif category == 'Home':
-            apps = pinned + [x for x in recent if x.get_id() not in self.favorites]
-            if not apps:
-                apps = self.apps[:12]
-        elif category == 'Pinned':
+        elif category in ('Home', 'Pinned'):
             apps = pinned
         elif category == 'Recent':
             apps = recent
@@ -679,10 +713,7 @@ class StartMenu(QWidget):
         if query:
             filtered.sort(key=lambda a: (not a.get_display_name().casefold().startswith(query.casefold()), a.get_display_name().casefold()))
         for app in filtered:
-            label = app.get_display_name()
-            if category == 'Home' and not query and app.get_id() in self.favorites:
-                label = '★ ' + label
-            item = QListWidgetItem(icon_for(app), label)
+            item = QListWidgetItem(icon_for(app), app.get_display_name())
             item.setData(Qt.ItemDataRole.UserRole, app.get_id())
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsDropEnabled)
             if app.get_id() not in self.favorites:
@@ -691,7 +722,10 @@ class StartMenu(QWidget):
             self.list.addItem(item)
         self.list.setDragEnabled(self.can_reorder_pins())
         self.list.setCurrentRow(0)
-        self.status.setText('Drag pins to reorder • Pinned first, then recent' if category == 'Home' and not query else f'{self.list.count()} applications • Right-click to pin or reorder')
+        if not back:
+            self.status.setText('Drag pins to reorder' if pinned else 'To pin an app, open All Programs and right-click it.')
+        else:
+            self.status.setText(f'{self.list.count()} applications • Right-click to pin or reorder')
 
     def can_reorder_pins(self):
         return not self.search.text() and self.category.currentText() in ('Home', 'Pinned') and not self.state_error

@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parent
 OPTIONS = [
     ('menu', 'Pink Start menu'),
     ('panel', 'Start button and Alt+F1'),
-    ('taskbar', 'Taskbar'),
+    ('native-panel', 'DoroShell taskbar (next login)'),
+    ('taskbar', 'LXQt taskbar style'),
     ('taskbar-drag', 'DockBarX icon dragging'),
     ('snapping', 'Drag windows to screen edges'),
     ('screenshots', 'Print Screen → clipboard'),
@@ -26,7 +27,7 @@ OPTIONS = [
 
 PAGES = [
     ('Start Menu', ('menu', 'panel')),
-    ('Taskbar & Windows', ('taskbar', 'taskbar-drag', 'snapping', 'single-desktop')),
+    ('Taskbar & Windows', ('native-panel', 'taskbar', 'taskbar-drag', 'snapping', 'single-desktop')),
     ('Screenshots', ('screenshots',)),
     ('Apps & Themes', ('kate', 'dolphin', 'kate-dark', 'dolphin-dark')),
     ('Cursor', ('cursor',)),
@@ -93,13 +94,15 @@ class Settings(QWidget):
                     choice.addItem('LXQt icons and labels', 'standard')
                 else:
                     choice.addItem('Enable / update', 'enable')
-                choice.addItem('Restore previous settings', 'restore')
+                choice.addItem('Restore panel and back up panel edits' if module == 'native-panel' else 'Restore previous settings', 'restore')
                 choice.model().item(choice.count()-1).setEnabled(managed(self.home, module))
                 caption = QLabel(label); caption.setWordWrap(True); caption.setBuddy(choice)
                 form.addRow(caption, choice)
                 self.choices[module] = choice
             area.setWidget(content); self.pages.addWidget(area); forms[title] = form
         self.icon = self.file_row(forms['Start Menu'], 'Personal Start image', 'Images (*.png *.jpg *.webp *.svg)')
+        self.panel_plan = self.file_row(forms['Taskbar & Windows'], 'Prepared taskbar plan', 'Panel plan (plan.json)')
+        self.panel_plan.setPlaceholderText(str(self.home/'.local/state/doroshell/core-panel-profile/plan.json'))
         self.gif = self.file_row(forms['Cursor'], 'Spinning animation', 'Animations (*.gif *.webp)')
         self.pink = QCheckBox('Use pink ordinary pointer')
         self.pink.setToolTip('Off keeps your normal inherited pointer; only the loading cursor changes.')
@@ -173,6 +176,12 @@ class Settings(QWidget):
             if action == 'restore': cmd.append('--rollback')
             elif apply: cmd.append('--apply')
             if self.live.isChecked() and apply and module=='snapping': cmd.append('--live')
+            if module=='native-panel' and action=='restore': cmd.append('--keep-panel-edits')
+            if module=='native-panel' and action!='restore' and self.panel_plan.text().strip():
+                plan = Path(self.panel_plan.text().strip())
+                if plan.name != 'plan.json' or not plan.is_file():
+                    raise ValueError('Choose the plan.json created by panel/profile.py prepare.')
+                cmd += ['--prepared', str(plan.parent)]
             if module=='taskbar' and action in ('icons','standard'):
                 cmd += ['--taskbar-style', action]
             if module=='cursor' and action!='restore':

@@ -6,9 +6,34 @@ The first module is a two-column Qt Start menu: application search, categories, 
 
 ## Status and support
 
-Early working prototype. Developed on CachyOS LXQt 2.4 / X11 with Openbox and Python 3.14. The repository version has been tested with automated offscreen tests and temporary installation homes. Its predecessor was exercised on a live LXQt session, including panel activation and keyboard toggling. **No fresh-install VM, logout/login, Wayland, or other-distribution validation has been completed.**
+The core release candidate targets CachyOS LXQt 2.4 on X11 with Openbox and Python 3.14. The supported core consists of Start, the native taskbar with notification overflow, snapping, region screenshots and reversible setup. The repository version has been tested with automated offscreen tests and temporary installation homes. Its predecessor was exercised on a live LXQt session, including panel activation and keyboard toggling. **No fresh-install VM, logout/login, Wayland, or other-distribution validation has been completed.**
 
 Integration currently expects `panel1`, the Fancy Menu plugin, and the standard `Alt+F1.1` Fancy Menu shortcut. It rejects custom shortcut mappings and unsupported layouts rather than replacing them silently. Other LXQt layouts need inspection and adaptation. Multi-monitor/panel-edge positioning and long-session behavior need more testing. Folder links respect the existing default file manager; this module does not install or select Dolphin.
+
+## Core installation on CachyOS LXQt
+
+From an existing single-panel LXQt/Openbox session, preview and install the three independent modules. The menu adopts existing personal artwork and pins. The screenshot module can update an existing enabled Print command through LXQt’s running shortcut daemon. It checks that the live command agrees with the saved configuration. More complex live bindings require offline configuration.
+
+```sh
+python setup.py menu snapping screenshots
+python setup.py menu snapping screenshots --apply
+python setup.py snapping --apply --live  # optional: start snapping in this session
+```
+
+Build the native panel once in a permanent, initially empty user directory. Prepare its profile **after** installing Start. Preparation reads DockBarX pins when that applet is present. Stock LXQt layouts need no DockBarX installation. The prepared panel reuses an existing Start launcher or adds one alongside the original widgets.
+
+```sh
+python panel/build.py --work "$HOME/.local/share/doroshell/panel-core-2.4.1"
+python panel/profile.py prepare \
+  --binary "$HOME/.local/share/doroshell/panel-core-2.4.1/runtime/bin/lxqt-panel" \
+  --prepared "$HOME/.local/state/doroshell/core-panel-profile"
+python setup.py native-panel           # inspect the next-login changes
+python setup.py native-panel --apply
+```
+
+LXQt loads the staged taskbar on its next normal startup. A private X11 session verified that LXQt selected the user autostart entry over the stock panel. Start opens on pins. The tray arrow appears when an icon is configured to be hidden. The far-right strip toggles Show Desktop. In **DoroShell Settings → Taskbar & Windows**, the DoroShell taskbar option previews, stages or restores the prepared panel. A nondefault profile can be selected using its `plan.json`.
+
+To switch back, run `python setup.py native-panel --rollback --keep-panel-edits`. This restores the previous autostart entry and preserves any changed candidate settings in a private recovery file. The previous panel returns at the following normal login. To remove snapping while it is active, run `python setup.py snapping --rollback --live`. Restore screenshots with `python setup.py screenshots --rollback`. Restore legacy Start-button integration, if installed, before removing the menu with `python setup.py menu --rollback`. Original personal artwork and pins remain governed by their existing settings and backups.
 
 ## Dependencies
 
@@ -79,7 +104,7 @@ The working-tree menu now includes the pink theme, Home / All programs navigatio
 
 The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The [roadmap](docs/roadmap.md) separates implemented features from remaining design and acceptance work.
 
-Current validation: **61 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
+Current validation: **69 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
 
 Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
 
@@ -236,6 +261,8 @@ A separately built native LXQt Panel prototype now provides a hidden-tray arrow 
 
 ### Reorder Start pins
 
+Start opens on **Pinned** in saved order. **Recent programs** opens a separate list when history has available apps. **All Programs** and search stay at the bottom.
+
 Drag a pinned app before or after another pin in **Home** or **Pinned**. Escape cancels the drag. Search results and recent-only entries cannot be dragged. The right-click **Move pin up/down** commands remain available with keyboard menu navigation. Saved order survives reopening Start; existing favorites are backed up and concurrent edits are refused.
 
 The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` check uses synthetic desktop entries and a temporary favorites file. It moves the real pointer, then restores it. It verifies reorder, Escape cancellation, keyboard movement, persistence, All Programs/Back navigation, search focus, click-away dismissal, and no accidental app launch.
@@ -253,7 +280,7 @@ Body text inherits the system font size. Pink surfaces use dark plum text, the d
 
 Behavior follows the [original Windows 7 taskbar guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-taskbar) and [Classic/Open-Shell customization reference](https://www.classicshell.net/faq/), while the supplied concept sets the pink/Doro appearance. Native Windows-only integrations remain listed separately in the parity plan.
 
-Current increment: 61 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. A separate private-X11 test then exercised the production clipboard path: successful capture, mid-drag cancellation retaining the image, actual Writer/Draw Paste with matching pixels, and clipboard-owner exit after replacement. No login or clean-install test is implied.
+At the pin-editor and capture checkpoint, 61 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. A separate private-X11 test then exercised the production clipboard path: successful capture, mid-drag cancellation retaining the image, actual Writer/Draw Paste with matching pixels, and clipboard-owner exit after replacement. No login or clean-install test is implied.
 
 
 ### Isolated clipboard-paste acceptance
@@ -287,3 +314,9 @@ python tests/check_power_controls_x11.py --run --xvfb /path/to/Xvfb
 ```
 
 The private-display test exercises the split menu, keyboard selection, Cancel-default prompts, Escape, and a confirmed fake dispatch. Every GIO session lookup is replaced by a test dispatcher. **No real lock, sleep, logout, restart or shutdown action is executed by these tests.** Automated tests also cover missing/unknown actions, duplicate-dispatch prevention and exclusion from recent-app history.
+
+### Recent programs
+
+Under **Start → Menu options → Recent program count**, choose 5, 10, 15, 20, 30 or 50 programs. Existing preferences default to 20. Lowering the count immediately trims the oldest entries. Turning off **Remember recent programs** clears the active list and stops recording launches. Earlier preference backups can still contain history.
+
+The private X11 check uses pointer input to change the count and verifies the selection after reopening Start. Run it with `python tests/check_recent_controls_x11.py --run --xvfb /path/to/Xvfb`.

@@ -26,6 +26,25 @@ class NativePanelTests(unittest.TestCase):
             self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'),str(launcher))
             self.assertEqual(panel.read_bytes(),original)
 
+    def test_stock_panel_needs_no_dockbarx_and_keeps_notifier_name_conflicts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home, panel, launcher = self.fixture(tmp)
+            stock = '[panel1]\nplugins=fancymenu, taskbar, worldclock\n'
+            panel.write_text(stock)
+            start = home/'.local/share/applications/lxqt-comfort.desktop'
+            start.parent.mkdir(parents=True)
+            start.write_bytes(launcher.read_bytes())
+            profile.prepare(home, home/'stock', Path('/usr/bin/true'))
+            cfg = QSettings(str(home/'stock/panel.conf'), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('panel1/plugins')[:2], ['doroshellStart', 'fancymenu'])
+            self.assertEqual(cfg.value('doroshellStart/apps/1/desktop'), str(start))
+            self.assertIn('doroshellNotifier', cfg.value('panel1/plugins'))
+            self.assertEqual(panel.read_text(), stock)
+            panel.write_text(stock + '[doroshellNotifier]\ntype=quicklaunch\n')
+            with self.assertRaisesRegex(ValueError, 'widget name conflict'):
+                profile.prepare(home, home/'conflict', Path('/usr/bin/true'))
+            self.assertFalse((home/'conflict').exists())
+
     def test_next_login_enable_restore_and_conflict(self):
         with tempfile.TemporaryDirectory() as tmp:
             home,panel,launcher=self.fixture(tmp);before=panel.read_bytes();prepared=home/'prepared'
@@ -34,7 +53,9 @@ class NativePanelTests(unittest.TestCase):
             profile.switch(home,prepared)
             self.assertEqual(panel.read_bytes(),before)
             self.assertIn('doroshell-native-panel',target.read_text())
-            with self.assertRaises(RuntimeError):profile.switch(home,prepared)
+            original_manifest=(home/'.local/state/doroshell/native-panel.json').read_bytes()
+            profile.switch(home,prepared)
+            self.assertEqual((home/'.local/state/doroshell/native-panel.json').read_bytes(), original_manifest)
             installed=target.read_bytes();target.write_text('changed after enable')
             with self.assertRaises(RuntimeError):profile.switch(home,rollback=True)
             self.assertEqual(target.read_text(),'changed after enable')
@@ -50,6 +71,27 @@ class NativePanelTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):profile.switch(home,prepared)
             launcher.unlink()
             with self.assertRaises(ValueError):profile.profile(panel.read_text(),home,[str(launcher)],None)
+
+    def test_interrupted_switch_can_restore_original_autostart(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            home, panel, launcher = self.fixture(tmp)
+            prepared = home/'prepared'
+            profile.prepare(home, prepared, Path('/usr/bin/true'), None, [str(launcher)])
+            target = home/'.config/autostart/lxqt-panel.desktop'
+            target.parent.mkdir(parents=True)
+            target.write_text('original')
+            real_atomic = profile.atomic
+            def fail_wrapper(path, *args):
+                if path.name == 'doroshell-native-panel':
+                    raise OSError('simulated interrupted write')
+                real_atomic(path, *args)
+            with patch.object(profile, 'atomic', side_effect=fail_wrapper), self.assertRaises(OSError):
+                profile.switch(home, prepared)
+            profile.switch(home, rollback=True)
+            self.assertEqual(target.read_text(), 'original')
+            self.assertFalse((home/'.config/doroshell/panel.conf').exists())
+            self.assertFalse((home/'.local/state/doroshell/native-panel.json').exists())
 
     def test_symlink_override_is_preserved(self):
         with tempfile.TemporaryDirectory() as tmp:

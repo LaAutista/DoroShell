@@ -1,6 +1,14 @@
 # Verification checkpoint — 2026-11-08
 
-## Current checkpoint
+## Core release candidate — 2026-11-09
+
+The 69-test offscreen and temporary-home suite passed. A separate acceptance run used a fresh personal-prefix build of the pinned native panel, an authenticated private X11 display, Openbox and the LXQt shortcut daemon. It installed the menu, snapping and screenshot modules through the setup CLI, repeated the apply, staged the panel and started the installed LXQt session manager on the private display. With both the system and user autostart entries present, LXQt selected the user override. The only dock window belonged to the newly built panel executable. Real Super+Left/Right/Down keypresses positioned and restored a fixture window. Print cancellation retained the clipboard, and a completed region matched all 120×90 expected pixels. A separate private-display run pasted an open-menu capture into Writer and Draw and compared every pixel.
+
+The native panel check exercised hidden-icon activation and dismissal, task restore, closed-pin launch, matching a reopened app, and drag order across panel restarts. Setup rollback restored the original Print action and Openbox file, kept unrelated shortcuts registered by the panel and recovered the profile edited by LXQt. Reproduce the combined test with `python tests/check_core_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/lxqt-panel`.
+
+On the existing CachyOS install, setup updated Start, configured snapping, changed the existing Print action through the running LXQt daemon and staged the replacement panel. The original panel file, personal Start image, favorites and unrelated shortcut settings were checked after installation. The active desktop continued running. Real next-login startup and clean-machine dependency testing are pending.
+
+## Previous checkpoint
 
 The current suite passes **61 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
 

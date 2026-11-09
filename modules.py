@@ -8,9 +8,8 @@ from pathlib import Path
 import re
 import shlex
 import subprocess
-import tempfile
 import sysconfig
-from install import safe, set_ini
+from install import atomic, safe, set_ini
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent
@@ -37,20 +36,6 @@ def ini_set(text, section, key, value):
     stop = match.end()+end.start() if end else len(text)
     body = re.sub(r'(?m)^'+re.escape(key)+r'\s*=.*\n?', '', text[match.end():stop])
     return text[:match.end()]+body+text[stop:]
-
-
-def atomic(path, data, mode=0o600):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, name = tempfile.mkstemp(prefix='.doroshell-', dir=path.parent)
-    try:
-        with os.fdopen(fd,'wb') as out:
-            out.write(data)
-            out.flush()
-            os.fsync(out.fileno())
-        os.chmod(name, mode)
-        os.replace(name, path)
-    finally:
-        Path(name).unlink(missing_ok=True)
 
 
 def plans(home, module, taskbar_style="icons"):
@@ -189,7 +174,55 @@ def write_value(edit, data, value):
     return text.encode()
 
 
-def run(home, module, apply=False, rollback=False, taskbar_style="icons"):
+def live_print_change(path, original, desired):
+    """Prepare one LXQt daemon edit, checking its command against the on-disk binding."""
+    import tempfile
+    from gi.repository import Gio, GLib
+    from PySide6.QtCore import QSettings
+    if Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config')).resolve() != path.parent.parent.resolve():
+        raise RuntimeError('The shortcut daemon and target must use the same configuration home')
+    service = 'org.lxqt.global_key_shortcuts'
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+    def call(method, signature, *args):
+        return bus.call_sync(service, '/daemon', service+'.daemon', method, GLib.Variant(signature, args),
+                             None, Gio.DBusCallFlags.NO_AUTO_START, 3000, None).unpack()
+
+    def binding(data):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp)/'shortcut.conf'
+            source.write_bytes(data or b'')
+            cfg = QSettings(str(source), QSettings.Format.IniFormat)
+            groups = [group for group in cfg.childGroups() if group.startswith('Print.')]
+            if len(groups) != 1 or not cfg.value(groups[0]+'/Enabled', False, type=bool):
+                raise RuntimeError('Live setup requires one enabled Print command; use offline setup for this layout')
+            group = groups[0]
+            argv = cfg.value(group+'/Exec')
+            if isinstance(argv, str):
+                argv = [argv]
+            if not argv or not re.fullmatch(r'Print\.\d+', group):
+                raise RuntimeError('Unsupported live Print binding')
+            return int(group.split('.')[1]), cfg.value(group+'/Comment', ''), argv
+    action, description, argv = binding(original)
+    target, new_description, new_argv = binding(desired)
+    if target != action:
+        raise RuntimeError('Print binding changed identity')
+    def verify():
+        valid, key, label, enabled, command, arguments = call('getCommandActionInfoById', '(t)', action)
+        if not valid or key != 'Print' or not enabled or [command, *arguments] != argv or label != description:
+            raise RuntimeError('Active Print shortcut differs from its configuration; refusing to change it')
+    verify()
+    def apply():
+        verify()
+        if path.read_bytes() != original:
+            raise RuntimeError('Shortcut settings changed during setup')
+        if not call('modifyCommandAction', '(tsass)', action, new_argv[0], new_argv[1:], new_description)[0]:
+            raise RuntimeError('LXQt refused to update its Print shortcut')
+        if binding(path.read_bytes()) != (target, new_description, new_argv):
+            raise RuntimeError('LXQt did not persist the requested Print shortcut')
+    return apply
+
+
+def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False):
     if module not in MODULES:
         raise ValueError("Unknown module")
     manifest=home/'.local/state/doroshell'/f'{module}.json'
@@ -217,8 +250,6 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons"):
         old=next((e for e in saved['edits'] if all(e.get(k)==edit.get(k) for k in ('file','kind','section','key'))),None) if saved else None
         if old and current not in (old['after'], old['before']):
             raise RuntimeError(f'Personal edit detected; no changes applied: {path}')
-        if rollback and current!=edit['after']:
-            raise RuntimeError(f'Rollback conflict; no changes applied: {path}')
         entry=dict(edit)
         entry['before']=old['before'] if old else current
         changed[path]=write_value(edit,changed[path],edit['before'] if rollback else edit['after'])
@@ -239,12 +270,22 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons"):
     if not apply and not rollback:
         print('Plan only. Add --apply.')
         return
+    shortcuts = home/'.config/lxqt/globalkeyshortcuts.conf'
+    update_print = None
+    if active_print and original[shortcuts] != changed[shortcuts]:
+        update_print = live_print_change(shortcuts, original[shortcuts], changed[shortcuts])
     if not rollback:
         backup=dict(saved['backup']) if saved else {}
         for p,v in original.items():
             backup.setdefault(str(p.relative_to(home)), {'data':base64.b64encode(v).decode() if v is not None else None,'mode':modes[p]})
         atomic(manifest,(json.dumps({'edits':record,'backup':backup},indent=2)+'\n').encode())
+    if rollback and update_print:
+        update_print()
     for path,data in changed.items():
+        if path == shortcuts and update_print:
+            if not rollback:
+                update_print()
+            continue
         if rollback:
             before=saved['backup'][str(path.relative_to(home))]
             # Restore exact bytes when no unrelated changes occurred.
@@ -287,6 +328,10 @@ if __name__=='__main__':
     if os.geteuid()==0:
         parser.error('Run as your desktop user, not root')
     components={'screenshots':['lxqt-globalkeysd'], 'taskbar':['lxqt-panel']}.get(args.module,[])
+    if args.module == 'screenshots' and (args.apply or args.rollback) and args.home.resolve() == Path.home().resolve():
+        if subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', '^/usr/bin/lxqt-globalkeysd$'], stdout=subprocess.DEVNULL).returncode == 0:
+            run(args.home, args.module, args.apply, args.rollback, active_print=True)
+            raise SystemExit(0)
     if args.live and not (args.apply or args.rollback):
         parser.error('--live requires --apply or --rollback')
     if args.live and args.module=='single-desktop':

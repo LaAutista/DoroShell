@@ -23,6 +23,117 @@ class MenuTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = menu.QApplication.instance() or menu.QApplication([])
 
+    def test_recent_limit_migrates_trims_and_preserves_disabled_privacy(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'recent.json'
+            original = {'enabled': True, 'items': [f'{i}.desktop' for i in range(20)]}
+            path.write_text(json.dumps(original))
+            recent = menu.RecentPrograms(path)
+            recent.save(limit=5)
+            self.assertEqual(recent.value['items'], original['items'][:5])
+            self.assertEqual(json.loads(next(path.parent.glob('recent.json.backup-*')).read_text()), original)
+            recent = menu.RecentPrograms(path)
+            recent.save(launched='new.desktop')
+            self.assertEqual(recent.value['items'], ['new.desktop'] + original['items'][:4])
+            recent.save(limit=30)
+            for i in range(40):
+                recent.save(launched=f'app-{i}.desktop')
+            self.assertEqual(len(menu.RecentPrograms(path).value['items']), 30)
+            recent.save(enabled=False)
+            recent.save(launched='private.desktop', limit=10)
+            self.assertEqual(recent.value['items'], [])
+            self.assertFalse(recent.value['enabled'])
+            recent.save(clear=True)
+            self.assertEqual(recent.value['limit'], 10)
+
+    def test_recent_limit_validation_and_conflicts_preserve_file(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'recent.json'
+            recent = menu.RecentPrograms(path)
+            for invalid in (0, 51, True, 4.5, '10'):
+                with self.assertRaises(ValueError):
+                    recent.save(limit=invalid)
+                self.assertFalse(path.exists())
+            for invalid in (0, 51, True, '10'):
+                raw = json.dumps({'enabled': True, 'items': [], 'limit': invalid})
+                path.write_text(raw)
+                corrupt = menu.RecentPrograms(path)
+                self.assertIsNotNone(corrupt.error)
+                with self.assertRaises(ValueError):
+                    corrupt.save(limit=5)
+                self.assertEqual(path.read_text(), raw)
+            path.write_text('null')
+            with self.assertRaises(ValueError):
+                recent.save(limit=5)
+            self.assertEqual(path.read_text(), 'null')
+
+    def test_unreadable_recent_preferences_do_not_prevent_menu_startup(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            path = Path(directory) / 'lxqt-comfort' / 'recent.json'
+            path.mkdir(parents=True)
+            window = menu.StartMenu()
+            with self.assertRaises(ValueError):
+                window.recent.save(limit=5)
+            self.assertTrue(path.is_dir())
+            window.close()
+            shiboken6.delete(window)
+
+    def test_home_shows_ordered_pins_and_opens_recent_separately(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            catalog = []
+            for name in ('Alpha', 'Beta', 'Gamma'):
+                path = Path(directory) / (name + '.desktop')
+                path.write_text(f'[Desktop Entry]\nType=Application\nName={name}\nExec=/bin/true\n')
+                catalog.append(menu.Gio.DesktopAppInfo.new_from_filename(str(path)))
+            with patch.object(menu, 'applications', return_value=catalog):
+                window = menu.StartMenu()
+            window.show()
+            try:
+                window.save_favorites(['Beta.desktop', 'missing.desktop', 'Alpha.desktop'])
+                window.recent.save(launched='Gamma.desktop')
+                window.refresh()
+                self.app.processEvents()
+                def rows():
+                    return [window.list.item(i).text() for i in range(window.list.count())]
+                self.assertTrue(window.pinned_heading.isVisible())
+                self.assertEqual(window.pinned_heading.text(), 'Pinned')
+                self.assertTrue(window.category.isHidden())
+                self.assertEqual(rows(), ['Beta', 'Alpha'])
+                self.assertLess(window.list.geometry().bottom(), window.programs.y())
+                self.assertLess(window.programs.geometry().bottom(), window.search.y())
+                window.recent_button.click()
+                self.assertEqual(rows(), ['Gamma'])
+                self.assertFalse(window.can_reorder_pins())
+                window.programs.click()
+                self.assertEqual(rows(), ['Beta', 'Alpha'])
+                window.search.setText('Gamma')
+                self.assertEqual(rows(), ['Gamma'])
+                window.navigate_back()
+                window.set_remember(False)
+                self.assertTrue(window.recent_button.isHidden())
+                self.assertEqual(rows(), ['Beta', 'Alpha'])
+            finally:
+                window.close()
+                shiboken6.delete(window)
+
+    def test_recent_limit_menu_persists_and_restores_check_on_conflict(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            choices = {a.data(): a for a in window.recent_counts.actions()}
+            choices[5].trigger()
+            self.assertEqual(window.recent.value['limit'], 5)
+            self.assertEqual(menu.RecentPrograms(window.recent.path).value['limit'], 5)
+            window.recent.path.write_text('{"enabled": false, "items": []}')
+            with patch.object(window, 'error') as error:
+                choices[30].trigger()
+                error.assert_called_once()
+            self.assertTrue(choices[5].isChecked())
+            self.assertFalse(choices[30].isChecked())
+            window.close()
+            shiboken6.delete(window)
+
     def test_application_tasks_use_gio_and_reject_unknown_action(self):
         from unittest.mock import Mock
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
@@ -221,6 +332,8 @@ class MenuTests(unittest.TestCase):
     def test_menu_search_empty_folder_and_launch_error(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
             window = menu.StartMenu()
+            self.assertEqual(window.list.count(), 0)
+            window.programs.click()
             self.assertGreater(window.list.count(), 0)
             window.search.setText('zz-no-such-application-zz')
             self.assertEqual(window.list.count(), 0)
@@ -255,6 +368,12 @@ class MenuTests(unittest.TestCase):
             stamp = old.stat().st_mtime_ns
             installer.install(home, True)
             self.assertEqual(stamp, old.stat().st_mtime_ns)
+            integration_state = home / '.local/state/lxqt-comfort/menu-integration.json'
+            integration_state.write_text('{}')
+            with self.assertRaisesRegex(RuntimeError, 'integration'):
+                installer.rollback(home)
+            self.assertEqual(old.stat().st_mtime_ns, stamp)
+            integration_state.unlink()
             old.write_text('user edit')
             with self.assertRaises(RuntimeError):
                 installer.rollback(home)
@@ -264,6 +383,28 @@ class MenuTests(unittest.TestCase):
             self.assertEqual(old.stat().st_mode & 0o777, 0o700)
             self.assertFalse((home / '.local/share/applications/lxqt-comfort.desktop').exists())
 
+    def test_interrupted_menu_upgrade_can_retry_or_restore(self):
+        for retry in (False, True):
+            with self.subTest(retry=retry), tempfile.TemporaryDirectory() as directory:
+                home = Path(directory)
+                installer.install(home, True)
+                launcher = home/'.local/bin/lxqt-comfort-menu'
+                files = installer.targets(home)
+                files[launcher] = (b'updated launcher', 0o755)
+                write = installer.atomic
+                def fail_launcher(path, *args):
+                    if path == launcher:
+                        raise OSError('simulated interruption')
+                    write(path, *args)
+                with patch.object(installer, 'targets', return_value=files):
+                    with patch.object(installer, 'atomic', side_effect=fail_launcher), self.assertRaises(OSError):
+                        installer.install(home, True)
+                    if retry:
+                        installer.install(home, True)
+                        self.assertEqual(launcher.read_bytes(), files[launcher][0])
+                    installer.rollback(home)
+                self.assertFalse(launcher.exists())
+
     def test_integration_preserves_other_settings_and_rolls_back(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -271,6 +412,9 @@ class MenuTests(unittest.TestCase):
             config.mkdir(parents=True)
             (config / 'panel.conf').write_text('[panel1]\nplugins=fancymenu, dockbarx\n[other]\nkeep=yes\n')
             (config / 'globalkeyshortcuts.conf').write_text('[Alt%2BF1.1]\npath=/panel/fancymenu/show_hide\nEnabled=true\n')
+            with self.assertRaisesRegex(RuntimeError, 'Install the Start menu'):
+                integration.run(home, apply=True)
+            installer.install(home, True)
             integration.run(home, apply=True)
             integration.run(home, apply=True)
             cfg = integration.QSettings(str(config / 'panel.conf'), integration.QSettings.Format.IniFormat)
@@ -303,6 +447,7 @@ class MenuTests(unittest.TestCase):
         fake.launch.return_value=True
         with tempfile.TemporaryDirectory() as d, patch.dict(os.environ, {'XDG_CONFIG_HOME':d}), patch.object(menu,'applications',return_value=[fake]):
             window=menu.StartMenu()
+            window.programs.click()
             item=window.list.item(0)
             window.launch_item(item)
             window.launch_item(item)

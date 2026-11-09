@@ -7,7 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 from PySide6.QtCore import QSettings
-from install import safe
+from install import atomic, safe
 
 
 def desired(home):
@@ -39,6 +39,11 @@ def run(home, apply=False, rollback=False):
             raise RuntimeError(f'Expected LXQt config not found: {path}; log into LXQt first.')
         settings[filename] = QSettings(str(path), QSettings.Format.IniFormat)
     saved = json.loads(state.read_text()) if state.exists() else None
+    if apply and not rollback:
+        launcher = home/'.local/bin/lxqt-comfort-menu'
+        desktop_entry = home/'.local/share/applications/lxqt-comfort.desktop'
+        if not desktop_entry.is_file() or not launcher.is_file() or not os.access(launcher, os.X_OK):
+            raise RuntimeError('Install the Start menu before integrating its launcher')
     if rollback:
         if not saved:
             print('No menu integration to roll back.')
@@ -68,7 +73,7 @@ def run(home, apply=False, rollback=False):
             old = record[filename]['keys'].get(key)
             # QSettings reloads scalar values as strings; compare normalized values.
             norm = lambda v: str(v).lower() if not isinstance(v, list) else v
-            if old and norm(current) != norm(old['after']) and (rollback or norm(current) != norm(old['before'])):
+            if old and norm(current) != norm(old['after']) and norm(current) != norm(old['before']):
                 raise RuntimeError(f'Personal edit detected: {filename}/{key}; no changes applied.')
             if not old:
                 record[filename]['keys'][key] = {'before': current, 'after': value}
@@ -78,8 +83,7 @@ def run(home, apply=False, rollback=False):
         return
     if not rollback:
         state.parent.mkdir(parents=True, exist_ok=True)
-        state.write_text(json.dumps(record, indent=2) + '\n')
-        state.chmod(0o600)
+        atomic(state, (json.dumps(record, indent=2) + '\n').encode())
     for filename, edits in changes.items():
         cfg = settings[filename]
         for key, value in edits.items():

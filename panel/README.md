@@ -1,6 +1,6 @@
 # DoroShell Panel prototype
 
-A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden-tray popup. This is a working development increment, not the finished Windows 7 panel design. It runs separately from the installed panel. Do not replace a running panel or DockBarX applet: applications may inherit their output pipes.
+A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden-tray popup. This is the replacement taskbar for the CachyOS LXQt core release candidate. It runs separately from the installed panel. Do not replace a running panel or DockBarX applet: applications may inherit their output pipes.
 
 ## Built behavior
 
@@ -34,7 +34,7 @@ python panel/profile.py prepare \
   --prepared /absolute/new/private-profile-directory
 ```
 
-This reads the current single-panel configuration and DockBarX pinned launchers, then creates a private candidate and validation record. Nothing starts, stops or changes in the current session. Missing launchers, multiple panels and conflicting widget identifiers are refused. Review the candidate before enabling. These files contain personal paths and must not be committed.
+This reads the current single-panel configuration and, if DockBarX is present, its pinned launchers, then creates a private candidate and validation record. Nothing starts, stops or changes in the current session. Missing launchers, multiple panels and conflicting widget identifiers are refused. Review the candidate before enabling. These files contain personal paths and must not be committed.
 
 ## Reversible next-login switch
 
@@ -44,7 +44,7 @@ After the prototype is suitable for your desktop:
 python panel/profile.py enable-next-login --prepared /absolute/private-profile-directory
 ```
 
-This backs up the previous user autostart override and any managed target files, writes a separate DoroShell panel config, and overrides only the LXQt panel autostart entry for the **next normal login**. Current applications and the current panel continue running. The launcher redirects output to a private file, avoiding inherited pipes from a temporary supervising process. An existing staged switch must be restored before another is enabled.
+This backs up the previous user autostart override and any managed target files, writes a separate DoroShell panel config, and overrides only the LXQt panel autostart entry for the **next normal login**. Current applications and the current panel continue running. The launcher redirects output to a private file, avoiding inherited pipes from a temporary supervising process. Repeating the same unmodified plan preserves the initial backups. Restore before staging a different plan.
 
 Undo with:
 
@@ -52,7 +52,7 @@ Undo with:
 python panel/profile.py restore-next-login
 ```
 
-Rollback refuses changed managed files. It restores the prior autostart entry and target files, leaving the original LXQt panel configuration intact. If a new panel is already running, restoration takes effect at the next user-chosen login; it never kills that process. Keep the runtime directory until the switch has been restored and the custom panel is no longer in use.
+Rollback refuses changed managed files. LXQt itself can update the candidate profile during ordinary use. Pass `--keep-panel-edits` to save a private copy of that profile before restoring. Changes to the launcher or autostart entry still cause rollback to refuse. It restores the prior autostart entry and target files, leaving the original LXQt panel configuration intact. If a new panel is already running, restoration takes effect at the next user-chosen login; it never kills that process. Keep the runtime directory until the switch has been restored and the custom panel is no longer in use.
 
 This next-login path is tested with temporary homes, not an actual logout/login. No switch has been enabled on the personal desktop during development.
 
