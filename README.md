@@ -79,7 +79,7 @@ The working-tree menu now includes the pink theme, Home / All programs navigatio
 
 The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The original roadmap and Windows 7 comparison document retain the design and acceptance requirements; some implementation has moved ahead of those planning snapshots.
 
-Latest validation: **34 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
+Latest validation: **42 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
 
 Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
 
@@ -220,3 +220,10 @@ The optional compatibility hook recovers internal drops lost at the Qt/GTK embed
 Undo with `python modules.py taskbar-drag --rollback`. This removes the hook; it does not undo icon arrangements you deliberately saved while using it.
 
 The opt-in X11 check is `dbus-run-session -- python tests/check_taskbar_drag_x11.py --run` (requires python-xlib). It uses synthetic launchers and a temporary home, moves the mouse, and opens/closes only its own test panel.
+
+
+## Open-Shell parity
+
+The goal now covers all Open-Shell feature families, with Windows 7 kept as the primary menu style. [The parity inventory and delivery plan](docs/open-shell-parity.md) distinguishes implemented behavior, missing features and Windows-only integrations. Full parity is not complete; Explorer and Internet Explorer extensions cannot run directly in LXQt.
+
+Start now exposes application-provided tasks in the application right-click menu, such as New Window when the app declares it. Tasks use GIO desktop actions without shell command parsing. This does not yet provide recent-document jump lists, and successful dispatch cannot prove that the target application completed its action.

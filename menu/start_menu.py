@@ -537,6 +537,23 @@ class StartMenu(QWidget):
         except GLib.Error as error:
             self.error(str(error))
 
+    def launch_app_action(self, desktop_id, action_id):
+        if self.launching:
+            return
+        app = self.by_id.get(desktop_id)
+        if app is None or action_id not in app.list_actions():
+            self.error('This application task is no longer available.')
+            return
+        self.launching = True
+        try:
+            # GIO owns desktop-entry interpretation; never execute Exec via a shell.
+            # launch_action returns void, not an application-success result.
+            app.launch_action(action_id, None)
+            self.close()
+        except (GLib.Error, RuntimeError) as error:
+            self.launching = False
+            self.error(str(error))
+
     def context_menu(self, position):
         item = self.list.itemAt(position)
         if not item:
@@ -546,8 +563,19 @@ class StartMenu(QWidget):
         action = menu.addAction('Unpin' if desktop_id in self.favorites else 'Pin application')
         up = menu.addAction('Move pin up') if desktop_id in self.favorites else None
         down = menu.addAction('Move pin down') if desktop_id in self.favorites else None
+        tasks = {}
+        app = self.by_id[desktop_id]
+        action_ids = app.list_actions()
+        if action_ids:
+            menu.addSeparator()
+            for action_id in action_ids:
+                label = app.get_action_name(action_id) or action_id
+                tasks[menu.addAction(label.replace('&', '&&'))] = action_id
         chosen = menu.exec(self.list.mapToGlobal(position))
         if chosen is None:
+            return
+        if chosen in tasks:
+            self.launch_app_action(desktop_id, tasks[chosen])
             return
         if self.state_error:
             self.error('Favorites were not changed: ' + self.state_error)

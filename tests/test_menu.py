@@ -23,6 +23,57 @@ class MenuTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = menu.QApplication.instance() or menu.QApplication([])
 
+    def test_application_tasks_use_gio_and_reject_unknown_action(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            app = Mock()
+            app.list_actions.return_value = ['new-window']
+            app.launch_action.return_value = None
+            window.by_id['test.desktop'] = app
+            with patch.object(window, 'error') as error, patch.object(window, 'close') as close:
+                window.launch_app_action('test.desktop', 'unknown')
+                app.launch_action.assert_not_called()
+                error.assert_called_once()
+                window.launch_app_action('test.desktop', 'new-window')
+                app.launch_action.assert_called_once_with('new-window', None)
+                close.assert_called_once()
+                window.launch_app_action('test.desktop', 'new-window')
+                self.assertEqual(app.launch_action.call_count, 1)
+            window.close()
+            shiboken6.delete(window)
+
+    def test_application_task_context_menu_keeps_favorites_unchanged(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            app = Mock()
+            app.list_actions.return_value = ['new-window']
+            app.get_action_name.return_value = 'New & Window'
+            window.show()
+            self.app.processEvents()
+            window.by_id['test.desktop'] = app
+            window.list.clear()
+            item = menu.QListWidgetItem('Test')
+            item.setData(menu.Qt.ItemDataRole.UserRole, 'test.desktop')
+            window.list.addItem(item)
+            self.app.processEvents()
+            before = window.favorites.copy()
+            # Corrupt favorites must not block unrelated application tasks.
+            window.state_error = 'invalid favorites'
+            def choose_task(popup, position):
+                action = popup.actions()[-1]
+                self.assertEqual(action.text(), 'New && Window')
+                return action
+            class TestMenu(menu.QMenu):
+                exec = choose_task
+            with patch.object(menu, 'QMenu', TestMenu), patch.object(window, 'launch_app_action') as launch, patch.object(window, 'error') as error:
+                window.context_menu(window.list.visualItemRect(item).center())
+                launch.assert_called_once_with('test.desktop', 'new-window')
+            self.assertEqual(window.favorites, before)
+            window.close()
+            shiboken6.delete(window)
+
     def test_search_and_filter(self):
         data = menu.GLib.KeyFile()
         text = '[Desktop Entry]\nType=Application\nName=Test Editor\nExec=/bin/true\nCategories=Utility;\nKeywords=writing;\n'

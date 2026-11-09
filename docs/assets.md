@@ -23,3 +23,8 @@ Doro is the requested mascot. The existing personal Start icon and animated GIF 
 The [NIKKE EULA](https://nikke-en.com/pre/termsofservice/) does not establish a general license to redistribute character artwork as this toolkit's mascot. Its gameplay-video provisions are not evidence of permission for a software asset. This is a record of verification limits, not a conclusion that every possible fan use is prohibited.
 
 For a future bundled asset, record the exact original image URL, author, applicable permission/license, required credit, permitted modifications and distribution scope before adding it. Credit alone is not a license. Keep an artwork-specific notice separate from the project's eventual source-code license. Until suitable permission is verified, retain the neutral bundled SVG and the local custom-asset workflow.
+
+
+## Official-art request follow-up
+
+The supplied DoroShell concept sheet was visually inspected as a layout reference; it does not establish official provenance and is not the original spinning GIF. An official licensed product reference is [Good Smile DORO](https://www.goodsmile.com/en/product/1138582/DORO%2BDorothy), credited ©SHIFT UP CORP. No software-asset redistribution permission was found on that product page. The original official image/animation URL and applicable permission remain required before bundling. Current personal artwork was preserved; no concept crop, replacement character or product photograph was installed. See the [parity plan](open-shell-parity.md).
