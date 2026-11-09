@@ -18,6 +18,18 @@ class SettingsTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_live_refresh_never_stops_desktop_components(self):
+        from unittest.mock import Mock
+        import integrate
+        operation = Mock()
+        with patch('integrate.os.kill') as kill:
+            with self.assertRaisesRegex(RuntimeError, 'output pipes'):
+                integrate.live_run(Path.home(), operation=operation)
+            operation.assert_not_called()
+            kill.assert_not_called()
+        integrate.live_run(Path.home(), operation=operation, components=[])
+        operation.assert_called_once()
+
     def test_settings_start_unchanged_and_keyboard_selects_only_opt_in(self):
         with tempfile.TemporaryDirectory() as d:
             window = settings.Settings(Path(d))

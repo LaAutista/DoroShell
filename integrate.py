@@ -4,9 +4,7 @@ import argparse
 import base64
 import json
 import os
-import signal
 import subprocess
-import time
 from pathlib import Path
 from PySide6.QtCore import QSettings
 from install import safe
@@ -76,7 +74,7 @@ def run(home, apply=False, rollback=False):
                 record[filename]['keys'][key] = {'before': current, 'after': value}
             print(f'{filename}: {key}: {current!r} -> {value!r}')
     if not apply and not rollback:
-        print('Dry run. Use --apply --live in a running LXQt session.')
+        print('Dry run. Apply only while LXQt components are stopped, or use the native panel next-login workflow.')
         return
     if not rollback:
         state.parent.mkdir(parents=True, exist_ok=True)
@@ -98,38 +96,16 @@ def run(home, apply=False, rollback=False):
 
 
 def live_run(home, rollback=False, operation=None, components=None):
-    """Stop config writers before editing; restart only components that were running."""
+    """Run helpers without stopping processes that may own application pipes."""
     if home.resolve() != Path.home().resolve():
         raise RuntimeError('--live is only valid for the current desktop user')
-    stopped = []
-    try:
-        for name in (components if components is not None else ['lxqt-panel', 'lxqt-globalkeysd']):
-            pattern = '^/usr/bin/' + name + '$'
-            result = subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', pattern], capture_output=True, text=True)
-            if result.returncode not in (0, 1):
-                raise RuntimeError('Could not inspect running ' + name)
-            if result.returncode == 1:
-                continue
-            stopped.append(name)
-            pids = [int(pid) for pid in result.stdout.split()]
-            for pid in pids:
-                os.kill(pid, signal.SIGTERM)
-            for _ in range(50):
-                if subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', pattern], stdout=subprocess.DEVNULL).returncode == 1:
-                    break
-                time.sleep(.1)
-            else:
-                raise RuntimeError(name + ' did not stop; configuration not changed')
-        if operation is None:
-            run(home, apply=not rollback, rollback=rollback)
-        else:
-            operation()
-    finally:
-        for name in stopped:
-            pattern = '^/usr/bin/' + name + '$'
-            if subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', pattern], stdout=subprocess.DEVNULL).returncode == 1:
-                subprocess.Popen(['/usr/bin/' + name], stdin=subprocess.DEVNULL,
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    requested = components if components is not None else ['lxqt-panel', 'lxqt-globalkeysd']
+    if requested:
+        raise RuntimeError('Live desktop component restarts are disabled: running applications may inherit their output pipes. Use the next-login panel workflow; no process was stopped.')
+    if operation is None:
+        run(home, apply=not rollback, rollback=rollback)
+    else:
+        operation()
 
 
 if __name__ == '__main__':
@@ -137,7 +113,7 @@ if __name__ == '__main__':
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument('--apply', action='store_true')
     actions.add_argument('--rollback', action='store_true')
-    parser.add_argument('--live', action='store_true', help='Refresh running LXQt panel/shortcuts safely around the change')
+    parser.add_argument('--live', action='store_true', help='Legacy flag; live desktop component restarts are disabled')
     parser.add_argument('--home', type=Path, default=Path.home())
     args = parser.parse_args()
     if args.live:
@@ -148,5 +124,5 @@ if __name__ == '__main__':
         if (args.apply or args.rollback) and args.home.resolve() == Path.home().resolve():
             active = subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', '^/usr/bin/(lxqt-panel|lxqt-globalkeysd)$'], stdout=subprocess.DEVNULL)
             if active.returncode == 0:
-                parser.error('LXQt components are running. Use --live to prevent them overwriting the change.')
+                parser.error('LXQt components are running. Use the native panel next-login workflow; live restarts are disabled.')
         run(args.home, args.apply, args.rollback)

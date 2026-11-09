@@ -1,3 +1,26 @@
+diff --git a/panel/lxqtpanel.cpp b/panel/lxqtpanel.cpp
+index 317b01b..fc2ade3 100644
+--- a/panel/lxqtpanel.cpp
++++ b/panel/lxqtpanel.cpp
+@@ -1165,6 +1165,18 @@ void LXQtPanel::updateStyleSheet()
+     if (QFileInfo::exists(mBackgroundImage))
+         sheet << QString(QStringLiteral("LXQtPanel #BackgroundWidget { background-image: url('") + mBackgroundImage + QStringLiteral("');}"));
+
++    // DoroShell's opt-in native theme. Original artwork is not embedded.
++    if (mSettings->value(QStringLiteral("doroshellTheme"), false).toBool())
++    {
++        sheet << QStringLiteral("LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #f9d7ed,stop:0.08 #e9a4cd,stop:0.47 #c975a5,stop:0.5 #a94a80,stop:1 #d783b3); border-top: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("Plugin * { color: #fff5fb; }");
++        sheet << QStringLiteral("LXQtTaskButton, QuickLaunchButton { background: transparent; border: 1px solid transparent; border-radius: 5px; margin: 2px; }");
++        sheet << QStringLiteral("LXQtTaskButton:hover, QuickLaunchButton:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("LXQtTaskButton:checked { background: rgba(255,230,247,160); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("QToolButton#doroshellTrayArrow { color: white; background: transparent; border: 1px solid transparent; border-radius: 4px; }");
++        sheet << QStringLiteral("QToolButton#doroshellTrayArrow:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("QFrame#doroshellTrayPopup { background: #fff0f8; border: 1px solid #a84e7c; border-radius: 5px; }");
++    }
+     setStyleSheet(sheet.join(QStringLiteral("\n")));
+ }
+
 diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
 index 6410519..52da3a2 100644
 --- a/plugin-statusnotifier/statusnotifierwidget.cpp
@@ -5,7 +28,7 @@ index 6410519..52da3a2 100644
 @@ -31,6 +31,49 @@
  #include "../panel/pluginsettings.h"
  #include "../panel/ilxqtpanelplugin.h"
- 
+
 +// DoroShell modification: optional native hidden-icon popup, LGPL-2.1-or-later.
 +#include <QFrame>
 +#include <QGridLayout>
@@ -71,7 +94,7 @@ index 6410519..52da3a2 100644
              return; // all items are visible; nothing to do
          mShowBtn->hide();
 @@ -166,6 +217,8 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
- 
+
  void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
  {
 +    if (mOverflow)
@@ -80,7 +103,7 @@ index 6410519..52da3a2 100644
      if (button)
      {
 @@ -196,6 +249,13 @@ void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
- 
+
  void StatusNotifierWidget::settingsChanged()
  {
 +    if (mOverflow)
@@ -163,18 +186,18 @@ index 379722e..069de31 100644
 +++ b/plugin-statusnotifier/statusnotifierwidget.h
 @@ -29,6 +29,7 @@
  #pragma once
- 
+
  #include <QTimer>
 +#include <QPointer>
- 
+
  #include <LXQt/GridLayout>
- 
+
 @@ -60,6 +61,8 @@ protected:
      void enterEvent(QEnterEvent *event) override;
- 
+
  private:
 +    void showOverflow();
 +    QPointer<QWidget> mOverflow;
      ILXQtPanelPlugin *mPlugin;
- 
+
      QTimer mHideTimer;

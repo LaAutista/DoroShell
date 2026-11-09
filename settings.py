@@ -39,6 +39,7 @@ class Settings(QWidget):
         super().__init__()
         self.home = home or Path.home()
         self.setWindowTitle('DoroShell settings')
+        self.setObjectName('doroShellSettings')
         self.resize(760, 760)
         self.process = None
         self.queue = []
@@ -71,8 +72,8 @@ class Settings(QWidget):
         self.pink = QCheckBox('Pink ordinary pointer (off keeps the normal pointer)')
         form.addRow(self.pink)
         area.setWidget(content); layout.addWidget(area, 2)
-        self.live = QCheckBox('Refresh panel / shortcuts now; start edge snapping')
-        self.live.setToolTip('Briefly refreshes only the selected LXQt components. No logout or application closure.')
+        self.live = QCheckBox('Start edge snapping now (desktop components stay running)')
+        self.live.setToolTip('Starts the snapping helper only. Panel and shortcut services are never restarted.')
         layout.addWidget(self.live)
         self.output = QPlainTextEdit(); self.output.setReadOnly(True)
         self.output.setAccessibleName('Change preview and results')
@@ -84,7 +85,16 @@ class Settings(QWidget):
         self.apply.clicked.connect(lambda: self.start(True))
         row.addWidget(self.preview); row.addWidget(self.apply)
         layout.addLayout(row)
-        self.setStyleSheet('QComboBox, QLineEdit { min-height: 26px; } QPushButton { padding: 8px; }')
+        self.setStyleSheet('''
+            QWidget { color: #351329; font-size: 14px; }
+            QWidget#doroShellSettings { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff1fa,stop:1 #e7a3c9); }
+            QScrollArea, QScrollArea > QWidget > QWidget { background: #fff4fa; border: 0; }
+            QComboBox, QLineEdit { min-height: 26px; background: #fff9fc; border: 1px solid #b66a93; border-radius: 5px; padding: 3px; }
+            QPlainTextEdit { background: #fff9fc; border: 1px solid #b66a93; border-radius: 5px; }
+            QPushButton { padding: 8px; background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #ffebf7,stop:0.49 #f3b6d7,stop:0.5 #e899c2,stop:1 #f5c4df); border: 1px solid #a75b83; border-radius: 5px; }
+            QPushButton:hover, QPushButton:focus { border: 1px solid #672044; background: #ffd9ee; }
+            QPushButton:disabled { color: #806675; background: #eadce4; }
+        ''')
 
     def file_row(self, form, label, pattern):
         container = QWidget(); row = QHBoxLayout(container); row.setContentsMargins(0,0,0,0)
@@ -111,7 +121,7 @@ class Settings(QWidget):
             cmd = [str(ROOT/'setup.py'), module, '--home', str(self.home)]
             if action == 'restore': cmd.append('--rollback')
             elif apply: cmd.append('--apply')
-            if self.live.isChecked() and apply: cmd.append('--live')
+            if self.live.isChecked() and apply and module=='snapping': cmd.append('--live')
             if module=='taskbar' and action in ('icons','standard'):
                 cmd += ['--taskbar-style', action]
             if module=='cursor' and action!='restore':

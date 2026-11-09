@@ -306,7 +306,7 @@ if __name__=='__main__':
         raise SystemExit(0)
     if args.live:
         from integrate import live_run
-        # Preflight before briefly stopping any config writer.
+        # Preflight; desktop component restarts are refused by live_run.
         if not args.rollback:
             run(args.home,args.module,taskbar_style=args.taskbar_style)
         live_run(args.home, operation=lambda:run(args.home,args.module,args.apply,args.rollback,args.taskbar_style), components=components)
@@ -320,5 +320,5 @@ if __name__=='__main__':
         if (args.apply or args.rollback) and args.home.resolve()==Path.home().resolve() and components:
             for name in components:
                 if subprocess.run(['pgrep','-u',str(os.getuid()),'-f','^/usr/bin/'+name+'$'],stdout=subprocess.DEVNULL).returncode==0:
-                    parser.error('Component is running; use --live to safely refresh it')
+                    parser.error('Component is running; live restarts are disabled. Use the native panel next-login workflow or apply while the component is stopped.')
         run(args.home,args.module,args.apply,args.rollback,args.taskbar_style)

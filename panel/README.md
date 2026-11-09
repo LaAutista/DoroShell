@@ -4,13 +4,14 @@ A native LXQt Panel 2.4.1 build with a DoroShell hidden-tray popup. This is a wo
 
 ## Built behavior
 
+- Opt-in pink gradient styling (`panel1/doroshellTheme=true`), with pale task highlights and a pink hidden-tray popup.
 - Bottom-oriented, 40-pixel candidate profile with 28-pixel icons and compact native task buttons.
 - Native grouped tasks for open applications; click to activate/restore and drag to reorder.
 - DockBarX pinned launchers migrate in order to native Quick Launch, using desktop entries. Existing widgets, clock settings and tray hide/auto-hide preferences are retained. The old panel file is never overwritten.
 - A small upward arrow opens a separate grid of hidden notification icons. The popup uses LXQt's native StatusNotifierItem buttons, supports mouse activation, Enter/Space and Escape, and closes if a represented service disconnects.
 - User-configured Hide/Auto-hide lists determine which icons appear in overflow. The arrow appears only when there are hidden icons. Right-click the notification area and use its Configure dialog to choose icons; `profile.py prepare --hide TITLE` can explicitly supply hidden titles instead.
 
-**Pins and running tasks are currently separate widgets.** A fully unified pinned/running model, persistent running-task order, thumbnail/peek polish and the final glass-like appearance remain development work. This does not claim all Open-Shell functionality or an exact Windows 7 reproduction.
+**Pins and running tasks are currently separate widgets.** A fully unified pinned/running model, persistent running-task order, thumbnail/peek polish and further glass-like visual polish remain development work. This does not claim all Open-Shell functionality or an exact Windows 7 reproduction.
 
 ## Build separately
 
@@ -63,7 +64,7 @@ dbus-run-session -- python panel/check_x11.py --run --binary /absolute/path/to/l
 
 The X11 check refuses an already-owned notifier bus, uses private settings and synthetic tray/window fixtures, briefly moves the mouse, and restores its position. It does not instantiate the legacy XEmbed tray, reserve screen space, rearrange personal tasks, or close personal applications. A separate private D-Bus session isolates notification services; it is not a virtual display.
 
-Verified development build: compiled against the installed Qt 6.12 / LXQt libraries; 46 automated tests passed. Real X11 checks exercised arrow opening, mouse/keyboard activation, imported DBusMenu selection and fallback context dispatch, Escape, service-disconnect cleanup, native task restore and drag ordering between disposable windows. The tiny popup and arrow were visually inspected. This verifies synthetic applications, not every real tray app.
+Verified development build: compiled against the installed Qt 6.12 / LXQt libraries; 47 automated tests passed. Real X11 checks exercised arrow opening, mouse/keyboard activation, imported DBusMenu selection and fallback context dispatch, Escape, service-disconnect cleanup, native task restore and drag ordering between disposable windows. The themed bar, tiny popup and arrow were visually inspected. The Start menu and settings appearance were also inspected in offscreen renders. This verifies synthetic applications, not every real tray app.
 
 Still required: real-application DBusMenu breadth, attention/passive/auto-hide transitions, large icon counts, keyboard focus restoration, multi-monitor/DPI and panel edges, legacy XEmbed behavior, Wayland, sustained use, fresh login and clean installation. No production switch is implied by these checks.
 

@@ -288,6 +288,7 @@ class StartMenu(QWidget):
     def __init__(self):
         super().__init__(None, Qt.WindowType.Popup)
         self.setWindowTitle('DoroShell Start')
+        self.setObjectName('doroShellStart')
         self.exit_on_hide = False
         self.launching = False
         self.resize(680, 570)
@@ -324,7 +325,10 @@ class StartMenu(QWidget):
             header.addWidget(mascot)
         root.addLayout(header)
         body = QHBoxLayout()
-        left = QVBoxLayout()
+        apps_panel = QWidget()
+        apps_panel.setObjectName('applicationsPanel')
+        left = QVBoxLayout(apps_panel)
+        left.setContentsMargins(5, 5, 5, 5)
         self.category = QComboBox()
         self.category.addItems(['Home', 'All applications', 'Pinned', 'Recent'] + CATEGORIES)
         self.category.setAccessibleName('Application category')
@@ -340,12 +344,15 @@ class StartMenu(QWidget):
         self.search = QLineEdit()
         self.search.setPlaceholderText('Search applications…')
         self.search.setAccessibleName('Search applications')
-        left.addWidget(self.search)
         programs = QPushButton('All programs / Home')
         programs.clicked.connect(lambda: self.category.setCurrentText('Home' if self.category.currentText() == 'All applications' else 'All applications'))
         left.addWidget(programs)
-        body.addLayout(left, 3)
-        right = QVBoxLayout()
+        left.addWidget(self.search)
+        body.addWidget(apps_panel, 3)
+        places_panel = QWidget()
+        places_panel.setObjectName('placesPanel')
+        right = QVBoxLayout(places_panel)
+        right.setContentsMargins(10, 8, 10, 8)
         places = QLabel('YOUR FOLDERS')
         places.setObjectName('section')
         right.addWidget(places)
@@ -385,23 +392,32 @@ class StartMenu(QWidget):
         self.session_button.setToolTip('Open session options. Logging out returns to the login screen. Escape closes this menu.')
         self.session_button.clicked.connect(lambda: self.run_desktop('lxqt-leave.desktop'))
         right.addWidget(self.session_button)
-        body.addLayout(right, 2)
+        body.addWidget(places_panel, 2)
         root.addLayout(body)
         self.status = QLabel('Right-click an application to pin it • Tab to move between columns')
         self.status.setWordWrap(True)
         root.addWidget(self.status)
         self.setStyleSheet('''
-            QWidget { background: #f7d6e4; color: #3b1730; font-size: 14px; }
-            QLabel#heading { font-size: 27px; font-weight: 600; padding-bottom: 10px; }
-            QLabel#section { color: #743b59; font-size: 12px; padding: 8px; }
-            QListWidget, QLineEdit, QComboBox { background: #fff4f8; border: 1px solid #bc7898; border-radius: 5px; }
-            QListWidget::item { padding: 7px; }
-            QListWidget::item:selected { background: #eaa6c8; color: #3b1730; }
+            QWidget { color: #351329; font-size: 14px; background: transparent; }
+            QWidget#doroShellStart {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #f9d7eb,stop:0.42 #df82b6,stop:0.52 #cb649d,stop:1 #f0b2d2);
+                border: 2px solid #fff0f8; border-radius: 12px;
+            }
+            QLabel#heading { font-size: 27px; font-weight: 600; padding-bottom: 10px; color: #5b143d; }
+            QWidget#applicationsPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff9fd,stop:1 #f7d3e7); border: 1px solid #fff0f8; border-radius: 9px; }
+            QWidget#placesPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #a84e7c,stop:0.5 #803656,stop:1 #ab507b); border: 1px solid #f7d4e7; border-radius: 9px; }
+            QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton { color: #fff5fb; }
+            QLabel#section { font-size: 12px; padding: 8px; }
+            QListWidget, QLineEdit, QComboBox { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fff7fc,stop:1 #f8d7e9); border: 1px solid #b75d91; border-radius: 6px; }
+            QListWidget::item { padding: 7px; border: 1px solid transparent; }
+            QListWidget::item:selected { background: #edafd2; border: 1px solid #ad5086; color: #351329; border-radius: 4px; }
             QPushButton { text-align: left; padding: 12px; border: 1px solid transparent; border-radius: 5px; }
-            QPushButton#folderLink { padding: 8px; }
+            QPushButton#folderLink { padding: 6px 8px; }
             QPushButton#menuControl { padding: 5px 8px; }
-            QPushButton:hover, QPushButton:focus { background: #efb5d0; border: 1px solid #8f355f; }
+            QPushButton:hover, QPushButton:focus { background: #f3c6e0; border: 1px solid #914069; }
+            QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus { background: #642644; border: 1px solid #fff0f8; }
             QLineEdit { padding: 12px; } QComboBox { padding: 8px; }
+            QMenu { background: #fff2f9; color: #351329; border: 1px solid #aa4a7c; }
             QMenu::item:selected { background: #eaa6c8; }
         ''')
         self.search.textChanged.connect(self.refresh)
@@ -425,7 +441,7 @@ class StartMenu(QWidget):
                 continue
             path = link_path(link)
             self.folder_paths[link['label']] = path
-            button = QPushButton(QIcon.fromTheme(link.get('icon', 'folder')), link['label'])
+            button = QPushButton(link['label'])
             button.setObjectName('folderLink')
             button.setToolTip(path or 'Folder location is not configured')
             button.clicked.connect(lambda checked=False, p=path: self.open_folder(p))

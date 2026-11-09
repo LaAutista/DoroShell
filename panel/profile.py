@@ -62,7 +62,7 @@ def profile(original, home, launchers, hidden):
         cfg.setValue(notifier+'/alignment','Right');cfg.setValue(notifier+'/doroshellPopup',True)
         if hidden is not None:cfg.setValue(notifier+'/hideList',hidden)
         cfg.setValue('panel1/plugins',result)
-        for key,value in {'position':'Bottom','panelSize':40,'iconSize':28,'lineCount':1}.items():cfg.setValue('panel1/'+key,value)
+        for key,value in {'doroshellTheme':True,'position':'Bottom','panelSize':40,'iconSize':28,'lineCount':1}.items():cfg.setValue('panel1/'+key,value)
         cfg.sync()
         if cfg.status()!=QSettings.Status.NoError:raise RuntimeError('Profile serialization failed')
         return config_path.read_bytes()

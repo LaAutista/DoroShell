@@ -27,7 +27,7 @@ def main():
     actions=p.add_mutually_exclusive_group()
     actions.add_argument('--apply',action='store_true')
     actions.add_argument('--rollback',action='store_true')
-    p.add_argument('--live',action='store_true',help='Refresh panel/shortcuts and Openbox configuration without logging out')
+    p.add_argument('--live',action='store_true',help='Start edge snapping; panel/shortcut restarts are disabled')
     p.add_argument('--home',type=Path,default=Path.home())
     p.add_argument('--gif',type=Path,help='Local animated loading cursor; never copied into the repository')
     p.add_argument('--pink-pointer',action='store_true')

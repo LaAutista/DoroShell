@@ -25,10 +25,10 @@ python install.py menu                  # inspect planned file changes
 python install.py menu --apply          # install optional launcher
 ~/.local/bin/lxqt-comfort-menu           # try it before integration
 python integrate.py                    # inspect panel/shortcut changes
-python integrate.py --apply --live      # make it the Start button
+python integrate.py --apply             # only while LXQt components are stopped
 ```
 
-`--live` briefly stops and restarts only the panel and global shortcut service so they cannot overwrite the saved changes. It does not restart your session or close applications. Give the components a moment to become ready. When neither component is running, omit `--live`. The current implementation assumes standard `/usr/bin` component paths and default home-directory XDG layout.
+Live panel/shortcut restarts are disabled because launched applications can inherit their output pipes. Do not stop a running desktop to integrate this prototype. Use the [separate native panel next-login workflow](panel/README.md) when ready, or apply legacy integration while those LXQt components are not running. Configuration currently assumes default home-directory XDG layout.
 
 The legacy `lxqt-comfort` filenames are retained for compatibility with the prototype. DoroShell installs `start_menu.py`, `start.svg`, a launcher, and an application desktop entry under `~/.local`. Favorites live in `~/.config/lxqt-comfort/favorites.json`.
 
@@ -39,7 +39,7 @@ Installation records original managed contents and modes in `~/.local/state/lxqt
 Rollback integration **before** removing its launcher:
 
 ```sh
-python integrate.py --rollback --live
+python integrate.py --rollback           # only while LXQt components are stopped
 python install.py menu --rollback
 ```
 
@@ -106,7 +106,7 @@ python setup.py menu --icon /path/to/personal-doro.png
 python setup.py kate dolphin --rollback
 ```
 
-The refresh checkbox/`--live` refreshes only selected panel/shortcut components and Openbox snapping. One-desktop and app-theme changes are not forced into running applications. Installer configuration paths currently follow the default home-directory XDG layout; custom XDG layouts require adaptation. Menu preferences themselves respect `XDG_CONFIG_HOME`.
+The settings checkbox starts only the edge-snapping helper. Live panel and shortcut restarts are refused; the native panel supports a reversible next-login switch. One-desktop and app-theme changes are not forced into running applications. Installer configuration paths currently follow the default home-directory XDG layout; custom XDG layouts require adaptation. Menu preferences themselves respect `XDG_CONFIG_HOME`.
 
 
 ## Personal animated loading cursor
