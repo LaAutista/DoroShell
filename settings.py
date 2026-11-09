@@ -3,10 +3,10 @@
 from pathlib import Path
 import json
 import sys
-from PySide6.QtCore import QProcess
+from PySide6.QtCore import QProcess, Qt
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QCheckBox, QLineEdit, QFileDialog,
-    QPlainTextEdit, QFormLayout, QScrollArea, QStyledItemDelegate)
+    QPlainTextEdit, QFormLayout, QScrollArea, QStyledItemDelegate, QListWidget, QStackedWidget)
 
 ROOT = Path(__file__).resolve().parent
 OPTIONS = [
@@ -22,6 +22,14 @@ OPTIONS = [
     ('kate-dark', 'Kate: Breeze Dark'),
     ('dolphin-dark', 'Dolphin: Breeze Dark'),
     ('cursor', 'Animated loading cursor'),
+]
+
+PAGES = [
+    ('Start Menu', ('menu', 'panel')),
+    ('Taskbar & Windows', ('taskbar', 'taskbar-drag', 'snapping', 'single-desktop')),
+    ('Screenshots', ('screenshots',)),
+    ('Apps & Themes', ('kate', 'dolphin', 'kate-dark', 'dolphin-dark')),
+    ('Cursor', ('cursor',)),
 ]
 
 
@@ -40,7 +48,7 @@ class Settings(QWidget):
         self.home = home or Path.home()
         self.setWindowTitle('DoroShell settings')
         self.setObjectName('doroShellSettings')
-        self.resize(760, 760)
+        self.resize(880, 650)
         self.process = None
         self.queue = []
         layout = QVBoxLayout(self)
@@ -55,31 +63,57 @@ class Settings(QWidget):
                        'Packages are never installed here. One desktop takes effect at your next login.')
         intro.setWordWrap(True)
         layout.addWidget(intro)
-        area = QScrollArea(); area.setWidgetResizable(True)
-        content = QWidget(); form = QFormLayout(content)
+        body = QHBoxLayout()
+        self.categories = QListWidget()
+        self.categories.setAccessibleName('Settings categories')
+        self.categories.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.categories.setMinimumWidth(self.categories.fontMetrics().horizontalAdvance('Taskbar & Windows') + 30)
+        self.pages = QStackedWidget()
+        self.pages.setAccessibleName('Settings page')
+        body.addWidget(self.categories, 1); body.addWidget(self.pages, 3)
+        layout.addLayout(body, 3)
         self.choices = {}
-        for module, label in OPTIONS:
-            choice = QComboBox()
-            choice.setItemDelegate(QStyledItemDelegate(choice))
-            choice.setAccessibleName(label)
-            choice.addItem('Keep unchanged', 'keep')
-            if module == 'taskbar':
-                choice.addItem('Grouped application icons', 'icons')
-                choice.addItem('LXQt icons and labels', 'standard')
-            else:
-                choice.addItem('Enable / update', 'enable')
-            choice.addItem('Restore previous settings', 'restore')
-            choice.model().item(choice.count()-1).setEnabled(managed(self.home, module))
-            form.addRow(label, choice)
-            self.choices[module] = choice
-        self.icon = self.file_row(form, 'Personal Start image', 'Images (*.png *.jpg *.webp *.svg)')
-        self.gif = self.file_row(form, 'Spinning animation', 'Animations (*.gif *.webp)')
-        self.pink = QCheckBox('Pink ordinary pointer (off keeps the normal pointer)')
-        form.addRow(self.pink)
-        area.setWidget(content); layout.addWidget(area, 2)
-        self.live = QCheckBox('Start edge snapping now (desktop components stay running)')
+        forms = {}
+        for title, modules in PAGES:
+            self.categories.addItem(title)
+            area = QScrollArea(); area.setWidgetResizable(True)
+            content = QWidget(); form = QFormLayout(content)
+            form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+            form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+            heading = QLabel(title); heading.setStyleSheet('font-weight: 600; padding: 8px 0;')
+            form.addRow(heading)
+            for module in modules:
+                label = dict(OPTIONS)[module]
+                choice = QComboBox()
+                choice.setItemDelegate(QStyledItemDelegate(choice))
+                choice.setAccessibleName(label)
+                choice.addItem('Keep unchanged', 'keep')
+                if module == 'taskbar':
+                    choice.addItem('Grouped application icons', 'icons')
+                    choice.addItem('LXQt icons and labels', 'standard')
+                else:
+                    choice.addItem('Enable / update', 'enable')
+                choice.addItem('Restore previous settings', 'restore')
+                choice.model().item(choice.count()-1).setEnabled(managed(self.home, module))
+                caption = QLabel(label); caption.setWordWrap(True); caption.setBuddy(choice)
+                form.addRow(caption, choice)
+                self.choices[module] = choice
+            area.setWidget(content); self.pages.addWidget(area); forms[title] = form
+        self.icon = self.file_row(forms['Start Menu'], 'Personal Start image', 'Images (*.png *.jpg *.webp *.svg)')
+        self.gif = self.file_row(forms['Cursor'], 'Spinning animation', 'Animations (*.gif *.webp)')
+        self.pink = QCheckBox('Use pink ordinary pointer')
+        self.pink.setToolTip('Off keeps your normal inherited pointer; only the loading cursor changes.')
+        forms['Cursor'].addRow(self.pink)
+        self.live = QCheckBox('Start edge snapping now')
         self.live.setToolTip('Starts the snapping helper only. Panel and shortcut services are never restarted.')
-        layout.addWidget(self.live)
+        forms['Taskbar & Windows'].addRow(self.live)
+        self.categories.currentRowChanged.connect(self.pages.setCurrentIndex)
+        self.categories.setCurrentRow(0)
+        self.selection_summary = QLabel('No changes selected')
+        self.selection_summary.setAccessibleName('Selected changes across all pages')
+        layout.addWidget(self.selection_summary)
+        for choice in self.choices.values():
+            choice.currentIndexChanged.connect(self.update_summary)
         self.output = QPlainTextEdit(); self.output.setReadOnly(True)
         self.output.setAccessibleName('Change preview and results')
         layout.addWidget(self.output, 1)
@@ -99,11 +133,19 @@ class Settings(QWidget):
             QComboBox QAbstractItemView::item:disabled { color: #684b5c; }
             QComboBox QAbstractItemView::item:selected { background: #edafd2; color: #351329; }
             QLineEdit { placeholder-text-color: #795369; }
+            QListWidget { background: #fff4fa; border: 1px solid #b66a93; border-radius: 5px; }
+            QListWidget::item { padding: 10px 6px; color: #351329; }
+            QListWidget::item:selected { background: #edafd2; color: #351329; }
+            QListWidget::item:hover { background: #f3c6e0; color: #351329; }
             QPlainTextEdit { background: #fff9fc; border: 1px solid #b66a93; border-radius: 5px; }
             QPushButton { padding: 8px; background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #ffebf7,stop:0.49 #f3b6d7,stop:0.5 #e899c2,stop:1 #f5c4df); border: 1px solid #a75b83; border-radius: 5px; }
             QPushButton:hover, QPushButton:focus { border: 1px solid #672044; background: #ffd9ee; }
             QPushButton:disabled { color: #684b5c; background: #eadce4; }
         ''')
+
+    def update_summary(self):
+        count = sum(choice.currentData() != 'keep' for choice in self.choices.values())
+        self.selection_summary.setText('No changes selected' if not count else f'{count} selected change' + ('s' if count != 1 else '') + ' across all pages')
 
     def file_row(self, form, label, pattern):
         container = QWidget(); row = QHBoxLayout(container); row.setContentsMargins(0,0,0,0)

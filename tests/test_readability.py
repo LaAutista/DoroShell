@@ -61,7 +61,7 @@ class ReadabilityTests(unittest.TestCase):
                 self.check_pair(placeholder,backgrounds(rule(css,'QListWidget, QLineEdit, QComboBox')))
                 popup=rule(css,'QComboBox QAbstractItemView');self.check_pair(text_color(popup),backgrounds(popup))
                 css=settings.styleSheet();ink=text_color(rule(css,'QWidget'))
-                for selector in ('QWidget#doroShellSettings','QComboBox, QLineEdit','QPlainTextEdit','QPushButton','QPushButton:hover, QPushButton:focus'):
+                for selector in ('QWidget#doroShellSettings','QComboBox, QLineEdit','QPlainTextEdit','QPushButton','QPushButton:hover, QPushButton:focus','QListWidget','QListWidget::item:selected','QListWidget::item:hover'):
                     self.check_pair(ink,backgrounds(rule(css,selector)))
                 disabled=rule(css,'QPushButton:disabled');self.check_pair(text_color(disabled),backgrounds(disabled))
                 self.check_pair(text_color(rule(css,'QComboBox QAbstractItemView::item:disabled')),backgrounds(rule(css,'QComboBox QAbstractItemView')))

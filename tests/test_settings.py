@@ -35,6 +35,7 @@ class SettingsTests(unittest.TestCase):
             window = settings.Settings(Path(d))
             window.show(); self.app.processEvents()
             self.assertEqual(window.commands(True), [])
+            window.categories.setCurrentRow(3); self.app.processEvents()
             choice=window.choices['kate']; choice.setFocus()
             QTest.keyClick(choice, Qt.Key.Key_Down)
             commands=window.commands(True)
@@ -44,6 +45,27 @@ class SettingsTests(unittest.TestCase):
             window.choices['taskbar'].setCurrentIndex(2)
             self.assertIn('standard',window.commands(True)[0])
             self.assertFalse(window.live.isChecked())
+            window.close(); shiboken6.delete(window)
+
+    def test_category_pages_preserve_selections_and_cover_every_module(self):
+        with tempfile.TemporaryDirectory() as d:
+            window = settings.Settings(Path(d))
+            window.show(); self.app.processEvents()
+            self.assertEqual(set(window.choices), {module for module, _ in settings.OPTIONS})
+            for index, (_, modules_on_page) in enumerate(settings.PAGES):
+                window.categories.setCurrentRow(index); self.app.processEvents()
+                self.assertEqual(window.pages.currentIndex(), index)
+                for module, choice in window.choices.items():
+                    self.assertEqual(choice.isVisible(), module in modules_on_page)
+            self.assertEqual(window.commands(True), [])
+            window.choices['menu'].setCurrentIndex(1)
+            window.choices['kate'].setCurrentIndex(1)
+            window.categories.setCurrentRow(0)
+            self.assertEqual([command[1] for command in window.commands(True)], ['menu', 'kate'])
+            self.assertEqual(window.selection_summary.text(), '2 selected changes across all pages')
+            window.choices['menu'].setCurrentIndex(0)
+            window.choices['kate'].setCurrentIndex(0)
+            self.assertEqual(window.selection_summary.text(), 'No changes selected')
             window.close(); shiboken6.delete(window)
 
     def test_defaults_and_dark_repeat_restore_preserve_unrelated_settings(self):

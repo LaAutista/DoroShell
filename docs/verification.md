@@ -2,11 +2,15 @@
 
 ## Current checkpoint
 
-The current suite passes **58 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
+The current suite passes **59 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
 
 The native panel candidate includes the Show Desktop edge target from `f2c66ae`; a separate X11 panel rendered it at 12 pixels on the far right. A later authenticated private-X11/Openbox check verified actual mouse-click show/restore of two disposable windows in both horizontal and vertical profiles. The edge target measured 12 pixels in both orientations. Live orientation changes, pre-minimized windows and other window managers remain outside that check. Show/restore was never activated on personal windows. The personal panel was not replaced or restarted. Fresh-login, clean-install and multi-monitor/Wayland acceptance remain outstanding. The [roadmap](roadmap.md) and [native panel scope](../panel/README.md) describe remaining work.
 
 Personal Doro image and animated busy cursor were installed in a later increment; the early missing-artwork notes below are historical. Likewise, the separate native panel now provides unified pinned/running tasks, beyond the older taskbar module described below.
+
+### Categorized Settings
+
+Settings now has five sidebar pages with shared Preview/Apply controls and a pending-change count across pages. Defaults remain Keep unchanged. All five pages were rendered and visually inspected at 16-point system text against a dark palette; normal, hover and selected navigation colors pass the contrast regression checks. A separate private-X11 check exercised real mouse/keyboard navigation, retained selections, preview without writes, actual temporary-home Kate association apply, and exact restore of the original MIME configuration. No personal defaults were changed.
 
 ### Production menu-capture clipboard path
 

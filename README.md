@@ -79,13 +79,13 @@ The working-tree menu now includes the pink theme, Home / All programs navigatio
 
 The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The [roadmap](docs/roadmap.md) separates implemented features from remaining design and acceptance work.
 
-Current validation: **58 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
+Current validation: **59 automated tests pass** using offscreen Qt and temporary homes. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
 
 Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
 
 ## DoroShell settings
 
-Run `python setup.py --gui` from the checkout, or **DoroShell Settings** after installing/updating the menu. It is also available under Start → Menu options. Every option begins at **Keep unchanged**. Choose the components you want, preview, then apply. Existing rollback manifests enable **Restore previous settings**. Modules apply sequentially; if one fails, the log identifies it and earlier successful modules can be restored individually.
+Run `python setup.py --gui` from the checkout, or **DoroShell Settings** after installing/updating the menu. It is also available under Start → Menu options. Settings uses five category pages: **Start Menu**, **Taskbar & Windows**, **Screenshots**, **Apps & Themes**, and **Cursor**. Selections stay selected when changing pages, and a summary shows the total pending changes across all pages. Every option begins at **Keep unchanged**. Choose the components you want, preview, then apply. Existing rollback manifests enable **Restore previous settings**. Modules apply sequentially; if one fails, the log identifies it and earlier successful modules can be restored individually.
 
 - **Legacy taskbar module:** grouped application icons or LXQt icons with labels. This configures the installed LXQt taskbar: click an open app's icon to activate/restore it; grouped windows use LXQt's group UI. Launch closed apps from Start or existing Quick Launch icons. Existing Quick Launch entries remain; this is not Plasma's unified pinned-launcher/task-manager plugin. The explicit option can detach a known DockBarX entry while retaining its configuration for rollback. For unified pinned/running buttons and the hidden-tray popup, use the separate [native panel candidate](panel/README.md); it is not activated by this legacy option.
 - **Snapping:** Openbox/X11 mouse-drag left/right halves, plus Super+Left/Right and Super+Down to restore. Existing conflicting bindings are refused. Enable the refresh checkbox to start the helper now; otherwise it starts at the next login.
@@ -253,7 +253,7 @@ Body text inherits the system font size. Pink surfaces use dark plum text, the d
 
 Behavior follows the [original Windows 7 taskbar guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/winenv-taskbar) and [Classic/Open-Shell customization reference](https://www.classicshell.net/faq/), while the supplied concept sets the pink/Doro appearance. Native Windows-only integrations remain listed separately in the parity plan.
 
-Current increment: 58 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. A separate private-X11 test then exercised the production clipboard path: successful capture, mid-drag cancellation retaining the image, actual Writer/Draw Paste with matching pixels, and clipboard-owner exit after replacement. No login or clean-install test is implied.
+Current increment: 59 automated tests passed. Separate native pin-editor input checks passed offscreen and on X11. A real Print/region/Enter/Escape check verified open-menu pixels and no selected-app launch, using temporary PNG output and confirming the existing clipboard was unchanged. A separate private-X11 test then exercised the production clipboard path: successful capture, mid-drag cancellation retaining the image, actual Writer/Draw Paste with matching pixels, and clipboard-owner exit after replacement. No login or clean-install test is implied.
 
 
 ### Isolated clipboard-paste acceptance
@@ -265,3 +265,12 @@ python tests/check_menu_clipboard_x11.py --run --xvfb /path/to/Xvfb
 Requires Xvfb, xauth, Python Xlib/PySide6, and LibreOffice with Python UNO. The test creates an authenticated private X11 display with TCP disabled, a private D-Bus session, temporary homes and separate LibreOffice profiles. It never connects to the personal display or clipboard. It runs the production menu-capture helper without the file-output test sink, checks cancellation before selection and during a later drag, then pastes the completed 120×90 image into Writer and Draw and checks every exported pixel. Finally it replaces the private clipboard and verifies the helper releases ownership and exits.
 
 The test display is an isolated acceptance environment, not a clean CachyOS installation. No system package installation is performed by the test.
+
+
+### Categorized Settings acceptance
+
+```sh
+python tests/check_settings_pages_x11.py --run --xvfb /path/to/Xvfb
+```
+
+On the same private-display harness, real pointer and keyboard events exercised category navigation and retained selections. Preview left the temporary MIME configuration unchanged; Apply created the selected module's backup and association; Restore returned the original configuration exactly. The personal home and defaults were not changed. Category normal/selected/hover colors pass contrast checks, and all five pages were visually inspected with 16-point system text and a dark palette.
