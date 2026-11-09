@@ -55,3 +55,10 @@ class TaskbarDragTests(unittest.TestCase):
             recover.assert_not_called()
             button.signals['drag-end'](button, NS(get_selected_action=lambda: 4))
             recover.assert_called_once()
+
+    def test_live_refresh_never_stops_applet(self):
+        import modules
+        with patch('os.kill') as kill:
+            with self.assertRaisesRegex(RuntimeError, 'EPIPE'):
+                modules.refresh_dockbarx()
+            kill.assert_not_called()

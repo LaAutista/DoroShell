@@ -210,13 +210,13 @@ Follow upstream's runtime requirements and Settings → Compatibility instructio
 With an existing DockBarX LXQt plugin, enable **DockBarX icon dragging** in DoroShell settings, or run:
 
 ```sh
-python modules.py taskbar-drag --apply --live
+python modules.py taskbar-drag --apply
 ```
 
 Hold the left mouse button on an application icon and drag it before or after another icon. Escape cancels. Pinned launcher order survives applet restarts; unpinned running applications retain their order only for the current session. This option keeps your current icons and panel layout.
 
-The optional compatibility hook recovers internal drops lost at the Qt/GTK embedding boundary. It installs two managed files in your Python user-site directory and activates only for `/usr/share/dockbarx/lxqt-panel-applet.py`. System package files are untouched. Reapply after a Python minor-version upgrade. Existing files are backed up; conflicting edits are refused. `--live` refreshes only the DockBarX plugin child, leaving the panel and applications running. Without it, activation waits until the applet next starts.
+The optional compatibility hook recovers internal drops lost at the Qt/GTK embedding boundary. It installs two managed files in your Python user-site directory and activates only for `/usr/share/dockbarx/lxqt-panel-applet.py`. System package files are untouched. Reapply after a Python minor-version upgrade. Existing files are backed up; conflicting edits are refused. Activation waits until your next normal login. Live applet refresh is disabled because applications can inherit its output pipes and fail with EPIPE when the applet exits.
 
-Undo with `python modules.py taskbar-drag --rollback --live`. This removes the hook; it does not undo icon arrangements you deliberately saved while using it.
+Undo with `python modules.py taskbar-drag --rollback`. This removes the hook; it does not undo icon arrangements you deliberately saved while using it.
 
 The opt-in X11 check is `dbus-run-session -- python tests/check_taskbar_drag_x11.py --run` (requires python-xlib). It uses synthetic launchers and a temporary home, moves the mouse, and opens/closes only its own test panel.

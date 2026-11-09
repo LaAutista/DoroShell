@@ -45,3 +45,8 @@ No screenshots from the personal desktop or test captures are committed. Source 
 A real X11 test reproduced lost drops in the installed DockBarX LXQt embedding. With the opt-in compatibility hook, left-button dragging reordered three synthetic pinned launchers, Escape left their order unchanged, and restarting the isolated test panel visually restored the saved order. The test used a temporary home and private D-Bus session; personal launchers were not rearranged. Regression tests cover native successful moves, horizontal/vertical placement, outside drops and Escape's cleared drag action. This is applet-restart persistence, not a fresh-login test.
 
 The follow-up suite passed 39 automated tests. The hook was then enabled on the personal taskbar: the DockBarX child restarted under the same LXQt panel process, launcher order and panel configuration remained byte-for-byte unchanged, and all existing X11 client windows remained present. A private launcher-order backup was saved before activation. Personal icons were not rearranged during testing.
+
+
+### Correction: live applet refresh is unsafe
+
+After activation, Discord reported `write EPIPE` from console logging. Read-only process inspection found its stdout/stderr pipes had writers but no reader; other running applications shared those pipes. The applet refresh is the likely cause. Checking that windows survived did not establish application health. Live DockBarX refresh is now disabled unconditionally, avoiding both inherited-pipe failures and a check-versus-restart race. Applying or restoring the hook saves files for the next normal login. No applications were closed to test recovery. The existing drag hook remains active; Discord recovery and future-login activation remain unverified.

@@ -10,7 +10,6 @@ import shlex
 import subprocess
 import tempfile
 import sysconfig
-import signal
 from install import safe, set_ini
 import xml.etree.ElementTree as ET
 
@@ -268,27 +267,11 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons"):
 
 
 def refresh_dockbarx():
-    """Reload only the plugin child; LXQt's keeper respawns it in place."""
-    pids = []
-    for process in Path('/proc').iterdir():
-        if not process.name.isdigit():
-            continue
-        try:
-            if process.stat().st_uid != os.getuid():
-                continue
-            argv = (process/'cmdline').read_bytes().split(b'\0')
-            if len(argv)<2 or argv[1] != b'/usr/share/dockbarx/lxqt-panel-applet.py':
-                continue
-            # Only the child of the real user's LXQt panel, never arbitrary Python.
-            parent = next(line.split()[1] for line in (process/'status').read_text().splitlines() if line.startswith('PPid:'))
-            if (Path('/proc')/parent/'comm').read_text().strip()=='lxqt-panel':
-                pids.append(int(process.name))
-        except (FileNotFoundError, ProcessLookupError, PermissionError):
-            continue
-    if len(pids) != 1:
-        raise RuntimeError('Expected one DockBarX applet owned by LXQt; files saved, refresh at next login')
-    os.kill(pids[0], signal.SIGTERM)
-    print('DockBarX applet refreshed; panel and application windows retained.')
+    """Never sever output pipes inherited by already-running applications."""
+    raise RuntimeError(
+        'Files saved. DockBarX live refresh is disabled: applications can inherit '
+        'its output pipes and fail with EPIPE when it exits. Changes take effect '
+        'at your next normal login; no running process was stopped.')
 
 
 if __name__=='__main__':
