@@ -64,6 +64,17 @@ def profile(original, home, launchers, hidden):
             notifier='doroshellNotifier';result.append(notifier);cfg.setValue(notifier+'/type','statusnotifier')
         cfg.setValue(notifier+'/alignment','Right');cfg.setValue(notifier+'/doroshellPopup',True)
         if hidden is not None:cfg.setValue(notifier+'/hideList',hidden)
+        desktop=next((name for name in result if cfg.value(name+'/type',name)=='showdesktop'),None)
+        if desktop is None:
+            desktop='doroshellShowDesktop'
+            if cfg.contains(desktop+'/type') and cfg.value(desktop+'/type')!='showdesktop':
+                raise ValueError('Panel widget name conflict: '+desktop)
+            cfg.setValue(desktop+'/type','showdesktop')
+        else:
+            result.remove(desktop)
+        result.append(desktop)
+        cfg.setValue(desktop+'/alignment','Right')
+        cfg.setValue(desktop+'/doroshellEdge',True)
         cfg.setValue('panel1/plugins',result)
         for key,value in {'doroshellTheme':True,'position':'Bottom','panelSize':40,'iconSize':28,'lineCount':1}.items():cfg.setValue('panel1/'+key,value)
         cfg.sync()

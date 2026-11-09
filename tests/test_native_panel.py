@@ -20,7 +20,7 @@ class NativePanelTests(unittest.TestCase):
             home,panel,launcher=self.fixture(tmp);original=panel.read_bytes()
             result=profile.profile(original.decode(),home,[str(launcher)],None)
             out=home/'candidate.conf';out.write_bytes(result);cfg=QSettings(str(out),QSettings.Format.IniFormat)
-            self.assertEqual(cfg.value('panel1/plugins'),['comfortstart','doroshellTasks','statusnotifier','worldclock'])
+            self.assertEqual(cfg.value('panel1/plugins'),['comfortstart','doroshellTasks','statusnotifier','worldclock','doroshellShowDesktop'])
             self.assertEqual(cfg.value('worldclock/customFormat'),'HH:mm')
             self.assertEqual(cfg.value('statusnotifier/hideList'),'Old hidden icon')
             self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'),str(launcher))
@@ -70,3 +70,29 @@ class NativePanelTests(unittest.TestCase):
             other=home/'other.desktop';other.write_text(launcher.read_text()+'StartupWMClass=test\n')
             with self.assertRaisesRegex(ValueError,'Ambiguous'):
                 profile.profile(panel.read_text(),home,[str(launcher),str(other)],None)
+
+    def test_show_desktop_reuses_existing_widget_at_far_right(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home,panel,launcher=self.fixture(tmp)
+            cfg=QSettings(str(panel),QSettings.Format.IniFormat)
+            cfg.setValue('panel1/plugins',['comfortstart','oldDesktop','dockbarx','statusnotifier','worldclock'])
+            cfg.setValue('oldDesktop/type','showdesktop');cfg.setValue('oldDesktop/customValue','keep');cfg.sync()
+            original=panel.read_bytes()
+            out=home/'candidate.conf';out.write_bytes(profile.profile(original.decode(),home,[str(launcher)],None))
+            result=QSettings(str(out),QSettings.Format.IniFormat)
+            self.assertEqual(result.value('panel1/plugins')[-1],'oldDesktop')
+            self.assertEqual(result.value('oldDesktop/customValue'),'keep')
+            self.assertEqual(result.value('oldDesktop/alignment'),'Right')
+            self.assertTrue(result.value('oldDesktop/doroshellEdge',type=bool))
+            self.assertNotIn('doroshellShowDesktop',result.value('panel1/plugins'))
+            self.assertEqual(panel.read_bytes(),original)
+
+    def test_show_desktop_name_conflict_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home,panel,launcher=self.fixture(tmp)
+            cfg=QSettings(str(panel),QSettings.Format.IniFormat)
+            cfg.setValue('doroshellShowDesktop/type','customcommand');cfg.sync()
+            original=panel.read_bytes()
+            with self.assertRaisesRegex(ValueError,'widget name conflict'):
+                profile.profile(original.decode(),home,[str(launcher)],None)
+            self.assertEqual(panel.read_bytes(),original)

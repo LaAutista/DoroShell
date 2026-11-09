@@ -1,8 +1,8 @@
 diff --git a/panel/lxqtpanel.cpp b/panel/lxqtpanel.cpp
-index 317b01b..cd72348 100644
+index 317b01b..db83032 100644
 --- a/panel/lxqtpanel.cpp
 +++ b/panel/lxqtpanel.cpp
-@@ -1165,6 +1165,20 @@ void LXQtPanel::updateStyleSheet()
+@@ -1165,6 +1165,22 @@ void LXQtPanel::updateStyleSheet()
      if (QFileInfo::exists(mBackgroundImage))
          sheet << QString(QStringLiteral("LXQtPanel #BackgroundWidget { background-image: url('") + mBackgroundImage + QStringLiteral("');}"));
 
@@ -17,6 +17,8 @@ index 317b01b..cd72348 100644
 +        sheet << QStringLiteral("LXQtTaskButton:checked { background: rgba(255,230,247,160); border: 1px solid #fff0fa; }");
 +        sheet << QStringLiteral("QToolButton#doroshellTrayArrow { color: #351329; background: transparent; border: 1px solid transparent; border-radius: 4px; }");
 +        sheet << QStringLiteral("QToolButton#doroshellTrayArrow:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("QToolButton[doroshellEdge=\"true\"] { background: #e9a4cd; border: 1px solid #803656; border-radius: 2px; }");
++        sheet << QStringLiteral("QToolButton[doroshellEdge=\"true\"]:hover, QToolButton[doroshellEdge=\"true\"]:focus { background: #fff0f8; border: 1px solid #5b143d; }");
 +        sheet << QStringLiteral("LXQtGroupPopup { background: #fff0f8; border: 1px solid #a84e7c; }");
 +        sheet << QStringLiteral("QFrame#doroshellTrayPopup { background: #fff0f8; border: 1px solid #a84e7c; border-radius: 5px; }");
 +    }
@@ -53,6 +55,65 @@ index a1a3785..23dbef2 100644
 
      QStringList allKeys() const;
      QStringList childGroups() const;
+diff --git a/plugin-showdesktop/showdesktop.cpp b/plugin-showdesktop/showdesktop.cpp
+index 309cdb6..c4ab2fb 100644
+--- a/plugin-showdesktop/showdesktop.cpp
++++ b/plugin-showdesktop/showdesktop.cpp
+@@ -26,6 +26,7 @@
+  * END_COMMON_COPYRIGHT_HEADER */
+
+ #include <QAction>
++#include <QStyle>
+ #include <QDragEnterEvent>
+ #include <QDragLeaveEvent>
+ #include <lxqt-globalkeys.h>
+@@ -62,6 +63,32 @@ ShowDesktop::ShowDesktop(const ILXQtPanelPluginStartupInfo &startupInfo) :
+     mButton.setAutoRaise(true);
+     mButton.installEventFilter(this);
+     mButton.setAcceptDrops(true);
++    mButton.setAccessibleName(tr("Show Desktop"));
++    settingsChanged();
++}
++
++void ShowDesktop::settingsChanged()
++{
++    const bool edge = settings()->value(QStringLiteral("doroshellEdge"), false).toBool();
++    mButton.setProperty("doroshellEdge", edge);
++    mButton.setIcon(edge ? QIcon() : XdgIcon::fromTheme(QStringLiteral("user-desktop")));
++    mButton.setText(edge ? QString() : tr("Show Desktop"));
++    mButton.setToolTip(tr("Show Desktop"));
++    mButton.style()->unpolish(&mButton);
++    mButton.style()->polish(&mButton);
++    realign();
++}
++
++void ShowDesktop::realign()
++{
++    mButton.setMinimumSize(0, 0);
++    mButton.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
++    if (settings()->value(QStringLiteral("doroshellEdge"), false).toBool())
++    {
++        const int extent = qBound(8, settings()->value(QStringLiteral("doroshellEdgeWidth"), 12).toInt(), 32);
++        if (panel()->isHorizontal()) mButton.setFixedWidth(extent);
++        else mButton.setFixedHeight(extent);
++    }
+ }
+
+ bool ShowDesktop::eventFilter(QObject * watched, QEvent * event)
+diff --git a/plugin-showdesktop/showdesktop.h b/plugin-showdesktop/showdesktop.h
+index f6bc826..0d8e889 100644
+--- a/plugin-showdesktop/showdesktop.h
++++ b/plugin-showdesktop/showdesktop.h
+@@ -46,6 +46,9 @@ class ShowDesktop :  public QObject, public ILXQtPanelPlugin
+ public:
+     ShowDesktop(const ILXQtPanelPluginStartupInfo &startupInfo);
+
++    void settingsChanged() override;
++    void realign() override;
++
+     virtual QWidget *widget() override { return &mButton; }
+     virtual QString themeId() const override { return QStringLiteral("ShowDesktop"); }
+
 diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
 index 6410519..52da3a2 100644
 --- a/plugin-statusnotifier/statusnotifierwidget.cpp
