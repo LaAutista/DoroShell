@@ -231,4 +231,4 @@ Start now exposes application-provided tasks in the application right-click menu
 
 ## DoroShell Panel development
 
-A separately built native LXQt Panel prototype now provides a hidden-tray arrow and popup, native grouped tasks and a reversible next-login profile migration from DockBarX. The current desktop is not switched automatically. See [build, verification, limitations and rollback](panel/README.md). Unified pinned/running application icons and the final Windows 7 visual treatment remain unfinished.
+A separately built native LXQt Panel prototype now provides a hidden-tray arrow and popup, native grouped tasks and a reversible next-login profile migration from DockBarX. The current desktop is not switched automatically. Its unified pinned/running icons launch through GIO, reuse matching application buttons and save dragged pin order across panel restarts. The pink glass-like styling follows the supplied concept. See [build, verification, limitations and rollback](panel/README.md). A graphical pin editor, broader application matching and final Windows 7 visual polish remain unfinished.

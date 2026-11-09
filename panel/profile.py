@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 from PySide6.QtCore import QSettings
+from gi.repository import Gio
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from install import safe
 from modules import atomic
@@ -37,23 +38,25 @@ def profile(original, home, launchers, hidden):
             kind=cfg.value(name+'/type',name)
             if kind in ('dockbarx','taskbar'):
                 if not inserted:
-                    result.extend(['doroshellPins','doroshellTasks']);inserted=True
+                    result.append('doroshellTasks');inserted=True
             else:result.append(name)
         if not inserted:
-            result[1:1]=['doroshellPins','doroshellTasks']
-        for name,kind in [('doroshellPins','quicklaunch'),('doroshellTasks','taskbar')]:
-            # Do not silently overwrite unrelated widgets with our identifiers.
-            if cfg.contains(name+'/type') and cfg.value(name+'/type')!=kind:
-                raise ValueError('Panel widget name conflict: '+name)
-            cfg.setValue(name+'/type',kind)
-        cfg.setValue('doroshellPins/alignment','Left')
-        cfg.beginWriteArray('doroshellPins/apps',len(launchers))
-        for i,path in enumerate(launchers):
+            result[1:1]=['doroshellTasks']
+        if cfg.contains('doroshellTasks/type') and cfg.value('doroshellTasks/type')!='taskbar':
+            raise ValueError('Panel widget name conflict: doroshellTasks')
+        cfg.setValue('doroshellTasks/type','taskbar')
+        pins=[];identities=set()
+        for path in launchers:
             path=Path(path)
             if not path.is_absolute() or path.suffix!='.desktop' or not path.is_file():
                 raise ValueError('Unavailable desktop launcher: '+str(path))
-            cfg.setArrayIndex(i);cfg.setValue('desktop',str(path))
-        cfg.endArray()
+            if str(path) in pins:continue
+            app=Gio.DesktopAppInfo.new_from_filename(str(path))
+            if app is None:raise ValueError('Invalid application desktop entry: '+str(path))
+            identity=(app.get_startup_wm_class() or path.stem).casefold()
+            if identity in identities:raise ValueError('Ambiguous pinned application identity: '+identity)
+            identities.add(identity);pins.append(str(path))
+        cfg.setValue('doroshellTasks/doroshellPinned',pins)
         for key,value in {'buttonStyle':'Icon','buttonWidth':48,'groupingEnabled':True,'iconByClass':True,'showOnlyOneDesktopTasks':False}.items():
             cfg.setValue('doroshellTasks/'+key,value)
         notifier=next((n for n in result if cfg.value(n+'/type',n)=='statusnotifier'),None)

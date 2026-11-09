@@ -8,6 +8,7 @@ parser.add_argument('--fallback-context',action='store_true')
 args=parser.parse_args()
 if not args.run:parser.error('Pass --run to allow disposable windows and mouse/keyboard simulation')
 from pathlib import Path
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication,QWidget
 from PySide6.QtGui import QIcon,QPixmap,QColor
 from Xlib import display,X,XK
@@ -74,6 +75,12 @@ with tempfile.TemporaryDirectory(prefix='doroshell-native-tray-') as tmp:
  testwindow=QWidget();testwindow.setWindowTitle('DoroShell disposable task');testwindow.resize(240,160)
  taskpix=QPixmap(28,28);taskpix.fill(QColor('#01e3c7'));testwindow.setWindowIcon(QIcon(taskpix));testwindow.show();d.create_resource_object('window',int(testwindow.winId())).set_wm_class('DoroOne','DoroOne');d.sync();wait(.3);testwindow.showMinimized()
  second=QWidget();second.setWindowTitle('DoroShell disposable second task');second.resize(240,160);secondpix=QPixmap(28,28);secondpix.fill(QColor('#e3c701'));second.setWindowIcon(QIcon(secondpix));second.show();d.create_resource_object('window',int(second.winId())).set_wm_class('DoroTwo','DoroTwo');d.sync();wait(.3);second.showMinimized()
+ pins=[]
+ for identity,pix in [('DoroOne',taskpix),('DoroTwo',secondpix)]:
+  icon=home/(identity+'.png');pix.save(str(icon))
+  desktop=home/(identity+'.desktop');desktop.write_text('[Desktop Entry]\nType=Application\nName='+identity+'\nStartupWMClass='+identity+'\nIcon='+str(icon)+'\nExec=/usr/bin/touch '+str(home/(identity+'.launched'))+'\n')
+  pins.append(str(desktop))
+ cfg=QSettings(str(conf),QSettings.Format.IniFormat);cfg.setValue('taskbar/doroshellPinned',pins);cfg.sync();del cfg
  panel=subprocess.Popen([args.binary,'--config',str(conf)],env=env,stdout=subprocess.DEVNULL,stderr=open(home/'panel.log','w'))
  item=None
  try:
@@ -120,12 +127,47 @@ with tempfile.TemporaryDirectory(prefix='doroshell-native-tray-') as tmp:
    xtest.fake_input(d,X.MotionNotify,x=pos.x+round(ax+(target-ax)*step/15),y=pos.y+ay);d.sync();wait(.05)
   xtest.fake_input(d,X.ButtonRelease,1);d.sync();wait(.5)
   assert (task_center('#01e3c7')[0]<task_center('#e3c701')[0])!=before,'Native task reorder failed'
+  cfg=QSettings(str(conf),QSettings.Format.IniFormat)
+  assert cfg.value('taskbar/doroshellPinned')==list(reversed(pins)), 'Pinned drag order was not saved'
+  del cfg
+  # Closed applications retain one launcher in the same position; GIO launches its desktop entry.
+  testwindow.close();wait(.5)
+  cx,cy=task_center('#01e3c7')
+  xtest.fake_input(d,X.MotionNotify,x=pos.x+cx,y=pos.y+cy);xtest.fake_input(d,X.ButtonPress,1);xtest.fake_input(d,X.ButtonRelease,1);d.sync();wait(.5)
+  assert (home/'DoroOne.launched').exists(), 'Closed pinned icon did not launch through GIO'
+  testwindow.show();d.create_resource_object('window',int(testwindow.winId())).set_wm_class('DoroOne','DoroOne');d.sync();wait(.5)
+  im=app.primaryScreen().grabWindow(p.id).toImage()
+  xs={x for y in range(im.height()) for x in range(im.width()) if im.pixelColor(x,y)==QColor('#01e3c7')}
+  assert xs and max(xs)-min(xs)<40, 'Reopened pinned app produced duplicate icons'
   # Reopen, then unregister the disposable icon while its popup is visible.
   xtest.fake_input(d,X.MotionNotify,x=pos.x+g.width-12,y=pos.y+g.height//2);xtest.fake_input(d,X.ButtonPress,1);xtest.fake_input(d,X.ButtonRelease,1);d.sync();wait(.5)
   assert [w for w in windows(panel.pid) if w.get_wm_name()=='Hidden icons']
   bus.release_name('org.kde.StatusNotifierItem.DoroTest');wait(.5)
   assert not [w for w in windows(panel.pid) if w.get_wm_name()=='Hidden icons']
-  print('PASS native popup mouse/keyboard/context/Escape; disconnect cleanup; task restore and drag reorder',flush=True)
+  # Only this isolated panel is restarted; saved pin ordering must survive.
+  testwindow.close();second.close();wait(.5)
+  panel.terminate();panel.wait(timeout=5)
+  panel=subprocess.Popen([args.binary,'--config',str(conf)],env=env,stdout=subprocess.DEVNULL,stderr=open(home/'panel-restart.log','w'))
+  wait(2)
+  p=next(w for w in windows(panel.pid) if w.get_geometry().width>100 and w.get_geometry().height<100)
+  pos=root.translate_coords(p,0,0);g=p.get_geometry()
+  assert task_center('#01e3c7')[0]>task_center('#e3c701')[0], 'Pin order did not survive panel restart'
+  # Closed-pin scrolling and middle click must not address a nonexistent window.
+  cx,cy=task_center('#01e3c7')
+  xtest.fake_input(d,X.MotionNotify,x=pos.x+cx,y=pos.y+cy)
+  for button in (4,4,4,2):
+   xtest.fake_input(d,X.ButtonPress,button);xtest.fake_input(d,X.ButtonRelease,button)
+  d.sync();wait(.3)
+  assert panel.poll() is None and task_center('#01e3c7'), 'Closed-pin input broke panel'
+  xtest.fake_input(d,X.ButtonPress,1);xtest.fake_input(d,X.ButtonRelease,1);d.sync();wait(.3)
+  marker=home/'DoroOne.launched';marker.unlink()
+  xtest.fake_input(d,X.ButtonPress,3);xtest.fake_input(d,X.ButtonRelease,3);d.sync();wait(.3)
+  for name in ('Down','Return'):
+   key=d.keysym_to_keycode(XK.string_to_keysym(name));xtest.fake_input(d,X.KeyPress,key);xtest.fake_input(d,X.KeyRelease,key)
+  d.sync();wait(.3)
+  assert marker.exists(), 'Keyboard did not activate pinned Open context action'
+
+  print('PASS native popup mouse/keyboard/context/Escape; disconnect cleanup; task restore, unified pin launch/reopen, closed-pin input and restart-persistent drag order',flush=True)
  finally:
   testwindow.close();second.close()
   if item is not None:item.remove_from_connection()

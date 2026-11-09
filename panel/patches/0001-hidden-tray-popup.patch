@@ -1,8 +1,8 @@
 diff --git a/panel/lxqtpanel.cpp b/panel/lxqtpanel.cpp
-index 317b01b..fc2ade3 100644
+index 317b01b..5226a8f 100644
 --- a/panel/lxqtpanel.cpp
 +++ b/panel/lxqtpanel.cpp
-@@ -1165,6 +1165,18 @@ void LXQtPanel::updateStyleSheet()
+@@ -1165,6 +1165,19 @@ void LXQtPanel::updateStyleSheet()
      if (QFileInfo::exists(mBackgroundImage))
          sheet << QString(QStringLiteral("LXQtPanel #BackgroundWidget { background-image: url('") + mBackgroundImage + QStringLiteral("');}"));
 
@@ -13,6 +13,7 @@ index 317b01b..fc2ade3 100644
 +        sheet << QStringLiteral("Plugin * { color: #fff5fb; }");
 +        sheet << QStringLiteral("LXQtTaskButton, QuickLaunchButton { background: transparent; border: 1px solid transparent; border-radius: 5px; margin: 2px; }");
 +        sheet << QStringLiteral("LXQtTaskButton:hover, QuickLaunchButton:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("LXQtTaskButton[doroshellRunning=\"true\"] { border-bottom: 2px solid #fff0fa; }");
 +        sheet << QStringLiteral("LXQtTaskButton:checked { background: rgba(255,230,247,160); border: 1px solid #fff0fa; }");
 +        sheet << QStringLiteral("QToolButton#doroshellTrayArrow { color: white; background: transparent; border: 1px solid transparent; border-radius: 4px; }");
 +        sheet << QStringLiteral("QToolButton#doroshellTrayArrow:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
@@ -201,3 +202,423 @@ index 379722e..069de31 100644
      ILXQtPanelPlugin *mPlugin;
 
      QTimer mHideTimer;
+diff --git a/plugin-taskbar/CMakeLists.txt b/plugin-taskbar/CMakeLists.txt
+index 1d627f2..d582309 100644
+--- a/plugin-taskbar/CMakeLists.txt
++++ b/plugin-taskbar/CMakeLists.txt
+@@ -1,4 +1,6 @@
+ set(PLUGIN "taskbar")
++find_package(PkgConfig REQUIRED)
++pkg_check_modules(DORO_GIO REQUIRED IMPORTED_TARGET gio-unix-2.0)
+
+ set(HEADERS
+     lxqttaskbar.h
+@@ -23,6 +25,7 @@ set(UIS
+ )
+
+ set(LIBRARIES
++    PkgConfig::DORO_GIO
+     lxqt
+     lxqt-globalkeys
+     Qt6Xdg
+diff --git a/plugin-taskbar/lxqttaskbar.cpp b/plugin-taskbar/lxqttaskbar.cpp
+index edc4d81..7336ed2 100644
+--- a/plugin-taskbar/lxqttaskbar.cpp
++++ b/plugin-taskbar/lxqttaskbar.cpp
+@@ -40,6 +40,9 @@
+ #include <QWheelEvent>
+ #include <QFlag>
+ #include <QTimer>
++#include <QFileInfo>
++#include <XdgDesktopFile>
++#include <XdgIcon>
+
+ #include "../panel/ilxqtpanelplugin.h"
+ #include "../panel/pluginsettings.h"
+@@ -221,6 +224,18 @@ void LXQtTaskBar::buttonMove(LXQtTaskGroup * dst, LXQtTaskGroup * src, QPoint co
+         return;
+
+     mLayout->moveItem(src_index, dst_index, true);
++    if (!mPinnedPaths.isEmpty())
++    {
++        QStringList ordered;
++        for (int i = 0; i < mLayout->count(); ++i)
++        {
++            auto group = qobject_cast<LXQtTaskGroup*>(mLayout->itemAt(i)->widget());
++            if (group && !group->pinnedDesktop().isEmpty()) ordered << group->pinnedDesktop();
++        }
++        mPinnedPaths = ordered;
++        mPlugin->settings()->setValue(QStringLiteral("doroshellPinned"), ordered);
++        mPlugin->settings()->sync();
++    }
+ }
+
+ /************************************************
+@@ -246,6 +261,34 @@ void LXQtTaskBar::groupBecomeEmptySlot()
+ /************************************************
+
+  ************************************************/
++LXQtTaskGroup *LXQtTaskBar::createGroup(const QString &name, WId window)
++{
++    auto group = new LXQtTaskGroup(name, window, this);
++    connect(group, &LXQtTaskGroup::groupBecomeEmpty,  this, &LXQtTaskBar::groupBecomeEmptySlot);
++    connect(group, &LXQtTaskGroup::visibilityChanged, this, &LXQtTaskBar::refreshPlaceholderVisibility);
++    connect(group, &LXQtTaskGroup::popupShown,        this, &LXQtTaskBar::popupShown);
++    connect(group, &LXQtTaskButton::dragging,         this, [this] (QObject * dragSource, QPoint const & pos) {
++        buttonMove(qobject_cast<LXQtTaskGroup *>(sender()), qobject_cast<LXQtTaskGroup *>(dragSource), pos);
++    });
++    mLayout->addWidget(group);
++    group->setToolButtonsStyle(mButtonStyle);
++    return group;
++}
++
++void LXQtTaskBar::loadPinnedLaunchers()
++{
++    if (!mGroupingEnabled) return;
++    for (const QString &path : mPinnedPaths)
++    {
++        XdgDesktopFile entry;
++        if (!QFileInfo(path).isAbsolute() || !entry.load(path) || entry.value(QStringLiteral("Type")).toString() != QStringLiteral("Application")) continue;
++        QString identity = entry.value(QStringLiteral("StartupWMClass")).toString();
++        if (identity.isEmpty()) identity = QFileInfo(path).completeBaseName();
++        auto group = createGroup(identity, 0);
++        group->setPinnedDesktop(path, entry.name(), XdgIcon::fromTheme(entry.value(QStringLiteral("Icon")).toString()));
++    }
++}
++
+ void LXQtTaskBar::addWindow(WId window)
+ {
+     if (mExcludedList.contains(mBackend->getWindowClass(window), Qt::CaseInsensitive))
+@@ -257,7 +300,7 @@ void LXQtTaskBar::addWindow(WId window)
+     auto i_group = mKnownWindows.find(window);
+     if (mKnownWindows.end() != i_group)
+     {
+-        if ((*i_group)->groupName() == group_id)
++        if ((*i_group)->groupName().compare(group_id, Qt::CaseInsensitive) == 0)
+             group = *i_group;
+         else
+             (*i_group)->onWindowRemoved(window);
+@@ -266,11 +309,12 @@ void LXQtTaskBar::addWindow(WId window)
+     //check if window belongs to some existing group
+     if (!group && mGroupingEnabled)
+     {
+-        for (auto i = mKnownWindows.cbegin(), i_e = mKnownWindows.cend(); i != i_e; ++i)
++        for (int i = 0; i < mLayout->count(); ++i)
+         {
+-            if ((*i)->groupName() == group_id)
++            auto candidate = qobject_cast<LXQtTaskGroup*>(mLayout->itemAt(i)->widget());
++            if (candidate && candidate->groupName().compare(group_id, Qt::CaseInsensitive) == 0)
+             {
+-                group = *i;
++                group = candidate;
+                 break;
+             }
+         }
+@@ -278,15 +322,7 @@ void LXQtTaskBar::addWindow(WId window)
+
+     if (!group)
+     {
+-        group = new LXQtTaskGroup(group_id, window, this);
+-        connect(group, &LXQtTaskGroup::groupBecomeEmpty,  this, &LXQtTaskBar::groupBecomeEmptySlot);
+-        connect(group, &LXQtTaskGroup::visibilityChanged, this, &LXQtTaskBar::refreshPlaceholderVisibility);
+-        connect(group, &LXQtTaskGroup::popupShown,        this, &LXQtTaskBar::popupShown);
+-        connect(group, &LXQtTaskButton::dragging,         this, [this] (QObject * dragSource, QPoint const & pos) {
+-            buttonMove(qobject_cast<LXQtTaskGroup *>(sender()), qobject_cast<LXQtTaskGroup *>(dragSource), pos);
+-        });
+-        mLayout->addWidget(group);
+-        group->setToolButtonsStyle(mButtonStyle);
++        group = createGroup(group_id, window);
+
+         if (mUngroupedNextToExisting)
+         {
+@@ -452,17 +488,8 @@ void LXQtTaskBar::settingsChanged()
+
+     mExcludedList = mPlugin->settings()->value(QStringLiteral("excludedList")).toString()
+                     .split(QRegularExpression(QStringLiteral("\\s*,\\s*")), Qt::SkipEmptyParts);
+-    const auto wins = mBackend->getCurrentWindows();
+-    for(WId win : wins)
+-    {
+-        if (mExcludedList.contains(mBackend->getWindowClass(win), Qt::CaseInsensitive))
+-            onWindowRemoved(win);
+-        else
+-            onWindowAdded(win);
+-    }
+-
+-    // Delete all groups if grouping or ungrouped next to existing feature toggled and start over
+-    if (groupingEnabledOld != mGroupingEnabled || ungroupedNextToExistingOld != mUngroupedNextToExisting)
++    const QStringList pinned = mPlugin->settings()->value(QStringLiteral("doroshellPinned")).toStringList();
++    if (groupingEnabledOld != mGroupingEnabled || ungroupedNextToExistingOld != mUngroupedNextToExisting || pinned != mPinnedPaths)
+     {
+         for (int i = mLayout->count() - 1; 0 <= i; --i)
+         {
+@@ -474,8 +501,20 @@ void LXQtTaskBar::settingsChanged()
+             }
+         }
+         mKnownWindows.clear();
++        mPinnedPaths = pinned;
++        loadPinnedLaunchers();
+     }
+
++    const auto wins = mBackend->getCurrentWindows();
++    for(WId win : wins)
++    {
++        if (mExcludedList.contains(mBackend->getWindowClass(win), Qt::CaseInsensitive))
++            onWindowRemoved(win);
++        else
++            onWindowAdded(win);
++    }
++
++
+     if (showOnlyOneDesktopTasksOld != mShowOnlyOneDesktopTasks
+             || (mShowOnlyOneDesktopTasks && showDesktopNumOld != mShowDesktopNum)
+             || showOnlyCurrentScreenTasksOld != mShowOnlyCurrentScreenTasks
+@@ -584,7 +623,7 @@ void LXQtTaskBar::wheelEvent(QWheelEvent* event)
+         if (!g)
+             continue;
+
+-        if (g->isVisible())
++        if (g->isVisible() && g->visibleButtonsCount() > 0)
+             list.append(g);
+         if (g->isChecked())
+             group = g;
+@@ -689,7 +728,7 @@ void LXQtTaskBar::activateTask(int pos)
+             pos--;
+             if (pos == 0)
+             {
+-                g->raiseApplication();
++                g->activatePinnedOrRaise();
+                 break;
+             }
+         }
+diff --git a/plugin-taskbar/lxqttaskbar.h b/plugin-taskbar/lxqttaskbar.h
+index 769e3f6..36f296e 100644
+--- a/plugin-taskbar/lxqttaskbar.h
++++ b/plugin-taskbar/lxqttaskbar.h
+@@ -120,6 +120,9 @@ private:
+     typedef QMap<WId, LXQtTaskGroup*> windowMap_t;
+
+ private:
++    LXQtTaskGroup *createGroup(const QString &name, WId window);
++    void loadPinnedLaunchers();
++    QStringList mPinnedPaths;
+     void addWindow(WId window);
+     windowMap_t::iterator removeWindow(windowMap_t::iterator pos);
+     void buttonMove(LXQtTaskGroup * dst, LXQtTaskGroup * src, QPoint const & pos);
+diff --git a/plugin-taskbar/lxqttaskbutton.cpp b/plugin-taskbar/lxqttaskbutton.cpp
+index 5ae03af..49de713 100644
+--- a/plugin-taskbar/lxqttaskbutton.cpp
++++ b/plugin-taskbar/lxqttaskbutton.cpp
+@@ -111,7 +111,7 @@ LXQtTaskButton::LXQtTaskButton(const WId window, LXQtTaskBar * taskbar, QWidget
+         mWheelDelta = 0; // forget previous wheel deltas
+     });
+
+-    setUrgencyHint(mBackend->applicationDemandsAttention(mWindow));
++    setUrgencyHint(mWindow && mBackend->applicationDemandsAttention(mWindow));
+
+     connect(LXQt::Settings::globalSettings(), &LXQt::GlobalSettings::iconThemeChanged, this, &LXQtTaskButton::updateIcon);
+     connect(mParentTaskBar,                   &LXQtTaskBar::iconByClassChanged,        this, &LXQtTaskButton::updateIcon);
+@@ -127,6 +127,7 @@ LXQtTaskButton::~LXQtTaskButton() = default;
+  ************************************************/
+ void LXQtTaskButton::updateText()
+ {
++    if (!mWindow) return;
+     QString title = mBackend->getWindowTitle(mWindow);
+     setTextExplicitly(title.replace(QStringLiteral("&"), QStringLiteral("&&")));
+     setToolTip(title);
+@@ -137,6 +138,7 @@ void LXQtTaskButton::updateText()
+  ************************************************/
+ void LXQtTaskButton::updateIcon()
+ {
++    if (!mWindow) return;
+     QIcon ico;
+     if (mParentTaskBar->isIconByClass())
+     {
+@@ -406,6 +408,7 @@ bool LXQtTaskButton::isApplicationActive() const
+  ************************************************/
+ void LXQtTaskButton::raiseApplication()
+ {
++    if (!mWindow) return;
+     mBackend->raiseWindow(mWindow, parentTaskBar()->raiseOnCurrentDesktop());
+ }
+
+@@ -465,6 +468,7 @@ void LXQtTaskButton::unShadeApplication()
+  ************************************************/
+ void LXQtTaskButton::closeApplication()
+ {
++    if (!mWindow) return;
+     mBackend->closeWindow(mWindow);
+ }
+
+diff --git a/plugin-taskbar/lxqttaskgroup.cpp b/plugin-taskbar/lxqttaskgroup.cpp
+index 4e1c4bf..523432c 100644
+--- a/plugin-taskbar/lxqttaskgroup.cpp
++++ b/plugin-taskbar/lxqttaskgroup.cpp
+@@ -28,6 +28,9 @@
+  *
+  * END_COMMON_COPYRIGHT_HEADER */
+
++#include <gio/gdesktopappinfo.h> // Include before Qt keyword macros.
++#include <QMessageBox>
++#include <QStyle>
+ #include "lxqttaskgroup.h"
+ #include "lxqttaskbar.h"
+ #include "lxqtgrouppopup.h"
+@@ -74,8 +77,53 @@ LXQtTaskGroup::LXQtTaskGroup(const QString &groupName, WId window, LXQtTaskBar *
+ /************************************************
+
+  ************************************************/
++void LXQtTaskGroup::setPinnedDesktop(const QString &path, const QString &name, const QIcon &icon)
++{
++    mPinnedDesktop = path;
++    mPinnedName = name;
++    mPinnedIcon = icon;
++    if (mButtonHash.isEmpty()) showPinnedLauncher();
++}
++
++void LXQtTaskGroup::showPinnedLauncher()
++{
++    setWindowId(0);
++    setProperty("doroshellRunning", false);
++    style()->unpolish(this); style()->polish(this);
++    mSingleButton = true;
++    setChecked(false);
++    setTextExplicitly(mPinnedName);
++    setToolTip(mPinnedName);
++    setIcon(mPinnedIcon);
++    show();
++}
++
++void LXQtTaskGroup::activatePinnedOrRaise()
++{
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty()) launchPinned();
++    else raiseApplication();
++}
++
++void LXQtTaskGroup::launchPinned()
++{
++    GDesktopAppInfo *info = g_desktop_app_info_new_from_filename(mPinnedDesktop.toUtf8().constData());
++    GError *error = nullptr;
++    bool ok = info && g_app_info_launch(G_APP_INFO(info), nullptr, nullptr, &error);
++    if (!ok) QMessageBox::warning(this, tr("Could not launch application"), error ? QString::fromUtf8(error->message) : tr("The pinned desktop entry is unavailable."));
++    if (error) g_error_free(error);
++    if (info) g_object_unref(info);
++    setChecked(false);
++}
++
+ void LXQtTaskGroup::contextMenuEvent(QContextMenuEvent *event)
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    {
++        QMenu menu;
++        menu.addAction(tr("Open"), this, &LXQtTaskGroup::launchPinned);
++        menu.exec(event->globalPos());
++        return;
++    }
+     setPopupVisible(false, true);
+     if (mSingleButton)
+     {
+@@ -123,6 +171,8 @@ LXQtTaskButton * LXQtTaskGroup::addWindow(WId id)
+     }
+
+     mButtonHash.insert(id, btn);
++    setProperty("doroshellRunning", true);
++    style()->unpolish(this); style()->polish(this);
+     mPopup->addButton(btn);
+
+     connect(btn, &LXQtTaskButton::clicked, this, &LXQtTaskGroup::onChildButtonClicked);
+@@ -153,6 +203,7 @@ LXQtTaskButton * LXQtTaskGroup::getNextPrevChildButton(bool next, bool circular)
+     int inc = next ? 1 : -1;
+     idx += inc;
+
++    if (mButtonHash.isEmpty()) return nullptr;
+     // if there is no checked button, get the first one if next equals true
+     // or the last one if not
+     if (!button)
+@@ -229,6 +280,11 @@ void LXQtTaskGroup::onWindowRemoved(WId window)
+
+         if (mButtonHash.count())
+             regroup();
++        else if (!mPinnedDesktop.isEmpty())
++        {
++            setPopupVisible(false, true);
++            showPinnedLauncher();
++        }
+         else
+         {
+             if (isVisible())
+@@ -307,6 +363,11 @@ void LXQtTaskGroup::draggingTimerTimeout()
+  ************************************************/
+ void LXQtTaskGroup::onClicked(bool)
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    {
++        launchPinned();
++        return;
++    }
+     if (visibleButtonsCount() > 1)
+     {
+         setChecked(mButtonHash.contains(mBackend->getActiveWindow()));
+@@ -383,6 +444,11 @@ void LXQtTaskGroup::setAutoRotation(bool value, ILXQtPanel::Position position)
+  ************************************************/
+ void LXQtTaskGroup::refreshVisibility()
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    {
++        showPinnedLauncher();
++        return;
++    }
+     bool will = false;
+     LXQtTaskBar const * taskbar = parentTaskBar();
+     const int showDesktop = taskbar->showDesktopNum();
+@@ -446,6 +512,7 @@ void LXQtTaskGroup::setPopupVisible(bool visible, bool fast)
+  ************************************************/
+ void LXQtTaskGroup::refreshIconsGeometry()
+ {
++    if (!windowId()) return;
+     QRect rect = geometry();
+     rect.moveTo(mapToGlobal(QPoint(0, 0)));
+
+@@ -608,6 +675,7 @@ void LXQtTaskGroup::mouseReleaseEvent(QMouseEvent* event)
+
+ void LXQtTaskGroup::wheelEvent(QWheelEvent* event)
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty()) { event->accept(); return; }
+     if (mSingleButton)
+     {
+         LXQtTaskButton::wheelEvent(event);
+@@ -639,7 +707,7 @@ bool LXQtTaskGroup::onWindowChanged(WId window, LXQtTaskBarWindowProperty prop)
+         // if class is changed the window won't belong to our group any more
+         if (parentTaskBar()->isGroupingEnabled() && prop == LXQtTaskBarWindowProperty::WindowClass)
+         {
+-            if (mBackend->getWindowClass(windowId()) != mGroupName)
++            if (mBackend->getWindowClass(window).compare(mGroupName, Qt::CaseInsensitive) != 0)
+             {
+                 onWindowRemoved(window);
+                 return false;
+diff --git a/plugin-taskbar/lxqttaskgroup.h b/plugin-taskbar/lxqttaskgroup.h
+index 31ab784..3b4434c 100644
+--- a/plugin-taskbar/lxqttaskgroup.h
++++ b/plugin-taskbar/lxqttaskgroup.h
+@@ -48,6 +48,10 @@ class LXQtTaskGroup: public LXQtTaskButton
+ public:
+     LXQtTaskGroup(const QString & groupName, WId window, LXQtTaskBar * parent);
+
++    void activatePinnedOrRaise();
++    QString pinnedDesktop() const { return mPinnedDesktop; }
++    void setPinnedDesktop(const QString &path, const QString &name, const QIcon &icon);
++
+     QString groupName() const { return mGroupName; }
+
+     int buttonsCount() const;
+@@ -104,6 +108,11 @@ signals:
+     void popupShown(LXQtTaskGroup* sender);
+
+ private:
++    QString mPinnedDesktop;
++    QString mPinnedName;
++    QIcon mPinnedIcon;
++    void showPinnedLauncher();
++    void launchPinned();
+     QString mGroupName;
+     LXQtGroupPopup * mPopup;
+     LXQtTaskButtonHash mButtonHash;

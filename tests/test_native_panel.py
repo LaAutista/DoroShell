@@ -20,10 +20,10 @@ class NativePanelTests(unittest.TestCase):
             home,panel,launcher=self.fixture(tmp);original=panel.read_bytes()
             result=profile.profile(original.decode(),home,[str(launcher)],None)
             out=home/'candidate.conf';out.write_bytes(result);cfg=QSettings(str(out),QSettings.Format.IniFormat)
-            self.assertEqual(cfg.value('panel1/plugins'),['comfortstart','doroshellPins','doroshellTasks','statusnotifier','worldclock'])
+            self.assertEqual(cfg.value('panel1/plugins'),['comfortstart','doroshellTasks','statusnotifier','worldclock'])
             self.assertEqual(cfg.value('worldclock/customFormat'),'HH:mm')
             self.assertEqual(cfg.value('statusnotifier/hideList'),'Old hidden icon')
-            self.assertEqual(cfg.value('doroshellPins/apps/1/desktop'),str(launcher))
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'),str(launcher))
             self.assertEqual(panel.read_bytes(),original)
 
     def test_next_login_enable_restore_and_conflict(self):
@@ -59,3 +59,14 @@ class NativePanelTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):profile.switch(home,prepared)
             self.assertTrue(target.is_symlink())
             self.assertFalse((home/'.config/doroshell/panel.conf').exists())
+
+    def test_duplicate_pins_and_ambiguous_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home,panel,launcher=self.fixture(tmp)
+            result=profile.profile(panel.read_text(),home,[str(launcher),str(launcher)],None)
+            out=home/'candidate.conf';out.write_bytes(result)
+            cfg=QSettings(str(out),QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'),str(launcher))
+            other=home/'other.desktop';other.write_text(launcher.read_text()+'StartupWMClass=test\n')
+            with self.assertRaisesRegex(ValueError,'Ambiguous'):
+                profile.profile(panel.read_text(),home,[str(launcher),str(other)],None)

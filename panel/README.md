@@ -1,21 +1,21 @@
 # DoroShell Panel prototype
 
-A native LXQt Panel 2.4.1 build with a DoroShell hidden-tray popup. This is a working development increment, not the finished Windows 7 panel design. It runs separately from the installed panel. Do not replace a running panel or DockBarX applet: applications may inherit their output pipes.
+A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden-tray popup. This is a working development increment, not the finished Windows 7 panel design. It runs separately from the installed panel. Do not replace a running panel or DockBarX applet: applications may inherit their output pipes.
 
 ## Built behavior
 
 - Opt-in pink gradient styling (`panel1/doroshellTheme=true`), with pale task highlights and a pink hidden-tray popup.
 - Bottom-oriented, 40-pixel candidate profile with 28-pixel icons and compact native task buttons.
-- Native grouped tasks for open applications; click to activate/restore and drag to reorder.
-- DockBarX pinned launchers migrate in order to native Quick Launch, using desktop entries. Existing widgets, clock settings and tray hide/auto-hide preferences are retained. The old panel file is never overwritten.
+- Unified pinned/running application buttons: a closed pin launches its desktop entry through GIO; the matching window reuses that button. Running apps have an underline. Click to activate/restore and drag to reorder.
+- DockBarX pinned launchers migrate in order into the native taskbar, using desktop entries. Existing widgets, clock settings and tray hide/auto-hide preferences are retained. The old panel file is never overwritten.
 - A small upward arrow opens a separate grid of hidden notification icons. The popup uses LXQt's native StatusNotifierItem buttons, supports mouse activation, Enter/Space and Escape, and closes if a represented service disconnects.
 - User-configured Hide/Auto-hide lists determine which icons appear in overflow. The arrow appears only when there are hidden icons. Right-click the notification area and use its Configure dialog to choose icons; `profile.py prepare --hide TITLE` can explicitly supply hidden titles instead.
 
-**Pins and running tasks are currently separate widgets.** A fully unified pinned/running model, persistent running-task order, thumbnail/peek polish and further glass-like visual polish remain development work. This does not claim all Open-Shell functionality or an exact Windows 7 reproduction.
+**Pinned order persists across panel restarts.** Matching uses `StartupWMClass`, falling back to the desktop filename without `.desktop`; unmatched windows retain normal task buttons. Ambiguous identities are refused during preparation. Unpinned running-task order, thumbnail/peek polish and further glass-like visual polish remain development work. This does not claim all Open-Shell functionality or an exact Windows 7 reproduction.
 
 ## Build separately
 
-The builder clones pinned upstream revisions, applies the small patch, and stages installation into a private directory. It never runs pacman, sudo or a system installation. Existing installed build dependencies are required: C/C++ toolchain, Git, CMake/Ninja, Qt 6 development tools and the LXQt panel development dependencies. Missing dependencies stop the build. The pinned LXQt build-tools helper is built locally as well.
+The builder clones pinned upstream revisions, applies the small patch, and stages installation into a private directory. It never runs pacman, sudo or a system installation. Existing installed build dependencies are required: C/C++ toolchain, Git, CMake/Ninja, Qt 6 development tools, GIO Unix development headers (`gio-unix-2.0`) and the LXQt panel development dependencies. Missing dependencies stop the build. The pinned LXQt build-tools helper is built locally as well.
 
 ```sh
 python panel/build.py --work /absolute/empty/build-directory
@@ -64,9 +64,11 @@ dbus-run-session -- python panel/check_x11.py --run --binary /absolute/path/to/l
 
 The X11 check refuses an already-owned notifier bus, uses private settings and synthetic tray/window fixtures, briefly moves the mouse, and restores its position. It does not instantiate the legacy XEmbed tray, reserve screen space, rearrange personal tasks, or close personal applications. A separate private D-Bus session isolates notification services; it is not a virtual display.
 
-Verified development build: compiled against the installed Qt 6.12 / LXQt libraries; 47 automated tests passed. Real X11 checks exercised arrow opening, mouse/keyboard activation, imported DBusMenu selection and fallback context dispatch, Escape, service-disconnect cleanup, native task restore and drag ordering between disposable windows. The themed bar, tiny popup and arrow were visually inspected. The Start menu and settings appearance were also inspected in offscreen renders. This verifies synthetic applications, not every real tray app.
+Verified development build: compiled against the installed Qt 6.12 / LXQt libraries; 48 automated tests passed. Real X11 checks exercised arrow opening, mouse/keyboard activation, imported DBusMenu selection and fallback context dispatch, Escape, service-disconnect cleanup, native task restore, unified pin launch/reopen without duplicate icons, context-menu keyboard activation, closed-pin input, and pin drag ordering across an isolated panel restart. The themed bar, tiny popup and arrow were visually inspected. The Start menu and settings appearance were also inspected in offscreen renders. This verifies synthetic applications, not every real tray app.
 
-Still required: real-application DBusMenu breadth, attention/passive/auto-hide transitions, large icon counts, keyboard focus restoration, multi-monitor/DPI and panel edges, legacy XEmbed behavior, Wayland, sustained use, fresh login and clean installation. No production switch is implied by these checks.
+Pins are configured by `doroshellPinned` under the taskbar group as a list of absolute desktop-entry paths. The candidate profile writes this list; dragging changes its order. A graphical pin/unpin editor remains pending. Grouping must remain enabled for unified pins. Existing LXQt Meta+number task shortcuts dispatch pinned launches too, but global shortcut dispatch has not been exercised in the private-bus test.
+
+Still required: real-application identity matching and DBusMenu breadth, attention/passive/auto-hide transitions, large icon counts, keyboard focus restoration, multi-monitor/DPI and panel edges, legacy XEmbed behavior, Wayland, sustained use, fresh login and clean installation. No production switch is implied by these checks.
 
 ## Upstream attribution
 
