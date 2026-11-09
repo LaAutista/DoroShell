@@ -14,7 +14,7 @@ gi.require_version('Gio', '2.0')
 from gi.repository import Gio, GLib
 from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
@@ -284,6 +284,67 @@ def icon_for(app):
     return QIcon.fromTheme('application-x-executable')
 
 
+class ApplicationList(QListWidget):
+    """Keep native drop feedback, but persist pins before rebuilding the list."""
+    def __init__(self, owner):
+        super().__init__(owner)
+        self.owner = owner
+        self.dragged_id = None
+        self.dragging = False
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.setDropIndicatorShown(True)
+
+    def startDrag(self, actions):
+        item = self.currentItem()
+        if item is None or not self.owner.can_reorder_pins():
+            return
+        desktop_id = item.data(Qt.ItemDataRole.UserRole)
+        if desktop_id not in self.owner.favorites:
+            return
+        self.dragged_id = desktop_id
+        self.dragging = True
+        drag = QDrag(self)
+        drag.setMimeData(self.model().mimeData([self.indexFromItem(item)]))
+        drag.setPixmap(item.icon().pixmap(self.iconSize()))
+        try:
+            drag.exec(Qt.DropAction.MoveAction)
+        finally:
+            self.dragged_id = None
+            drag.deleteLater()
+            # Ignore the release that ends the drag; it must not launch an app.
+            QTimer.singleShot(0, self.finish_drag)
+
+    def finish_drag(self):
+        self.dragging = bool(QApplication.mouseButtons() & Qt.MouseButton.LeftButton)
+
+    def mouseReleaseEvent(self, event):
+        if self.dragging:
+            self.dragging = False
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def dragMoveEvent(self, event):
+        super().dragMoveEvent(event)
+        item = self.itemAt(event.position().toPoint())
+        if event.source() is not self or not self.owner.can_reorder_pins() or (item and item.data(Qt.ItemDataRole.UserRole) not in self.owner.favorites):
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.source() is not self or not self.owner.can_reorder_pins():
+            event.ignore()
+            return
+        item = self.itemAt(event.position().toPoint())
+        target = item.data(Qt.ItemDataRole.UserRole) if item else None
+        after = bool(item and event.position().y() > self.visualItemRect(item).center().y())
+        if self.owner.reorder_pin(self.dragged_id, target, after):
+            event.setDropAction(Qt.DropAction.MoveAction)
+            event.accept()
+        else:
+            event.ignore()
+
+
 class StartMenu(QWidget):
     def __init__(self):
         super().__init__(None, Qt.WindowType.Popup)
@@ -333,7 +394,7 @@ class StartMenu(QWidget):
         self.category.addItems(['Home', 'All applications', 'Pinned', 'Recent'] + CATEGORIES)
         self.category.setAccessibleName('Application category')
         left.addWidget(self.category)
-        self.list = QListWidget()
+        self.list = ApplicationList(self)
         self.list.setIconSize(QSize(28, 28))
         self.list.setAccessibleName('Applications')
         self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -520,16 +581,49 @@ class StartMenu(QWidget):
                 label = '★ ' + label
             item = QListWidgetItem(icon_for(app), label)
             item.setData(Qt.ItemDataRole.UserRole, app.get_id())
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsDropEnabled)
+            if app.get_id() not in self.favorites:
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsDragEnabled)
             item.setToolTip(app.get_description() or app.get_display_name())
             self.list.addItem(item)
+        self.list.setDragEnabled(self.can_reorder_pins())
         self.list.setCurrentRow(0)
-        self.status.setText('Pinned first, then recent • Choose All applications to browse' if category == 'Home' and not query else f'{self.list.count()} applications • Right-click to pin or reorder')
+        self.status.setText('Drag pins to reorder • Pinned first, then recent' if category == 'Home' and not query else f'{self.list.count()} applications • Right-click to pin or reorder')
+
+    def can_reorder_pins(self):
+        return not self.search.text() and self.category.currentText() in ('Home', 'Pinned') and not self.state_error
+
+    def save_favorites(self, updated):
+        if self.state_error:
+            self.error('Favorites were not changed: ' + self.state_error)
+            return False
+        try:
+            self.state_original = save_json(self.state, updated, self.state_original)
+        except (OSError, ValueError) as error:
+            self.error(str(error))
+            return False
+        self.favorites = updated
+        self.refresh()
+        return True
+
+    def reorder_pin(self, desktop_id, target_id, after=False):
+        if not self.can_reorder_pins() or desktop_id not in self.favorites or (target_id is not None and target_id not in self.favorites):
+            return False
+        if desktop_id == target_id:
+            return True
+        updated = self.favorites.copy()
+        updated.remove(desktop_id)
+        position = len(updated) if target_id is None else updated.index(target_id) + int(after)
+        updated.insert(position, desktop_id)
+        if updated == self.favorites:
+            return True
+        return self.save_favorites(updated)
 
     def error(self, message):
         QMessageBox.warning(self, 'DoroShell Start', message)
 
     def launch_item(self, item):
-        if item is None or self.launching:
+        if item is None or self.launching or self.list.dragging:
             return
         self.launching = True
         try:
@@ -615,13 +709,7 @@ class StartMenu(QWidget):
             j = i + (-1 if chosen == up else 1)
             if 0 <= j < len(updated):
                 updated[i], updated[j] = updated[j], updated[i]
-        try:
-            self.state_original = save_json(self.state, updated, self.state_original)
-        except (OSError, ValueError) as error:
-            self.error(str(error))
-            return
-        self.favorites = updated
-        self.refresh()
+        self.save_favorites(updated)
 
 
 def main():

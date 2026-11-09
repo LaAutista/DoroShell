@@ -74,6 +74,45 @@ class MenuTests(unittest.TestCase):
             window.close()
             shiboken6.delete(window)
 
+    def test_pin_drag_order_preserves_unavailable_pins_and_refuses_conflicts(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            state=Path(directory)/'lxqt-comfort/favorites.json'
+            state.parent.mkdir(parents=True)
+            original=['a.desktop','unavailable.desktop','b.desktop','c.desktop']
+            state.write_text(json.dumps(original))
+            window=menu.StartMenu()
+            self.assertTrue(window.reorder_pin('c.desktop','a.desktop'))
+            expected=['c.desktop','a.desktop','unavailable.desktop','b.desktop']
+            self.assertEqual(json.loads(state.read_text()),expected)
+            self.assertEqual(json.loads(next(state.parent.glob('favorites.json.backup-*')).read_text()),original)
+            state.write_text('["personal-edit.desktop"]')
+            with patch.object(window,'error') as error:
+                self.assertFalse(window.reorder_pin('a.desktop','b.desktop',True))
+                error.assert_called_once()
+            self.assertEqual(window.favorites,expected)
+            self.assertEqual(json.loads(state.read_text()),['personal-edit.desktop'])
+            shiboken6.delete(window)
+
+    def test_pin_drag_restricted_to_unfiltered_pin_views_and_never_launches(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window=menu.StartMenu()
+            window.favorites=['a.desktop','b.desktop']
+            window.category.setCurrentText('All applications')
+            self.assertFalse(window.reorder_pin('b.desktop','a.desktop'))
+            window.category.setCurrentText('Pinned');window.search.setText('a')
+            self.assertFalse(window.reorder_pin('b.desktop','a.desktop'))
+            window.search.clear()
+            self.assertFalse(window.reorder_pin('b.desktop','recent.desktop'))
+            item=menu.QListWidgetItem('A');item.setData(menu.Qt.ItemDataRole.UserRole,'a.desktop')
+            fake=Mock();window.by_id['a.desktop']=fake
+            window.list.dragging=True
+            window.launch_item(item)
+            fake.launch.assert_not_called()
+            self.assertFalse(window.state.exists())
+            shiboken6.delete(window)
+
     def test_search_and_filter(self):
         data = menu.GLib.KeyFile()
         text = '[Desktop Entry]\nType=Application\nName=Test Editor\nExec=/bin/true\nCategories=Utility;\nKeywords=writing;\n'

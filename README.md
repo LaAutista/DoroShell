@@ -232,3 +232,10 @@ Start now exposes application-provided tasks in the application right-click menu
 ## DoroShell Panel development
 
 A separately built native LXQt Panel prototype now provides a hidden-tray arrow and popup, native grouped tasks and a reversible next-login profile migration from DockBarX. The current desktop is not switched automatically. Its unified pinned/running icons launch through GIO, reuse matching application buttons and save dragged pin order across panel restarts. The pink glass-like styling follows the supplied concept. See [build, verification, limitations and rollback](panel/README.md). A graphical pin editor, broader application matching and final Windows 7 visual polish remain unfinished.
+
+
+### Reorder Start pins
+
+Drag a pinned app before or after another pin in **Home** or **Pinned**. Escape cancels the drag. Search results and recent-only entries cannot be dragged. The right-click **Move pin up/down** commands remain available with keyboard menu navigation. Saved order survives reopening Start; existing favorites are backed up and concurrent edits are refused.
+
+The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` check uses synthetic desktop entries and a temporary favorites file. It moves the real pointer, then restores it. It verifies reorder, Escape cancellation, keyboard movement, persistence, and that dragging never launches an app.

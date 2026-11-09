@@ -14,7 +14,7 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | Classic / two-column styles | Other styles absent; added to scope by the all-functionality request. | Shared behavior backend with separately tested layouts; Windows 7 remains default. |
 | Program discovery / search | GIO application catalog, names/keywords/categories; automated and limited real search checks. | Refresh catalog after installs; test duplicate names, hidden entries and international text. |
 | Expanded search | Document/content/settings/provider search absent. | Explicit opt-in providers, cancellation and bounds; no unsolicited indexing of private files. |
-| Pins / organization | Ordered pins, context-menu movement; Start pin dragging absent. Taskbar dragging is a separate feature. | Internal drag with keyboard equivalent, conflict-safe persistence and Escape cancellation. |
+| Pins / organization | Ordered pins, Home/Pinned drag reordering and context-menu movement; conflict-safe saved order. Taskbar dragging is a separate feature. | Verified with synthetic real pointer dragging, Escape cancellation, keyboard move commands and reopening persistence; broader DPI/accessibility coverage remains. |
 | Recency / frequency | Opt-in recent apps and clear history; frequency ranking absent. | Configurable count and retention, privacy controls, deterministic ranking. |
 | Recent documents | Absent. | Opt-in desktop recent-file store, unavailable-file handling and clear-history semantics. |
 | App tasks / jump lists | New desktop actions through GIO. This is only the common-task portion; Windows jump-list data is not read. | Real action dispatch plus action-less apps; later per-app documents with explicit backend support. |
@@ -70,3 +70,8 @@ Use the exact official image/animation when its original source and applicable p
 ### Personal artwork resolution
 
 Subsequent user-supplied assets enabled personal installation of the chosen Doro image and the visually matching original spinning animation recovered from Tenor. See [asset provenance and validation](assets.md#personal-assets-installed--follow-up). Redistribution permission remains unverified, but no longer blocks that personal installation. The full Open-Shell parity gaps above remain open.
+
+
+### Start pin dragging follow-up
+
+50 automated tests passed. A real X11 check with disposable desktop entries verified drag ordering, Escape cancellation, keyboard Move pin up, reopening persistence, and no accidental application launch. Existing favorites use the same backup and conflict checks for mouse and context-menu changes. No live panel or session was restarted.
