@@ -23,6 +23,51 @@ class MenuTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = menu.QApplication.instance() or menu.QApplication([])
 
+    def test_default_pin_order_missing_apps_and_configured_handler(self):
+        from unittest.mock import Mock
+        ids = ['qterminal.desktop', 'firefox.desktop', 'org.kde.dolphin.desktop',
+               'org.kde.kate.desktop', 'vlc.desktop', 'lxqt-config.desktop']
+        apps = {key: Mock() for key in ids + ['editor.desktop']}
+        for key, app in apps.items():
+            app.get_id.return_value = key
+            app.get_executable.return_value = '/bin/true'
+            app.get_boolean.return_value = False
+        with patch.object(menu, 'desktop_entry', side_effect=apps.get), patch.object(
+                menu.Gio.AppInfo, 'get_default_for_type',
+                side_effect=lambda mime, _: apps['editor.desktop'] if mime == 'text/plain' else None):
+            self.assertEqual(menu.default_pins(apps), ids)
+            del apps['org.kde.kate.desktop']
+            apps['vlc.desktop'].get_executable.return_value = '/no/such/player'
+            self.assertEqual(menu.default_pins(apps), ids[:3] + ['editor.desktop', ids[-1]])
+
+    def test_only_new_pin_file_is_seeded(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            for expected in (['new.desktop'], ['custom.desktop', 'other.desktop'], []):
+                with patch.object(menu, 'default_pins', return_value=['new.desktop']) as seed:
+                    window = menu.StartMenu()
+                    self.assertEqual(window.favorites, expected)
+                    self.assertEqual(seed.call_count, int(expected == ['new.desktop']))
+                    path = window.state
+                    shiboken6.delete(window)
+                if expected:
+                    path.write_text(json.dumps(['custom.desktop', 'other.desktop'] if expected == ['new.desktop'] else []))
+
+    def test_system_links_dispatch_and_disable_missing_tools(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}), patch.object(
+                menu, 'available_entry', side_effect=lambda ids: next(iter(ids), None) if 'nm-connection-editor.desktop' in ids else None):
+            window = menu.StartMenu()
+            buttons = {button.text(): button for button in window.findChildren(menu.QPushButton, 'folderLink')}
+            buttons['Games'].click()
+            self.assertEqual(window.category.currentText(), 'Game')
+            with patch.object(window, 'run_desktop') as run, patch.object(window, 'open_folder') as folder:
+                buttons['Network connections'].click()
+                run.assert_called_once_with('nm-connection-editor.desktop')
+                buttons['Computer'].click()
+                folder.assert_called_once_with('/')
+            self.assertFalse(buttons['Printers'].isEnabled())
+            shiboken6.delete(window)
+
     def test_recent_limit_migrates_trims_and_preserves_disabled_privacy(self):
         import json
         with tempfile.TemporaryDirectory() as directory:
@@ -209,6 +254,7 @@ class MenuTests(unittest.TestCase):
         from unittest.mock import Mock
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
             window=menu.StartMenu()
+            original = window.state.read_bytes()
             window.favorites=['a.desktop','b.desktop']
             window.category.setCurrentText('All applications')
             self.assertFalse(window.reorder_pin('b.desktop','a.desktop'))
@@ -221,7 +267,7 @@ class MenuTests(unittest.TestCase):
             window.list.dragging=True
             window.launch_item(item)
             fake.launch.assert_not_called()
-            self.assertFalse(window.state.exists())
+            self.assertEqual(window.state.read_bytes(), original)
             shiboken6.delete(window)
 
     def test_programs_button_and_escape_return_without_launching(self):
@@ -309,7 +355,7 @@ class MenuTests(unittest.TestCase):
             self.app.processEvents()
             area = window.findChild(menu.QScrollArea)
             controls = window.findChildren(menu.QPushButton, 'menuControl')
-            self.assertEqual(len(controls), 4)
+            self.assertEqual(len(controls), 3)
             self.assertEqual(area.verticalScrollBar().maximum(), 0)
             portrait = window.findChild(menu.QLabel, 'personalStartImage')
             places = window.findChild(menu.QWidget, 'placesPanel')
@@ -334,7 +380,7 @@ class MenuTests(unittest.TestCase):
     def test_menu_search_empty_folder_and_launch_error(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
             window = menu.StartMenu()
-            self.assertEqual(window.list.count(), 0)
+            self.assertEqual(window.list.count(), len(window.favorites))
             window.programs.click()
             self.assertGreater(window.list.count(), 0)
             window.search.setText('zz-no-such-application-zz')

@@ -1,8 +1,8 @@
 diff --git a/panel/lxqtpanel.cpp b/panel/lxqtpanel.cpp
-index 317b01b..db83032 100644
+index 317b01b..0d10d80 100644
 --- a/panel/lxqtpanel.cpp
 +++ b/panel/lxqtpanel.cpp
-@@ -1165,6 +1165,22 @@ void LXQtPanel::updateStyleSheet()
+@@ -1165,6 +1165,25 @@ void LXQtPanel::updateStyleSheet()
      if (QFileInfo::exists(mBackgroundImage))
          sheet << QString(QStringLiteral("LXQtPanel #BackgroundWidget { background-image: url('") + mBackgroundImage + QStringLiteral("');}"));
 
@@ -10,6 +10,9 @@ index 317b01b..db83032 100644
 +    if (mSettings->value(QStringLiteral("doroshellTheme"), false).toBool())
 +    {
 +        sheet << QStringLiteral("LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #f9d7ed,stop:0.08 #e9a4cd,stop:0.47 #c975a5,stop:0.5 #c078a2,stop:1 #d783b3); border-top: 1px solid #fff0fa; }");
++        if (KX11Extras::compositingActive())
++            sheet << QStringLiteral("LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 rgba(249,215,237,240),stop:0.12 rgba(233,164,205,235),stop:0.48 rgba(211,137,177,230),stop:0.51 rgba(202,129,170,230),stop:1 rgba(222,151,192,238)); border-top: 1px solid #ddb1cc; }");
++        sheet << QStringLiteral("QLabel#WorldClockContent { margin: 0; padding: 0; border: none; }");
 +        sheet << QStringLiteral("QLabel#WorldClockContent, LXQtTaskButton, QuickLaunchButton { color: #351329; }");
 +        sheet << QStringLiteral("LXQtTaskButton, QuickLaunchButton { background: transparent; border: 1px solid transparent; border-radius: 5px; margin: 2px; }");
 +        sheet << QStringLiteral("LXQtTaskButton:hover, QuickLaunchButton:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
@@ -1082,3 +1085,183 @@ index 31ab784..3b4434c 100644
      QString mGroupName;
      LXQtGroupPopup * mPopup;
      LXQtTaskButtonHash mButtonHash;
+diff --git a/plugin-worldclock/lxqtworldclock.cpp b/plugin-worldclock/lxqtworldclock.cpp
+index 4d66796..33eb2b4 100644
+--- a/plugin-worldclock/lxqtworldclock.cpp
++++ b/plugin-worldclock/lxqtworldclock.cpp
+@@ -38,6 +38,8 @@
+ #include <QLocale>
+ #include <QScopedArrayPointer>
+ #include <QTimer>
++#include <QScreen>
++#include <QScrollArea>
+ #include <QWheelEvent>
+ #include <QToolTip>
+
+@@ -57,12 +59,21 @@ LXQtWorldClock::LXQtWorldClock(const ILXQtPanelPluginStartupInfo &startupInfo):
+     mMainWidget = new QWidget();
+     mMainWidget->installEventFilter(this);
+     mContent = new ActiveLabel();
+-    mRotatedWidget = new LXQt::RotatedWidget(*mContent, mMainWidget);
++    const bool compact = settings()->value(QStringLiteral("doroshellTwoLine"), false).toBool()
++        && (panel()->position() == ILXQtPanel::PositionBottom || panel()->position() == ILXQtPanel::PositionTop);
++    mRotatedWidget = compact ? nullptr : new LXQt::RotatedWidget(*mContent, mMainWidget);
+
+     QVBoxLayout *borderLayout = new QVBoxLayout(mMainWidget);
+     borderLayout->setContentsMargins(0, 0, 0, 0);
+     borderLayout->setSpacing(0);
+-    borderLayout->addWidget(mRotatedWidget, 0, Qt::AlignCenter);
++    if (mRotatedWidget)
++        borderLayout->addWidget(mRotatedWidget, 0, Qt::AlignCenter);
++    else
++    {
++        mContent->setMargin(0);
++        mContent->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
++        borderLayout->addWidget(mContent);
++    }
+
+     mContent->setObjectName(QLatin1String("WorldClockContent"));
+
+@@ -137,9 +148,14 @@ void LXQtWorldClock::updateTimeText()
+     {
+         const QSize old_size = mContent->sizeHint();
+         mContent->setText(QLocale::system().toString(tzNow, preformat(mFormat, timeZone, tzNow)));
+-        if (old_size != mContent->sizeHint())
+-            mRotatedWidget->adjustContentSize();
+-        mRotatedWidget->update();
++        if (mRotatedWidget)
++        {
++            if (old_size != mContent->sizeHint())
++                mRotatedWidget->adjustContentSize();
++            mRotatedWidget->update();
++        }
++        else
++            fitClock();
+         updatePopupContent();
+
+     }
+@@ -361,7 +377,7 @@ void LXQtWorldClock::settingsChanged()
+     {
+         updatePopupContent();
+         mPopup->adjustSize();
+-        mPopup->setGeometry(calculatePopupWindowPos(mPopup->size()));
++        positionPopup();
+     }
+
+     setTimeText();
+@@ -409,7 +425,17 @@ void LXQtWorldClock::activated(ActivationReason reason)
+             QCalendarWidget *calendarWidget = new QCalendarWidget(mPopup);
+             if (!mShowWeekNumber)
+                 calendarWidget->setVerticalHeaderFormat(QCalendarWidget::NoVerticalHeader);
+-            mPopup->layout()->addWidget(calendarWidget);
++            if (mRotatedWidget)
++                mPopup->layout()->addWidget(calendarWidget);
++            else
++            {
++                auto *scroll = new QScrollArea(mPopup);
++                scroll->setFrameShape(QFrame::NoFrame);
++                scroll->setWidgetResizable(true);
++                scroll->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
++                scroll->setWidget(calendarWidget);
++                mPopup->layout()->addWidget(scroll);
++            }
+
+             QString timeZoneName = mActiveTimeZone;
+             if (timeZoneName == QLatin1String("local"))
+@@ -431,7 +457,7 @@ void LXQtWorldClock::activated(ActivationReason reason)
+         }
+
+         mPopup->adjustSize();
+-        mPopup->setGeometry(calculatePopupWindowPos(mPopup->size()));
++        positionPopup();
+
+         willShowWindow(mPopup);
+         mPopup->show();
+@@ -561,8 +587,55 @@ QString LXQtWorldClock::preformat(const QString &format, const QTimeZone &timeZo
+     return result;
+ }
+
++void LXQtWorldClock::positionPopup()
++{
++    if (mRotatedWidget)
++    {
++        mPopup->setGeometry(calculatePopupWindowPos(mPopup->size()));
++        return;
++    }
++    QRect bounds = mMainWidget->screen()->geometry();
++    QWidget *bar = mMainWidget->window();
++    const int barTop = bar->mapToGlobal(QPoint()).y();
++    if (panel()->position() == ILXQtPanel::PositionBottom)
++        bounds.setBottom(barTop - 1);
++    else
++        bounds.setTop(barTop + bar->height());
++    if (!bounds.isValid())
++        return;
++    mPopup->setMaximumSize(bounds.size());
++    const QSize size = mPopup->sizeHint().boundedTo(bounds.size());
++    QRect target(QPoint(), size);
++    target.moveRight(qBound(bounds.left() + size.width() - 1,
++                            mMainWidget->mapToGlobal(mMainWidget->rect().topRight()).x(), bounds.right()));
++    if (panel()->position() == ILXQtPanel::PositionBottom)
++        target.moveBottom(bounds.bottom());
++    else
++        target.moveTop(bounds.top());
++    mPopup->setGeometry(target);
++}
++
++void LXQtWorldClock::fitClock()
++{
++    if (mMainWidget->height() < 4 || mContent->text().isEmpty())
++        return;
++    QFont font = mMainWidget->font();
++    font.setPixelSize(QFontInfo(font).pixelSize());
++    mContent->setFont(font);
++    while (mContent->sizeHint().height() > mMainWidget->height() - 2 && font.pixelSize() > 1)
++    {
++        font.setPixelSize(font.pixelSize() - 1);
++        mContent->setFont(font);
++    }
++}
++
+ void LXQtWorldClock::realign()
+ {
++    if (!mRotatedWidget)
++    {
++        fitClock();
++        return;
++    }
+     if (mAutoRotate)
+         switch (panel()->position())
+         {
+@@ -635,6 +708,9 @@ void LXQtWorldClockPopup::show()
+
+ bool LXQtWorldClock::eventFilter(QObject * watched, QEvent * event)
+ {
++    if (watched == mMainWidget && !mRotatedWidget
++        && (event->type() == QEvent::Resize || event->type() == QEvent::FontChange))
++        fitClock();
+     if (mShowTooltip && watched == mMainWidget && event->type() == QEvent::ToolTip)
+     {
+         QHelpEvent *helpEvent = static_cast<QHelpEvent*>(event);
+diff --git a/plugin-worldclock/lxqtworldclock.h b/plugin-worldclock/lxqtworldclock.h
+index acfabe7..7e3565a 100644
+--- a/plugin-worldclock/lxqtworldclock.h
++++ b/plugin-worldclock/lxqtworldclock.h
+@@ -71,7 +71,7 @@ private slots:
+
+ private:
+     QWidget *mMainWidget;
+-    LXQt::RotatedWidget* mRotatedWidget;
++    LXQt::RotatedWidget* mRotatedWidget = nullptr;
+     ActiveLabel *mContent;
+     LXQtWorldClockPopup* mPopup;
+
+@@ -92,6 +92,8 @@ private:
+
+     QDateTime mShownTime;
+
++    void positionPopup();
++    void fitClock();
+     void restartTimer();
+
+     void setTimeText();

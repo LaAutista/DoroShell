@@ -48,6 +48,37 @@ class FolderTests(unittest.TestCase):
             self.assertEqual(menu.link_path(reloaded.links[row - 1]), str(folder))
             shiboken6.delete(editor)
 
+    def test_change_destination_portrait_and_hidden_system_links(self):
+        from PySide6.QtGui import QImage, QColor
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory, 'XDG_DATA_HOME': directory}):
+            home = Path(directory)
+            art = home / 'lxqt-comfort'
+            art.mkdir()
+            icon = art / 'start-icon.png'
+            picture = home / 'portrait.png'
+            img = QImage(24, 24, QImage.Format.Format_RGB32)
+            img.fill(QColor('blue'))
+            img.save(str(icon))
+            original = icon.read_bytes()
+            img.fill(QColor('red'))
+            img.save(str(picture))
+            editor = menu.FolderEditor(menu.FolderSettings(art / 'folders.json'))
+            with patch.object(menu.QFileDialog, 'getExistingDirectory', return_value=directory):
+                editor.change_folder()
+            editor.set_picture(str(picture))
+            editor.system_checks['Printers'].setChecked(False)
+            editor.save()
+            window = menu.StartMenu()
+            self.assertEqual(window.folder_paths['Home'], directory)
+            self.assertEqual(window.mascot.pixmap().toImage().pixelColor(10, 10).name(), '#ff0000')
+            self.assertNotIn('Printers', [b.text() for b in window.findChildren(menu.QPushButton, 'folderLink')])
+            picture.unlink()
+            window.refresh_portrait()
+            self.assertEqual(window.mascot.pixmap().toImage().pixelColor(10, 10).name(), '#0000ff')
+            self.assertEqual(icon.read_bytes(), original)
+            shiboken6.delete(editor)
+            shiboken6.delete(window)
+
     def test_cancel_defaults_backup_and_restore(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'folders.json'

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """An optional two-column LXQt launcher. Desktop files launch through GIO."""
 import argparse
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,7 @@ import copy
 import tempfile
 import time
 import subprocess
+import shutil
 
 import gi
 gi.require_version('Gio', '2.0')
@@ -19,7 +21,7 @@ from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActio
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
-    QTableWidgetItem, QFileDialog, QAbstractItemView, QScrollArea, QStyledItemDelegate)
+    QTableWidgetItem, QFileDialog, QCheckBox, QAbstractItemView, QScrollArea, QStyledItemDelegate)
 
 SESSION_ACTIONS = {
     'shutdown': ('Shut down', 'system-shutdown'),
@@ -38,6 +40,70 @@ FOLDERS = [('Home', 'HomeLocation', 'user-home'),
            ('Videos', 'MoviesLocation', 'folder-videos')]
 CATEGORIES = ['AudioVideo', 'Development', 'Education', 'Game', 'Graphics',
               'Network', 'Office', 'Science', 'Settings', 'System', 'Utility']
+
+
+SYSTEM_GROUPS = (
+    (('Games', ()), ('Computer', ())),
+    (('Control Panel', ('lxqt-config.desktop',)),
+     ('Network connections', ('nm-connection-editor.desktop',)),
+     ('Printers', ('kcm_printer_manager.desktop', 'org.kde.ConfigurePrinter.desktop', 'system-config-printer.desktop')),
+     ('Default programs', ('lxqt-config-file-associations.desktop',))),
+)
+
+
+def desktop_entry(desktop_id):
+    try:
+        return Gio.DesktopAppInfo.new(desktop_id)
+    except TypeError:
+        # PyGObject raises this when g_desktop_app_info_new returns NULL.
+        return None
+
+
+def available_entry(ids):
+    for entry in ids:
+        app = desktop_entry(entry)
+        if app and (app.get_boolean('DBusActivatable') or shutil.which(app.get_executable())):
+            return entry
+    return None
+
+
+def default_pins(by_id):
+    slots = (
+        (('qterminal.desktop', 'org.kde.konsole.desktop', 'org.gnome.Terminal.desktop', 'xfce4-terminal.desktop', 'xterm.desktop'), ('x-scheme-handler/terminal',)),
+        (('firefox.desktop', 'org.mozilla.firefox.desktop'), ('x-scheme-handler/https',)),
+        (('org.kde.dolphin.desktop',), ('inode/directory',)),
+        (('org.kde.kate.desktop',), ('text/plain',)),
+        (('vlc.desktop', 'org.videolan.VLC.desktop'), ('video/mp4', 'audio/mpeg')),
+        (('lxqt-config.desktop',), ()),
+    )
+    pins = []
+    for ids, types in slots:
+        entry = available_entry([key for key in ids if key in by_id])
+        if not entry:
+            for mime in types:
+                app = Gio.AppInfo.get_default_for_type(mime, False)
+                if app and app.get_id() in by_id:
+                    entry = available_entry([app.get_id()])
+                    if entry:
+                        break
+        if entry and entry not in pins:
+            pins.append(entry)
+    return pins
+
+
+def has_compositor():
+    if QApplication.platformName() != 'xcb':
+        return QApplication.platformName().startswith('wayland')
+    try:
+        from Xlib import display, error
+    except ImportError:
+        return False
+    try:
+        with closing(display.Display()) as server:
+            atom = server.intern_atom(f'_NET_WM_CM_S{server.get_default_screen()}')
+            return bool(server.get_selection_owner(atom))
+    except (error.DisplayError, OSError):
+        return False
 
 
 def default_links():
@@ -77,18 +143,31 @@ class FolderSettings:
         self.original = None
         self.error = None
         self.links = default_links()
+        self.hidden = []
+        self.portrait = ''
         try:
             self.original = path.read_bytes()
-            self.links = validate_links(json.loads(self.original))
+            value = json.loads(self.original)
+            self.links = validate_links(value)
+            hidden = value.get('hiddenSystemLinks', [])
+            portrait = value.get('portrait', '')
+            if not isinstance(hidden, list) or not all(isinstance(item, str) for item in hidden):
+                raise ValueError('Invalid system link preferences')
+            if not isinstance(portrait, str) or (portrait and not Path(portrait).is_absolute()):
+                raise ValueError('Invalid portrait path')
+            self.hidden = hidden
+            self.portrait = portrait
         except FileNotFoundError:
             pass
         except (OSError, ValueError) as error:
             self.error = str(error)
 
-    def save(self, links):
+    def save(self, links, *, hidden=None, portrait=None):
         if self.error:
             raise ValueError('Existing folder settings could not be read; they will not be overwritten: ' + self.error)
-        data = json.dumps({'version': 1, 'folders': links}, ensure_ascii=False, indent=2).encode() + b'\n'
+        hidden = self.hidden if hidden is None else hidden
+        portrait = self.portrait if portrait is None else portrait
+        data = json.dumps({'version': 1, 'folders': links, 'hiddenSystemLinks': hidden, 'portrait': portrait}, ensure_ascii=False, indent=2).encode() + b'\n'
         validate_links(json.loads(data))
         if self.path.is_symlink():
             raise ValueError('Refusing to replace a symlinked settings file')
@@ -115,6 +194,8 @@ class FolderSettings:
             temporary.unlink(missing_ok=True)
         self.original = data
         self.links = copy.deepcopy(links)
+        self.hidden = list(hidden)
+        self.portrait = portrait
 
 
 def save_json(path, value, original):
@@ -136,7 +217,10 @@ def save_json(path, value, original):
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(name, path)
+        if original is None:
+            os.link(name, path)
+        else:
+            os.replace(name, path)
     finally:
         Path(name).unlink(missing_ok=True)
     return data
@@ -201,7 +285,7 @@ class FolderEditor(QDialog):
         layout.addWidget(self.table)
         row = QHBoxLayout()
         self.buttons = {}
-        for text, callback in [('Add folder…', self.add_folder), ('Move up', lambda: self.move(-1)),
+        for text, callback in [('Add folder…', self.add_folder), ('Change folder…', self.change_folder), ('Move up', lambda: self.move(-1)),
                                ('Move down', lambda: self.move(1)), ('Remove', self.remove),
                                ('Restore defaults', lambda: self.populate(default_links()))]:
             button = QPushButton(text)
@@ -209,6 +293,27 @@ class FolderEditor(QDialog):
             row.addWidget(button)
             self.buttons[text] = button
         layout.addLayout(row)
+        self.system_checks = {}
+        for group in SYSTEM_GROUPS:
+            choices = QHBoxLayout()
+            for label, _ in group:
+                check = QCheckBox(label)
+                check.setChecked(label not in settings.hidden)
+                self.system_checks[label] = check
+                choices.addWidget(check)
+            layout.addLayout(choices)
+        self.portrait = settings.portrait
+        portrait_row = QHBoxLayout()
+        self.picture_label = QLabel()
+        self.update_picture_label()
+        portrait_row.addWidget(self.picture_label, 1)
+        choose = QPushButton('Choose portrait…')
+        choose.clicked.connect(self.choose_picture)
+        portrait_row.addWidget(choose)
+        reset = QPushButton('Use Start icon')
+        reset.clicked.connect(lambda: self.set_picture(''))
+        portrait_row.addWidget(reset)
+        layout.addLayout(portrait_row)
         self.notice = QLabel(settings.error or 'Changes are saved only when you choose Save. Escape cancels.')
         self.notice.setWordWrap(True)
         layout.addWidget(self.notice)
@@ -254,6 +359,34 @@ class FolderEditor(QDialog):
             self.populate(links)
             self.table.selectRow(len(links) - 1)
 
+    def update_picture_label(self):
+        self.picture_label.setText('Portrait · ' + (Path(self.portrait).name if self.portrait else 'Start icon'))
+        self.picture_label.setToolTip(self.portrait)
+
+    def set_picture(self, path):
+        self.portrait = path
+        self.update_picture_label()
+
+    def choose_picture(self):
+        path, _ = QFileDialog.getOpenFileName(self, 'Choose Start menu portrait', '', 'Pictures (*.png *.jpg *.jpeg *.webp *.svg)')
+        if path:
+            if QIcon(path).pixmap(76, 76).isNull():
+                self.notice.setText('The selected picture could not be loaded.')
+            else:
+                self.set_picture(path)
+
+    def change_folder(self):
+        row = self.table.currentRow()
+        if row < 0:
+            return
+        links = self.values()
+        path = QFileDialog.getExistingDirectory(self, 'Change folder destination', link_path(links[row]))
+        if path:
+            links[row].pop('standard', None)
+            links[row]['path'] = path
+            self.populate(links)
+            self.table.selectRow(row)
+
     def move(self, delta):
         row = self.table.currentRow()
         other = row + delta
@@ -271,7 +404,7 @@ class FolderEditor(QDialog):
 
     def save(self):
         try:
-            self.settings.save(self.values())
+            self.settings.save(self.values(), hidden=[k for k, v in self.system_checks.items() if not v.isChecked()], portrait=self.portrait)
         except (OSError, ValueError) as error:
             self.notice.setText(str(error))
             return
@@ -380,16 +513,21 @@ class StartMenu(QWidget):
         self.by_id = {app.get_id(): app for app in self.apps}
         self.state = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'lxqt-comfort/favorites.json'
         self.favorites = []
-        self.state_original = self.state.read_bytes() if self.state.exists() else None
+        self.state_original = None
         self.recent = RecentPrograms(self.state.with_name('recent.json'))
         self.state_error = None
         try:
-            value = json.loads(self.state.read_text())
+            if not self.state.exists():
+                try:
+                    save_json(self.state, default_pins(self.by_id), None)
+                except (FileExistsError, ValueError):
+                    if not self.state.is_file() or self.state.is_symlink():
+                        raise
+            self.state_original = self.state.read_bytes()
+            value = json.loads(self.state_original)
             if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
                 raise ValueError('Favorites must be a list of desktop IDs')
             self.favorites = value
-        except FileNotFoundError:
-            pass
         except (OSError, ValueError) as error:
             self.state_error = str(error)
         root = QVBoxLayout(self)
@@ -400,21 +538,13 @@ class StartMenu(QWidget):
         body = QHBoxLayout(frame)
         body.setContentsMargins(10, 14, 10, 12)
         body.setSpacing(6)
-        self.mascot = None
-        personal_icon = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)) / 'lxqt-comfort/start-icon.png'
-        portrait_icon = personal_icon if personal_icon.is_file() else Path(__file__).with_name('start.svg')
-        framed = personal_icon.with_name('framed-start-icon.png')
-        if framed.is_file():
-            portrait_icon = framed
-        if portrait_icon.is_file():
-            self.mascot = mascot = QLabel(self)
-            mascot.setObjectName('personalStartImage')
-            mascot.setFixedSize(88, 88)
-            mascot.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            mascot.setAccessibleName('Personal Start image' if personal_icon.is_file() else 'Start image')
-            if portrait_icon == framed:
-                mascot.setStyleSheet('background: transparent; border: none;')
-            mascot.setPixmap(QIcon(str(portrait_icon)).pixmap(QSize(88, 88) if portrait_icon == framed else QSize(76, 76)))
+        self.folder_settings = FolderSettings(self.state.with_name('folders.json'))
+        self.mascot = QLabel(self)
+        self.mascot.setObjectName('personalStartImage')
+        self.mascot.setFixedSize(88, 88)
+        self.mascot.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mascot.setAccessibleName('Start menu portrait')
+        self.refresh_portrait()
         apps_panel = QWidget()
         apps_panel.setObjectName('applicationsPanel')
         left = QVBoxLayout(apps_panel)
@@ -437,16 +567,6 @@ class StartMenu(QWidget):
         self.list.itemClicked.connect(self.launch_item)
         self.list.itemActivated.connect(self.launch_item)
         left.addWidget(self.list)
-        self.shortcuts_heading = QLabel('Applications')
-        self.shortcuts_heading.setObjectName('pinnedHeading')
-        left.addWidget(self.shortcuts_heading)
-        self.shortcuts = QListWidget()
-        self.shortcuts.setAccessibleName('Common applications')
-        self.shortcuts.setIconSize(QSize(32, 32))
-        self.shortcuts.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.shortcuts.itemClicked.connect(self.launch_item)
-        self.shortcuts.itemActivated.connect(self.launch_item)
-        left.addWidget(self.shortcuts)
         self.search = QLineEdit()
         self.search.setPlaceholderText('Search programs…')
         self.search.addAction(QIcon.fromTheme('edit-find'), QLineEdit.ActionPosition.LeadingPosition)
@@ -464,13 +584,13 @@ class StartMenu(QWidget):
         places_panel.setObjectName('placesPanel')
         right = QVBoxLayout(places_panel)
         right.setContentsMargins(4, 38, 3, 2)
-        self.folder_settings = FolderSettings(self.state.with_name('folders.json'))
         area = QScrollArea()
         area.setWidgetResizable(True)
         area.setFrameShape(QScrollArea.Shape.NoFrame)
         contents = QWidget()
         self.folder_layout = QVBoxLayout(contents)
         self.folder_layout.setContentsMargins(0, 0, 0, 0)
+        self.folder_layout.setSpacing(2)
         area.setWidget(contents)
         right.addWidget(area, 1)
         self.refresh_folders()
@@ -500,16 +620,12 @@ class StartMenu(QWidget):
         options.setMenu(options_menu)
         right.addWidget(options)
 
-        settings = QPushButton(QIcon.fromTheme('preferences-system'), 'LXQt settings')
-        settings.setObjectName('menuControl')
-        settings.clicked.connect(lambda: self.run_desktop('lxqt-config.desktop'))
-        right.addWidget(settings)
         power = QHBoxLayout(); power.setSpacing(0)
         self.session_button = QPushButton(QIcon.fromTheme('system-shutdown'), 'Shut down…')
         self.session_button.setObjectName('menuControl')
         self.session_button.setProperty('sessionPrimary', True)
         self.session_button.setToolTip('Shut down the computer after confirmation. Cancel is selected by default.')
-        self.session_button.setEnabled(Gio.DesktopAppInfo.new('lxqt-shutdown.desktop') is not None)
+        self.session_button.setEnabled(desktop_entry('lxqt-shutdown.desktop') is not None)
         self.session_button.clicked.connect(lambda: self.session_action('shutdown'))
         power.addWidget(self.session_button, 1)
         self.power_arrow = QPushButton('▾')
@@ -521,7 +637,7 @@ class StartMenu(QWidget):
         for action_id in ('lockscreen', 'logout', 'suspend', 'hibernate', 'reboot'):
             label, icon = SESSION_ACTIONS[action_id]
             action = self.power_menu.addAction(QIcon.fromTheme(icon), label + ('' if action_id == 'lockscreen' else '…'))
-            action.setEnabled(Gio.DesktopAppInfo.new('lxqt-'+action_id+'.desktop') is not None)
+            action.setEnabled(desktop_entry('lxqt-'+action_id+'.desktop') is not None)
             action.triggered.connect(lambda checked=False, action_id=action_id: self.session_action(action_id))
         self.power_menu.addSeparator()
         self.power_menu.addAction('All session options…', lambda: self.session_action('options'))
@@ -530,14 +646,14 @@ class StartMenu(QWidget):
         right.addLayout(power)
         body.addWidget(places_panel, 2)
         self.list.setToolTip('Drag pins to reorder. Right-click a program for more options.')
-        self.setStyleSheet('''
+        style = '''
             QWidget { color: #351329; background: transparent; }
             QWidget#glassFrame {
                 background: qlineargradient(x1:0,y1:0,x2:1,y2:0.78,stop:0 #f8b9df,stop:0.12 #993d71,stop:0.28 #e19dc5,stop:0.46 #86345e,stop:0.49 #b54e83,stop:0.68 #713452,stop:0.86 #b85187,stop:1 #f6b2d5);
-                border: 3px solid #ffe2f3; border-radius: 15px;
+                border: 1px solid #965474; border-radius: 15px;
             }
-            QWidget#applicationsPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:0.7,stop:0 #fff9fd,stop:0.44 #fbeaf5,stop:0.47 #fff5fc,stop:0.76 #f8d9ed,stop:1 #fff5fb); border: 2px solid #fff6fc; border-radius: 9px; }
-            QLabel#personalStartImage { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #ffffff,stop:0.52 #ffe0f2,stop:1 #e7aaca); border: 3px solid #883c69; border-radius: 11px; }
+            QWidget#applicationsPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:0.7,stop:0 #fff9fd,stop:0.44 #fbeaf5,stop:0.47 #fff5fc,stop:0.76 #f8d9ed,stop:1 #fff5fb); border: 1px solid #d9acc7; border-radius: 9px; }
+            QLabel#personalStartImage { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #ffffff,stop:0.52 #ffe0f2,stop:1 #e7aaca); border: 1px solid #883c69; border-radius: 11px; }
             QWidget#placesPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:0.8,stop:0 #a24877,stop:0.39 #783251,stop:0.43 #9e4672,stop:0.65 #773353,stop:1 #9d4772); border-radius: 7px; }
             QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton { color: #fff5fb; }
             QLabel#pinnedHeading { font-weight: bold; padding: 4px 7px; }
@@ -547,7 +663,7 @@ class StartMenu(QWidget):
             QListWidget::item:selected { background: #edafd2; border: 1px solid #ad5086; color: #351329; border-radius: 4px; }
             QPushButton { text-align: left; padding: 12px; border: 1px solid transparent; border-radius: 5px; }
             QListWidget::item:hover { background: #f5d1e6; border-radius: 4px; }
-            QPushButton#folderLink { padding: 6px 8px; }
+            QPushButton#folderLink { padding: 3px 8px; }
             QPushButton#menuControl { padding: 5px 8px; }
             QPushButton[sessionPrimary="true"] { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #934369,stop:1 #6f294c); border: 1px solid #dca5c5; border-top-right-radius: 0; border-bottom-right-radius: 0; }
             QPushButton#powerMenuArrow { padding: 5px 2px; background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #934369,stop:1 #6f294c); border: 1px solid #dca5c5; border-top-left-radius: 0; border-bottom-left-radius: 0; }
@@ -565,7 +681,13 @@ class StartMenu(QWidget):
             QMenu { background: #fff2f9; color: #351329; border: 1px solid #aa4a7c; }
             QMenu::item:selected { background: #eaa6c8; }
             QMenu::item:disabled { color: #684b5c; }
-        ''')
+        '''
+        if has_compositor():
+            for color in ('#f8b9df', '#993d71', '#e19dc5', '#86345e', '#b54e83', '#713452', '#b85187', '#f6b2d5'):
+                style = style.replace(color, '#d8' + color[1:])
+            for color in ('#a24877', '#783251', '#9e4672', '#773353', '#9d4772'):
+                style = style.replace(color, '#ed' + color[1:])
+        self.setStyleSheet(style)
         self.search.textChanged.connect(self.refresh)
         self.category.currentTextChanged.connect(self.refresh)
         self.search.returnPressed.connect(lambda: self.launch_item(self.list.currentItem()))
@@ -593,7 +715,43 @@ class StartMenu(QWidget):
             button.setToolTip(path or 'Folder location is not configured')
             button.clicked.connect(lambda checked=False, p=path: self.open_folder(p))
             self.folder_layout.addWidget(button)
+        for group in SYSTEM_GROUPS:
+            entries = [(label, ids) for label, ids in group if label not in self.folder_settings.hidden]
+            if entries and self.folder_layout.count():
+                divider = QWidget()
+                divider.setFixedHeight(1)
+                divider.setStyleSheet('background: rgba(255,225,244,80);')
+                self.folder_layout.addWidget(divider)
+            for label, ids in entries:
+                button = QPushButton(label)
+                button.setObjectName('folderLink')
+                if label == 'Games':
+                    button.clicked.connect(self.show_games)
+                elif label == 'Computer':
+                    button.clicked.connect(lambda: self.open_folder('/'))
+                else:
+                    desktop = available_entry(ids)
+                    button.setEnabled(desktop is not None)
+                    button.setToolTip(desktop or f'{label} is not installed')
+                    button.clicked.connect(lambda checked=False, entry=desktop: self.run_desktop(entry))
+                self.folder_layout.addWidget(button)
         self.folder_layout.addStretch()
+
+    def show_games(self):
+        self.search.clear()
+        self.category.setCurrentText('Game')
+
+    def refresh_portrait(self):
+        art = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)) / 'lxqt-comfort'
+        framed = art / 'framed-start-icon.png'
+        for path in (Path(self.folder_settings.portrait), framed, art / 'start-icon.png', Path(__file__).with_name('start.svg')):
+            if path.is_file():
+                size = 88 if path == framed else 76
+                pixmap = QIcon(str(path)).pixmap(size, size)
+                if not pixmap.isNull():
+                    self.mascot.setStyleSheet('background: transparent; border: none;' if path == framed else '')
+                    self.mascot.setPixmap(pixmap)
+                    return
 
     def edit_folders(self):
         app = QApplication.instance()
@@ -607,6 +765,7 @@ class StartMenu(QWidget):
         try:
             editor.exec()
             self.refresh_folders()
+            self.refresh_portrait()
         finally:
             import shiboken6
             shiboken6.delete(editor)
@@ -723,29 +882,6 @@ class StartMenu(QWidget):
             self.list.addItem(item)
         self.list.setDragEnabled(self.can_reorder_pins())
         self.list.setCurrentRow(0)
-        self.shortcuts.clear()
-        if not back and len(pinned) < 4:
-            defaults = [Gio.AppInfo.get_default_for_uri_scheme('https'),
-                        Gio.AppInfo.get_default_for_type('inode/directory', False),
-                        Gio.DesktopAppInfo.new('qterminal.desktop'),
-                        Gio.AppInfo.get_default_for_type('text/plain', False),
-                        Gio.AppInfo.get_default_for_type('image/png', False),
-                        Gio.AppInfo.get_default_for_type('audio/mpeg', False),
-                        Gio.DesktopAppInfo.new('lxqt-config.desktop')]
-            seen = set(self.favorites)
-            for app in defaults:
-                if app and app.get_id() in self.by_id and app.get_id() not in seen:
-                    item = QListWidgetItem(icon_for(app), app.get_display_name())
-                    item.setData(Qt.ItemDataRole.UserRole, app.get_id())
-                    self.shortcuts.addItem(item)
-                    seen.add(app.get_id())
-        show_shortcuts = bool(self.shortcuts.count())
-        self.shortcuts.setVisible(show_shortcuts)
-        self.shortcuts_heading.setVisible(show_shortcuts)
-        self.list.setMaximumHeight(max(1, self.list.sizeHintForRow(0)) * len(pinned) + 4
-                                   if show_shortcuts else 16777215)
-        self.list.setVisible(bool(pinned) or not show_shortcuts)
-        self.pinned_heading.setVisible(not back and (bool(pinned) or not show_shortcuts))
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -819,7 +955,7 @@ class StartMenu(QWidget):
             self.error('Unknown session action.')
             return
         desktop_id = 'lxqt-leave.desktop' if action_id == 'options' else 'lxqt-' + action_id + '.desktop'
-        app = Gio.DesktopAppInfo.new(desktop_id)
+        app = desktop_entry(desktop_id)
         if app is None:
             self.error(f'{desktop_id} is not installed.')
             return
@@ -860,7 +996,7 @@ class StartMenu(QWidget):
             self.error(str(error))
 
     def run_desktop(self, desktop_id):
-        app = Gio.DesktopAppInfo.new(desktop_id)
+        app = desktop_entry(desktop_id)
         if app is None:
             self.error(f'{desktop_id} is not installed.')
             return

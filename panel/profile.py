@@ -100,6 +100,7 @@ def profile(original, home, launchers, hidden):
             result.remove(clock)
         result.append(clock)
         cfg.setValue(clock+'/alignment','Right')
+        cfg.setValue(clock+'/doroshellTwoLine',True)
         cfg.setValue(clock+'/formatType','short-timeonly')
         cfg.setValue(clock+'/dateFormatType','short')
         cfg.setValue(clock+'/showDate',True)
