@@ -5,6 +5,9 @@ parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--binary',required=True)
 parser.add_argument('--run',action='store_true')
 parser.add_argument('--fallback-context',action='store_true')
+parser.add_argument('--contrast-only',action='store_true',help='Private white-bell popup contrast regression only')
+parser.add_argument('--palette',choices=('windows','polar','heretic','spring'))
+parser.add_argument('--contrast-output')
 args=parser.parse_args()
 if not args.run:parser.error('Pass --run to allow disposable windows and mouse/keyboard simulation')
 from pathlib import Path
@@ -28,7 +31,10 @@ class Item(dbus.service.Object):
  def Get(self,interface,key):
   if key=='Menu' and args.fallback_context:raise dbus.exceptions.DBusException('No menu',name='org.freedesktop.DBus.Error.UnknownProperty')
   values={'Category':'ApplicationStatus','Id':'DoroTest','Title':'DoroShellSyntheticTray','Status':'Active','WindowId':dbus.Int32(0),'ItemIsMenu':False,'IconName':'','IconThemePath':'','Menu':dbus.ObjectPath('/Menu'),'OverlayIconName':'','AttentionIconName':'','AttentionMovieName':''}
-  pix=dbus.Array([dbus.Struct((dbus.Int32(24),dbus.Int32(24),dbus.ByteArray(bytes([255,237,1,201])*24*24)),signature='iiay')],signature='(iiay)')
+  pixels=bytes([255,237,1,201])*24*24
+  if args.contrast_only:
+   pixels=bytes(c for y in range(24) for x in range(24) for c in ([255,255,255,255] if (7<=x<=16 and 7<=y<=16) or (5<=x<=18 and 17<=y<=18) or (10<=x<=13 and 20<=y<=21) else [0,0,0,0]))
+  pix=dbus.Array([dbus.Struct((dbus.Int32(24),dbus.Int32(24),dbus.ByteArray(pixels)),signature='iiay')],signature='(iiay)')
   values.update(IconPixmap=pix,OverlayIconPixmap=dbus.Array([],signature='(iiay)'),AttentionIconPixmap=pix,ToolTip=dbus.Struct(('',pix,'DoroShellSyntheticTray','Synthetic test icon'),signature='sa(iiay)ss'))
   return values[key]
  @dbus.service.method('org.kde.StatusNotifierItem',in_signature='ii',out_signature='')
@@ -70,6 +76,11 @@ def windows(pid):
  scan(root);return found
 with tempfile.TemporaryDirectory(prefix='doroshell-native-tray-') as tmp:
  home=Path(tmp);conf=home/'panel.conf'
+ if args.palette:
+  sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+  from themes import PALETTES,theme_files
+  for name,content in theme_files(PALETTES[args.palette]).items():
+   path=home/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content)
  conf.write_text('panels=panel1\n[panel1]\nplugins=taskbar,statusnotifier\nposition=Bottom\ndoroshellTheme=true\nwidth=900\nwidth-percent=false\nreserve-space=false\npanelSize=40\n[taskbar]\ntype=taskbar\nbuttonStyle=Icon\nbuttonWidth=48\niconByClass=false\ngroupingEnabled=true\nshowOnlyOneDesktopTasks=false\n[statusnotifier]\ntype=statusnotifier\nalignment=Right\ndoroshellPopup=true\ndoroshellCollapseNew=true\n')
  env=dict(os.environ,HOME=tmp,XDG_CONFIG_HOME=tmp+'/.config',XDG_DATA_HOME=tmp+'/.local/share',XDG_CACHE_HOME=tmp+'/.cache')
  testwindow=QWidget();testwindow.setWindowTitle('DoroShell disposable task');testwindow.resize(240,160)
@@ -95,6 +106,25 @@ with tempfile.TemporaryDirectory(prefix='doroshell-native-tray-') as tmp:
   assert len(popups)==1, ('Hidden tray popup did not open', pos.x, pos.y, g.width, g.height, root.get_geometry().width)
   popup=popups[0]
   pp=root.translate_coords(popup,0,0);pg=popup.get_geometry()
+  if args.contrast_only:
+   assert os.environ.get('DOROSHELL_TEST_DISPLAY')==os.environ.get('DISPLAY')!=':0'
+   assert not d.get_selection_owner(d.intern_atom('_NET_WM_CM_S0'))
+   for phase in ('normal','hover','focus'):
+    if phase=='hover':xtest.fake_input(d,X.MotionNotify,x=pp.x+pg.width//2,y=pp.y+pg.height//2);d.sync()
+    if phase=='focus':
+     code=d.keysym_to_keycode(XK.string_to_keysym('Tab'));xtest.fake_input(d,X.KeyPress,code);xtest.fake_input(d,X.KeyRelease,code);d.sync()
+    wait(.3)
+    image=app.primaryScreen().grabWindow(popup.id).toImage()
+    bg=image.pixelColor(11,11)
+    linear=lambda v:v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4
+    luminance=sum(weight*linear(value/255) for weight,value in zip((.2126,.7152,.0722),(bg.red(),bg.green(),bg.blue())))
+    assert 1.05/(luminance+.05)>=4.5,(phase,bg.name(),'white glyph contrast')
+    white=sum(min(image.pixelColor(x,y).red(),image.pixelColor(x,y).green(),image.pixelColor(x,y).blue())>245 for x in range(15,image.width()-15) for y in range(15,image.height()-15))
+    assert white>=5,(phase,'white bell missing')
+    if args.contrast_output:image.save(args.contrast_output+'-'+phase+'.png')
+   print('PASS white bell contrast in normal/hover/keyboard-focus popup:',args.palette or 'native default',flush=True)
+   raise SystemExit(0)
+
   xtest.fake_input(d,X.MotionNotify,x=pp.x+pg.width//2,y=pp.y+pg.height//2);xtest.fake_input(d,X.ButtonPress,1);xtest.fake_input(d,X.ButtonRelease,1);d.sync();wait(.4)
   assert activated,'Synthetic tray icon did not receive activation'
   count=len(activated);key=d.keysym_to_keycode(XK.string_to_keysym('Return'));xtest.fake_input(d,X.KeyPress,key);xtest.fake_input(d,X.KeyRelease,key);d.sync();wait(.4)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Independent, reversible desktop modules. No package installation or session logout."""
 import argparse
+from contextlib import contextmanager, nullcontext
 import base64
 import json
 import os
@@ -14,7 +15,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent
 TASKBAR_SIZES = {'small': (20, 36), 'medium': (28, 48), 'large': (36, 56)}
-MODULES = ('taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
+MODULES = ('wallpaper-glass', 'wallpaper', 'theme', 'taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
 
 
 def ini_value(text, section, key):
@@ -39,12 +40,24 @@ def ini_set(text, section, key, value):
     return text[:match.end()]+body+text[stop:]
 
 
-def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None):
+def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None):
+    if module == 'wallpaper':
+        from wallpaper.install import plans as wallpaper_plans
+        return wallpaper_plans(home, wallpaper_binary)
+    if module == 'theme':
+        from themes import plans as theme_plans
+        return theme_plans(home, theme)
     edits = []
     def file(name, data, mode=0o644):
         edits.append({'file':name,'kind':'file','after':base64.b64encode(data).decode(),'mode':mode})
     def ini(name, section, key, value):
         edits.append({'file':name,'kind':'ini','section':section,'key':key,'after':value})
+    if module == 'wallpaper-glass':
+        config_root = os.environ.get('XDG_CONFIG_HOME')
+        if Path(home) == Path.home() and config_root and Path(config_root) != Path(home)/'.config':
+            raise ValueError('Wallpaper glass setup requires the standard ~/.config directory; custom XDG_CONFIG_HOME is not supported')
+        file('.config/doroshell/wallpaper-glass.json', b'{\n  \"version\": 1,\n  \"enabled\": true\n}\n')
+        return edits
     if module in ('snapping','screenshots'):
         script = 'snap' if module=='snapping' else 'screenshot'
         if module=='screenshots':
@@ -140,6 +153,19 @@ def read_value(edit, data):
     text=(data or b'').decode()
     if edit['kind']=='ini':
         return ini_value(text,edit['section'],edit['key'])
+    if edit['kind'] == 'obtheme':
+        if not text.strip():
+            raise RuntimeError('An existing Openbox rc.xml is required; start an LXQt/Openbox session first')
+        ET.fromstring(text)
+        blocks = re.findall(r'<theme\b[^>]*>(.*?)</theme>', text, re.S)
+        if not blocks:
+            return None
+        if len(blocks) != 1:
+            raise RuntimeError('Expected one Openbox theme section')
+        names = re.findall(r'<name>(.*?)</name>', blocks[0], re.S)
+        if len(names) > 1:
+            raise RuntimeError('Expected one Openbox theme name')
+        return names[0] if names else None
     if edit['kind'] in ('desktop', 'firstdesk'):
         # Validate XML, but edit only the owned element to preserve formatting/comments.
         tree = ET.fromstring(text)
@@ -168,6 +194,20 @@ def write_value(edit, data, value):
     text=(data or b'').decode()
     if kind=='ini':
         return ini_set(text,edit['section'],edit['key'],value).encode()
+    if kind == 'obtheme':
+        read_value(edit, data)
+        if not re.search(r'<theme\b', text):
+            if value is None:
+                return data
+            if text.count('</openbox_config>') != 1:
+                raise RuntimeError('Expected Openbox configuration root')
+            return text.replace('</openbox_config>', '<theme><name>'+value+'</name></theme></openbox_config>').encode()
+        def update_theme(match):
+            body = match[2]
+            replacement = '<name>'+value+'</name>' if value is not None else ''
+            body = re.sub(r'<name>.*?</name>', lambda _: replacement, body, flags=re.S) if '<name>' in body else replacement+body
+            return match[1]+body+match[3]
+        return re.sub(r'(<theme\b[^>]*>)(.*?)(</theme>)', update_theme, text, count=1, flags=re.S).encode()
     if kind in ('desktop', 'firstdesk'):
         read_value(edit, data)
         tag = 'number' if kind=='desktop' else 'firstdesk'
@@ -239,7 +279,34 @@ def live_print_change(path, original, desired):
     return apply
 
 
-def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None):
+@contextmanager
+def theme_transaction(manifest, original, changed, modes):
+    """Recover an interrupted theme switch, including its original backup record."""
+    old_manifest = manifest.read_bytes() if manifest.exists() else None
+    old_mode = manifest.stat().st_mode & 0o777 if manifest.exists() else 0o600
+    attempted = {}
+    original_modes = dict(modes)
+    try:
+        yield attempted
+    except OSError:
+        for path, previous in reversed(list(original.items())):
+            current = path.read_bytes() if path.exists() else None
+            if current == previous:
+                continue
+            if current != attempted.get(path, changed[path]):
+                raise RuntimeError('Concurrent edit during failed theme apply; retained recovery manifest: '+str(path))
+            if previous is None:
+                path.unlink(missing_ok=True)
+            else:
+                atomic(path, previous, original_modes[path])
+        if old_manifest is None:
+            manifest.unlink(missing_ok=True)
+        else:
+            atomic(manifest, old_manifest, old_mode)
+        raise
+
+
+def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None):
     if module not in MODULES:
         raise ValueError("Unknown module")
     manifest=home/'.local/state/doroshell'/f'{module}.json'
@@ -263,7 +330,7 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
                     edit['section'] = groups[0]
                     if read_value(edit,current)!=edit['after']:
                         raise RuntimeError('The renumbered Print shortcut was edited; refusing to change it.')
-    edits=saved['edits'] if rollback else plans(home,module,taskbar_style,taskbar_size,native_preview)
+    edits=saved['edits'] if rollback else plans(home,module,taskbar_style,taskbar_size,native_preview,theme,wallpaper_binary)
     if not edits:
         print(module+': existing icon taskbar retained')
         return
@@ -306,37 +373,41 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
     update_print = None
     if active_print and original[shortcuts] != changed[shortcuts]:
         update_print = live_print_change(shortcuts, original[shortcuts], changed[shortcuts])
-    if not rollback:
-        backup=dict(saved['backup']) if saved else {}
-        for p,v in original.items():
-            backup.setdefault(str(p.relative_to(home)), {'data':base64.b64encode(v).decode() if v is not None else None,'mode':modes[p]})
-        atomic(manifest,(json.dumps({'edits':record,'backup':backup},indent=2)+'\n').encode())
-    if rollback and update_print:
-        update_print()
-    for path,data in changed.items():
-        if path == shortcuts and update_print:
-            if not rollback:
-                update_print()
-            continue
+    transaction = theme_transaction(manifest, original, changed, modes) if module in ('theme','wallpaper') else nullcontext()
+    with transaction as attempted:
+        if not rollback:
+            backup=dict(saved['backup']) if saved else {}
+            for p,v in original.items():
+                backup.setdefault(str(p.relative_to(home)), {'data':base64.b64encode(v).decode() if v is not None else None,'mode':modes[p]})
+            atomic(manifest,(json.dumps({'edits':record,'backup':backup},indent=2)+'\n').encode())
+        if rollback and update_print:
+            update_print()
+        for path,data in changed.items():
+            if path == shortcuts and update_print:
+                if not rollback:
+                    update_print()
+                continue
+            if rollback:
+                before=saved['backup'][str(path.relative_to(home))]
+                # Restore exact bytes when no unrelated changes occurred.
+                base=base64.b64decode(before['data']) if before['data'] is not None else None
+                installed=base
+                for edit in saved['edits']:
+                    if home/edit['file']==path:
+                        installed=write_value(edit,installed,edit['after'])
+                if original[path]==installed:
+                    data=base
+                    modes[path]=before['mode']
+            if data==original[path]:
+                continue
+            if attempted is not None:
+                attempted[path] = data
+            if data is None:
+                path.unlink(missing_ok=True)
+            else:
+                atomic(path,data,modes[path])
         if rollback:
-            before=saved['backup'][str(path.relative_to(home))]
-            # Restore exact bytes when no unrelated changes occurred.
-            base=base64.b64decode(before['data']) if before['data'] is not None else None
-            installed=base
-            for edit in saved['edits']:
-                if home/edit['file']==path:
-                    installed=write_value(edit,installed,edit['after'])
-            if original[path]==installed:
-                data=base
-                modes[path]=before['mode']
-        if data==original[path]:
-            continue
-        if data is None:
-            path.unlink(missing_ok=True)
-        else:
-            atomic(path,data,modes[path])
-    if rollback:
-        manifest.unlink()
+            manifest.unlink()
 
 
 def refresh_dockbarx():
@@ -352,6 +423,8 @@ if __name__=='__main__':
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--home',type=Path,default=Path.home())
     parser.add_argument('--live',action='store_true')
+    parser.add_argument('--wallpaper-binary', type=Path)
+    parser.add_argument('--theme', choices=('windows','polar','heretic','spring'), default='windows')
     parser.add_argument('--native-preview', type=Path)
     parser.add_argument('--taskbar-size', choices=TASKBAR_SIZES, default='medium')
     parser.add_argument('--taskbar-style', choices=('icons','standard'), default='icons')
@@ -362,6 +435,18 @@ if __name__=='__main__':
     if os.geteuid()==0:
         parser.error('Run as your desktop user, not root')
     components={'screenshots':['lxqt-globalkeysd'], 'taskbar':['lxqt-panel']}.get(args.module,[])
+    if args.module in ('theme', 'wallpaper', 'wallpaper-glass'):
+        if args.live:
+            parser.error('Theme settings apply on normal application/desktop startup; --live is unsupported')
+        # Serialize theme switch/restore against another setup process.
+        import fcntl
+        lock = args.home/'.local/state/doroshell'/f'{args.module}.lock'
+        safe(lock, args.home)
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        with lock.open('a') as stream:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+            run(args.home, args.module, args.apply, args.rollback, theme=args.theme, wallpaper_binary=args.wallpaper_binary)
+        raise SystemExit(0)
     if args.module == 'screenshots' and (args.apply or args.rollback) and args.home.resolve() == Path.home().resolve():
         if subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', '^/usr/bin/lxqt-globalkeysd$'], stdout=subprocess.DEVNULL).returncode == 0:
             run(args.home, args.module, args.apply, args.rollback, active_print=True, native_preview=args.native_preview)

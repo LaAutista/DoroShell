@@ -10,7 +10,9 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
 
 ROOT = Path(__file__).resolve().parent
 OPTIONS = [
-    ('menu', 'Pink Start menu'),
+    ('menu', 'Start menu'),
+    ('theme', 'Coordinated Doro theme'),
+    ('wallpaper-glass', 'Wallpaper glass (no compositor)'),
     ('panel', 'Start button and Alt+F1'),
     ('native-panel', 'Enable at next login'),
     ('taskbar-size', 'Taskbar icon and button size'),
@@ -30,7 +32,7 @@ PAGES = [
     ('Start Menu', ('menu', 'panel')),
     ('Taskbar & Windows', ('native-panel', 'taskbar-size', 'snapping', 'single-desktop', 'taskbar', 'taskbar-drag')),
     ('Screenshots', ('screenshots',)),
-    ('Apps & Themes', ('kate', 'dolphin', 'kate-dark', 'dolphin-dark')),
+    ('Apps & Themes', ('theme', 'wallpaper-glass', 'kate', 'dolphin', 'kate-dark', 'dolphin-dark')),
     ('Cursor', ('cursor',)),
 ]
 
@@ -118,7 +120,14 @@ class Settings(QWidget):
                 choice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
                 choice.setMinimumContentsLength(12)
                 choice.addItem('Keep unchanged', 'keep')
-                if module == 'taskbar-size':
+                if module == 'theme':
+                    for key,theme_label in [('windows','Windows Doro'),('polar','Polar Doro'),('heretic','Heretic Doro'),('spring','Spring Doro')]:
+                        choice.addItem(theme_label,key)
+                    choice.setToolTip('Styles Start, the theme-capable DoroShell panel, LXQt, Dolphin, Kate and Openbox at normal startup. GTK apps are unaffected. Restore overlapping app themes in reverse order.')
+                elif module == 'wallpaper-glass':
+                    choice.addItem('Enable wallpaper glass', 'enable')
+                    choice.setToolTip('Frozen blur/tint from the standard PCManFM-Qt wallpaper, not moving-window transparency. Start updates on its next open; taskbar needs a glass-capable DoroShell panel. Animated wallpaper stays frozen. Restore returns the previous setting.')
+                elif module == 'taskbar-size':
                     for name, pixels in [('Small', 20), ('Medium', 28), ('Large', 36)]:
                         choice.addItem(f'{name} ({pixels} px icons)', name.lower())
                     choice.setToolTip('Applies to the DoroShell panel at its next startup.')
@@ -143,11 +152,15 @@ class Settings(QWidget):
                     form.addRow(self.live)
             area.setWidget(content); self.pages.addWidget(area); forms[title] = content.layout()
         self.icon = self.file_row(forms['Start Menu'], 'Personal Start image', 'Images (*.png *.jpg *.webp *.svg)')
-        self.note(forms['Start Menu'],'In Start, right-click an app to pin it and drag pins to reorder them. Menu options controls recent programs and history. Edit folder links changes the shortcuts in the right column.')
+        self.note(forms['Start Menu'],'In Start, right-click an app to pin it and drag pins to reorder them. Menu options controls recent programs, history and the primary session button. Edit folder links changes the shortcuts in the right column.')
         self.start_link = QPushButton('Open Start menu')
         self.start_link.clicked.connect(self.open_start)
         self.start_link.setEnabled(self.start_entry().is_file())
         forms['Start Menu'].addRow(self.start_link)
+        self.wallpaper_controls = QPushButton('Wallpaper controls…')
+        self.wallpaper_controls.setToolTip('Prepare local media choices; does not enable or replace the running desktop.')
+        self.wallpaper_controls.clicked.connect(self.open_wallpaper)
+        forms['Apps & Themes'].addRow(self.wallpaper_controls)
         self.gif = self.file_row(forms['Cursor'], 'Spinning animation', 'Animations (*.gif *.webp *.apng *.png)')
         self.pink = QCheckBox('Use pink ordinary pointer')
         self.pink.setToolTip('Off keeps your normal inherited pointer; only the loading cursor changes.')
@@ -208,6 +221,17 @@ class Settings(QWidget):
         except (GLib.Error, RuntimeError) as error:
             self.output.setPlainText(str(error))
 
+    def open_wallpaper(self):
+        process = QProcess()
+        from PySide6.QtCore import QProcessEnvironment
+        environment = QProcessEnvironment.systemEnvironment()
+        environment.insert('XDG_CONFIG_HOME', str(self.home/'.config'))
+        process.setProcessEnvironment(environment)
+        process.setProgram(sys.executable)
+        process.setArguments([str(ROOT/'wallpaper/control.py')])
+        if not process.startDetached():
+            self.output.setPlainText('Could not open animated wallpaper controls.')
+
     def update_summary(self):
         count = sum(choice.currentData() != 'keep' for choice in self.choices.values())
         self.selection_summary.setText('No changes selected' if not count else f'{count} selected change' + ('s' if count != 1 else '') + ' across all pages')
@@ -244,6 +268,7 @@ class Settings(QWidget):
                 if plan.name != 'plan.json' or not plan.is_file():
                     raise ValueError('Choose the plan.json created by panel/profile.py prepare.')
                 cmd += ['--prepared', str(plan.parent)]
+            if module=='theme' and action!='restore': cmd += ['--theme',action]
             if module=='taskbar-size' and action!='restore': cmd += ['--taskbar-size', action]
             if module=='taskbar' and action in ('icons','standard'):
                 cmd += ['--taskbar-style', action]

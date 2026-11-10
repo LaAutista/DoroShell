@@ -102,6 +102,9 @@ def targets(home, icon=None):
         icon_path = custom.with_name('framed-start-icon.png')
     desktop = '[Desktop Entry]\nType=Application\nName=DoroShell Start\nComment=Two-column application and personal folder menu\nExec="' + quoted + '"\nIcon=' + str(icon_path) + '\nTerminal=false\nCategories=Utility;\n'
     files = {app: (SOURCE.joinpath('menu/start_menu.py').read_bytes(), 0o644),
+            home / '.local/share/lxqt-comfort/wallpaper_glass.py': (SOURCE.joinpath('menu/wallpaper_glass.py').read_bytes(), 0o644),
+            home / '.local/share/lxqt-comfort/themes.py': (SOURCE.joinpath('themes.py').read_bytes(), 0o644),
+            home / '.local/share/lxqt-comfort/portrait_crop.py': (SOURCE.joinpath('menu/portrait_crop.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/start.svg': (SOURCE.joinpath('menu/start.svg').read_bytes(), 0o644),
             launcher: (wrapper.encode(), 0o755),
             home / '.local/share/applications/lxqt-comfort.desktop': (desktop.encode(), 0o644)}
@@ -109,8 +112,8 @@ def targets(home, icon=None):
         files[custom] = (custom_data, 0o644)
         files[icon_path] = (start_tile(custom_data), 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
-    for name in ['settings.py','setup.py','modules.py','cursor.py','install.py','integrate.py',
-                 'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/start.svg']:
+    for name in ['wallpaper/control.py','wallpaper/install.py','settings.py','setup.py','themes.py','modules.py','cursor.py','install.py','integrate.py',
+                 'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/portrait_crop.py','menu/wallpaper_glass.py','menu/start.svg']:
         files[toolkit/name] = ((SOURCE/name).read_bytes(), 0o644)
     settings_launcher = home / '.local/bin/doroshell-settings'
     files[settings_launcher] = (('#!/usr/bin/python\nimport runpy\nrunpy.run_path('+repr(str(toolkit/'settings.py'))+', run_name="__main__")\n').encode(), 0o755)

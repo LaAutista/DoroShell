@@ -80,3 +80,13 @@ Still required: real-application identity matching and DBusMenu breadth, attenti
 Based on [LXQt Panel](https://github.com/lxqt/lxqt-panel), tag 2.4.1, commit `cffb0cd29c6ce0360356006ce727a9b01347e062`; local build helpers use [lxqt-build-tools](https://github.com/lxqt/lxqt-build-tools) 2.4.0, commit `0f56cd400d2afcb6f16d4ca88538ed716439c2c2`.
 
 The panel changes and scripts in this directory are LGPL-2.1-or-later. Upstream copyright headers are retained in the patched source. See [license](licenses/LGPL-2.1.txt) and [upstream authors](licenses/LXQt-AUTHORS). The patch and pinned sources make the modifications reviewable/rebuildable. This declaration does not relicense unrelated DoroShell files or third-party artwork. No Doro artwork, personal panel configurations, screenshots or compiled binaries are bundled here.
+
+### Pin and unpin from the task button
+
+The optional updated panel adds **Unpin from taskbar** to closed-launcher, single-window and grouped-window context menus. Unpin changes only the saved launcher list; open windows retain their task buttons until they close naturally. **Pin to taskbar** appears for running apps with one unambiguous visible desktop entry matching their window class. With grouping disabled, existing pins can be removed but adding a unified pin is disabled. Use taskbar settings to enable grouping. Ambiguous app identities omit the Pin action rather than selecting an arbitrary launcher.
+
+`python tests/check_taskbar_pin_menu_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/lxqt-panel` checks real private-X11 menus, pin order and persistence, surviving disposable windows, unchanged desktop entries and grouped/ungrouped paths. It never removes an app or signals a personal window. A staged build takes effect only at the next normal panel/session startup.
+
+### Optional wallpaper glass
+
+The current builder also applies `patches/0002-wallpaper-glass.patch`. It adds an opt-in, asynchronous cached wallpaper backdrop to the native panel, not a compositor. Existing binaries are unchanged until rebuilt and selected through the normal next-startup workflow. Default/fallback remains the existing opaque theme. [Configuration, limits and private verification](../docs/wallpaper-glass.md).

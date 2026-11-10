@@ -1,8 +1,16 @@
-# Verification checkpoint — 2026-11-08
+# Verification status and historical checkpoints
 
-## Current core acceptance — 2026-11-09
+## Current status — 2026-11-10
 
-The current suite passes 84 automated tests. Global Print and open-Start Print use the same selection and annotation overlay. The native ScreenGrab importer was checked against every pixel of the finished crop. See [screenshot verification](screenshot-verification.md).
+The published core archive passed 84 tests. The local, unpublished optional source archive passes 99 tests after extraction. The updated menu/helpers and Pin/Unpin panel are active on the development installation; wallpaper is staged only, disabled and muted. See [final optional verification](#final-optional-candidate-verification) for the runtime evidence and [installation/restore](optional-installation.md) for dependencies and reversible setup.
+
+Still unverified: user-chosen normal login, clean CachyOS installation/upgrade/rollback, physical multi-monitor/mixed-DPI wallpaper operation, physical DPMS, broader locker compatibility and long-session performance. Private X11, temporary-home and mock-lock checks are not substitutes. No lock-screen animation is implemented.
+
+The sections below record successive checkpoints. Counts, deployment states and remaining-work lists describe that checkpoint unless explicitly marked current; later evidence supersedes them without erasing it.
+
+## Published core acceptance — 2026-11-09
+
+The published core suite passed 84 automated tests. Global Print and open-Start Print use the same selection and annotation overlay. The native ScreenGrab importer was checked against every pixel of the finished crop. See [screenshot verification](screenshot-verification.md).
 
 The updated native panel ran on the development desktop after an LXQt panel-module refresh. The same window manager and all five existing application windows remained. The 40-pixel bar showed the chevron and both clock lines with the existing icon size. On private X11, the calendar opened fully above the bar, and a synthetic notification app responded to mouse, keyboard and context actions in the overflow popup. Clock pixels and calendar bounds were also checked at scale factors 1, 1.5 and 2 with font DPI 96, 120 and 144. A real next-login check of this build and a clean CachyOS installation remain open.
 
@@ -10,7 +18,11 @@ The personal 28-frame GIF rebuilt the installed wait/progress Xcursor files byte
 
 The approved transparent APNG was installed through the cursor module after a temporary-home upgrade/repeat/rollback check. The original GIF remains private and intact. The generated wait/progress cursors and aliases matched the private X11 candidate byte for byte at all five sizes, with the original timings, hotspots and ordinary-pointer choice. No live cursor refresh was requested.
 
-## Source package acceptance
+## Current optional source packaging
+
+`DoroShell-optional-desktop-candidate.zip` is built from an explicit source-file list in the working checkout, not from the older published Git revision. Each archived file is compared byte for byte with that checkout, then all 99 automated tests run from a fresh extraction. Personal paths/configuration, screenshots, media, credentials, caches and native binaries are excluded. This verification does not publish the archive or establish fresh-install acceptance.
+
+## Published core source package acceptance
 
 The source ZIP is made from the release revision with `git archive --format=zip --prefix=DoroShell/`. It contains the neutral SVG, pinned native build scripts, patches, upstream license notices, installer, runtime and tests. Build instructions are in the [README](../README.md) and [ScreenGrab importer notes](../screengrab/README.md). From a fresh extraction, run `python -m unittest discover -s tests -v`. The private X11 checks in `tests/check_core_x11.py`, `tests/check_screengrab_import_x11.py` and `tests/check_menu_clipboard_x11.py` exercise startup, native import, clipboard handoff and rollback using temporary homes. The builds need their development dependencies and network access to the pinned upstream repositories. The X11 checks also require Xvfb, xauth, Openbox and Python Xlib. The paste check uses LibreOffice and Python UNO.
 
@@ -24,7 +36,7 @@ On the existing CachyOS install, setup updated Start, configured snapping, chang
 
 ## Previous checkpoint
 
-The current suite passes **61 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
+At this earlier checkpoint, the suite passed **61 automated tests**. Start navigation is installed from `13a1cc4`: real mouse/keyboard checks covered All Programs, typing into search, staged Escape retreat, click-away dismissal, pin dragging and persistence without launching a fixture app. Open-menu Print/cancel was rerun with a private output file and the existing clipboard remained unchanged.
 
 The native panel candidate includes the Show Desktop edge target from `f2c66ae`; a separate X11 panel rendered it at 12 pixels on the far right. A later authenticated private-X11/Openbox check verified actual mouse-click show/restore of two disposable windows in both horizontal and vertical profiles. The edge target measured 12 pixels in both orientations. Live orientation changes, pre-minimized windows and other window managers remain outside that check. Show/restore was never activated on personal windows. The personal panel was not replaced or restarted. Fresh-login, clean-install and multi-monitor/Wayland acceptance remain outstanding. The [roadmap](roadmap.md) and [native panel scope](../panel/README.md) describe remaining work.
 
@@ -75,7 +87,9 @@ Tests used temporary settings, synthetic content, dedicated test windows and (fo
 
 The earlier ScreenGrab X11 startup failure was a sandbox-access limitation. Authorized execution outside the sandbox connected successfully without changing X server permissions. The first drag-only test did not finish: this ScreenGrab selection requires Enter to confirm. The first fixed-coordinate test did not capture the intended canvas; the successful test used the test window's actual X11 coordinates and verified pixels.
 
-## Remaining acceptance work
+## Historical remaining acceptance work — early prototype
+
+This list predates unified native taskbar pins, the later screenshot checks and personal artwork installation. It is retained as historical evidence, not the current completion list. See Current status above for outstanding acceptance.
 
 - **Accurate Doro artwork:** the full-size earlier references and spinning GIF were not present in the supplied new project folder. The panel strip is insufficient for an accurate redraw. Personal image import and animated cursor support are implemented; no substitute character, third-party skin or unlicensed artwork was bundled.
 - **Fresh login and clean install:** neither was performed. One-desktop persistence and autostart require a user-chosen login and a clean CachyOS LXQt VM check.
@@ -99,3 +113,55 @@ The follow-up suite passed 39 automated tests. The hook was then enabled on the 
 ### Correction: live applet refresh is unsafe
 
 After activation, Discord reported `write EPIPE` from console logging. Read-only process inspection found its stdout/stderr pipes had writers but no reader; other running applications shared those pipes. The applet refresh is the likely cause. Checking that windows survived did not establish application health. Live DockBarX refresh is now disabled unconditionally, avoiding both inherited-pipe failures and a check-versus-restart race. Applying or restoring the hook saves files for the next normal login. No applications were closed to test recovery. The existing drag hook remains active; Discord recovery and future-login activation remain unverified.
+
+## Historical optional coordinated theme checkpoint
+
+The optional-theme working candidate passes 91 automated tests, including four-palette switch/repeat/restore, preserved personal values, conflicting edits, simulated write failure recovery and portrait-click behavior. Temporary-home setup exercised installed menu/toolkit files and theme apply/switch/rollback. A private X11 test exercised the actual portrait chooser, accepted a synthetic picture and canceled a second selection without changing it.
+
+Private X11 renders cover actual Dolphin, Kate, Openbox, Start and the separately built theme-capable panel for Windows, Polar, Heretic and Spring palettes, with a compositor. These checks do not imply clean installation, normal-login acceptance, or activation of the new panel on the personal desktop. Preview images include personal artwork and are not release assets.
+
+## Historical optional wallpaper checkpoint
+
+The combined working candidate passes 94 automated tests. The separately built PCManFM renderer passed the private-X11 acceptance check with moving video beneath clickable native icons, fullscreen and mock logind lock overlap, manual pause, private X screen-saver pause, synthetic GIF playback, a latched malformed-media error and pixel-checked restoration of the original static background. An actual Qt-controls smoke check verified Apply and Off saving choices in a temporary config directory. Setup staged the real candidate twice and restored it in a temporary home.
+
+Heretic's active/inactive Openbox client padding now follows its dark palette; focused Kate and Dolphin renders were inspected. The theme/panel and wallpaper desktop builds are separate optional candidates. They were not activated on the personal desktop. Real lock/login, physical DPMS and multiple physical monitors remain untested; no lock-screen animation is claimed.
+
+## Historical installed-controls and staged-panel checkpoint
+
+The corrected coordinated-theme caption and Wallpaper controls button pass a focused UI regression and the existing large-font/narrow-window checks. The combined suite now passes 96 tests. Installed menu/settings/helper files were compared byte for byte and by mode with the candidate.
+
+Start's already-open catalog staleness was reproduced with a disposable installed desktop entry. The fix uses Gio.AppInfoMonitor with a debounced Qt refresh, not application-directory polling. A real private-X11 install/remove/reinstall check preserved search/category/selection and missing pin records. Normal Start invocation still creates a fresh process; new installs do not become pins automatically.
+
+The new native taskbar's private test passed closed-launcher, single-window, grouped-window and ungrouped Pin/Unpin paths, pin order and persistence across a disposable panel restart, surviving fixture windows and unchanged desktop files. An ambiguous desktop identity omitted Pin, confirmed in the actual menu render. The existing native popup/context/Open/launch/drag regression also passed on this build. The final candidate was staged without replacing the running glass panel or applying appearance choices.
+
+The isolated Xvfb crash observed at 16:16 PST on 2026-11-09 belonged to a theme-rendering harness startup attempt in the restricted execution environment. That attempt failed before producing test evidence. The subsequently authorized private-display run completed successfully. The earlier failed attempt is not counted as a pass; no claim about the crash's low-level cause or GPU behavior follows from these logs.
+
+## Historical 99-test optional candidate checkpoint
+
+The combined source passes 99 automated tests. New regressions cover renderer status freshness/process identity, exact preservation and repeat/rollback of the existing Dolphin autostart hook, and printer management when print-manager/kcmshell6 are installed but systemsettings and system-config-printer are absent. Printer launch failures and missing management tools report errors.
+
+Private X11 wallpaper testing established that the stock D-Bus owner prevents an in-place binary handoff even with a different profile. The native renderer removes its status report on desktop-off while preserving an open disposable file-manager window. The full private renderer acceptance check also passed. No live desktop handoff or real lock action was attempted.
+
+The development wallpaper installation was staged with all four managed files verified and its exact original autostart baseline retained. Animation is disabled and muted. Media and the system PCManFM binary were unchanged; existing clients and monitored processes survived staging. A later independent check confirmed the staged files and binary stamp. This does not establish normal-login or clean-install acceptance.
+
+The Pin/Unpin panel was activated separately through LXQt's panel-module API. Existing clients and monitored processes survived, configuration remained unchanged, and the real closed-pin menu displayed Open/Unpin. At this checkpoint the wallpaper remained staged only; see the later deployment status below.
+
+The real private-X11 Printers check opened and rendered the KDE management window through Start. Its UI reported unavailable printing services and the optional system-config-printer support package; no service, package or printer configuration was changed. The initial probe exposed GIO rejecting the KCM desktop entry because systemsettings is absent. Detection now locates the installed module entry using Qt's standard data paths, then launches the fixed kcmshell6 command through GIO. The corrected probe passed. The installed menu was compared byte for byte with source after backup; personal pins, folders, panel and wallpaper settings were unchanged.
+
+## Non-composited responsiveness checkpoint
+
+A private X11 comparison rendered all four actual menu/panel palettes without a compositor, checked opaque samples against changing backgrounds, and recorded paired CPU, paint/damage activity and 100 synthetic search timings per palette/condition. An extra static highlight/bevel experiment was omitted after an uncertain Heretic tail-latency increase; the exact prior theme source was restored. No compositor was installed, configured or activated, and no personal theme/session was changed. The temporary package downloaded for inspection was removed; its version probe had failed on a missing library before any compositor could start. See [measurement evidence and limits](opaque-theme-verification.md). No physical input-latency guarantee is claimed.
+
+## Drag, contrast and resource fixes — 2026-11-10
+
+The final source and extracted optional archive pass 101 automated tests. An authenticated private X11 desktop verified actual Start drops onto empty taskbar space and existing task buttons, duplicate suppression, unsupported/remote/move-only rejection, cancellation, original launcher bytes/modes, unchanged Start pins and pin persistence across a disposable panel restart. PCManFM copied both pinned and searched application launchers to a desktop directory with spaces; filenames included spaces, apostrophes, ampersands and percent signs. The normal one-shot Start process also delivered both taskbar and desktop drops and exited successfully. No app was launched accidentally. Native Copy here confirmation and trust preferences were preserved.
+
+The source keeps its drag data until Qt completes the target's deferred URI transfer. Successful external drops dismiss Start so its popup mouse grab does not consume the desktop confirmation click. Internal reorder, Escape cancellation and keyboard navigation regressions passed. Split power controls passed centered-glyph checks at three font sizes and private keyboard/confirmation checks with all power dispatch mocked.
+
+The final native runtime passed existing closed/single/grouped/ungrouped Pin/Unpin checks. Synthetic white bell pixels met at least 4.5:1 contrast in normal, hover and keyboard-focus states with the native fallback and all four palettes, without a compositor. The new panel was activated through a guarded panel-only refresh: seven existing client windows and seven monitored processes survived, with settings unchanged. Menu installation was backed up and byte-checked.
+
+The wallpaper resource correction passed the separate [resource acceptance](wallpaper-resource-verification.md). Its durable staged binary, four managed files, disabled/muted settings and original rollback baseline were independently checked. An older native renderer is currently active but disabled; the corrected binary is staged for its next normal startup. This is not a live renderer replacement or normal-login acceptance.
+
+## Independent symbolic-icon review — 2026-11-10
+
+Current compositor-free renders exposed dark system-theme control icons on Heretic's dark surfaces and the colored shutdown button. Only Start's symbolic search/navigation/session icons are now tinted to their control foreground; application artwork is untouched. All four presets and Back/session-menu icons have regression coverage. The full suite now passes 102 tests. Independent private-X11 checks cover open-Start Print/cancellation, exact clipboard paste, window capture at 100%/150%, native annotated import, wallpaper behavior and taskbar/desktop drag export. See the final acceptance matrix for reference comparison and remaining release gates.

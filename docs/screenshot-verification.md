@@ -21,3 +21,11 @@ python tests/check_overlay_multimonitor_x11.py --run --xvfb /path/to/Xvfb --xeph
 ```
 
 The clipboard test requires LibreOffice and Python UNO. These checks use private displays, temporary homes and synthetic pixels. The full core check also exercises the installed Print binding and rollback. See [core release verification](verification.md).
+
+## Independent editing interaction check
+
+`tests/check_overlay_editing_x11.py` uses real XTest pointer input on a private X11 desktop to select, resize and move a crop, redact pixels and undo/redo the annotation. The real Qt save dialog is canceled once, then used to save a PNG; every output pixel matches the final annotated crop and cancellation leaves the editor open. Enter without a selection confirms the full frozen desktop. The private clipboard sentinel remains unchanged throughout. The test uses Qt's non-native dialog to avoid dependence on an external portal and does not claim native portal-dialog coverage.
+
+```sh
+python tests/check_overlay_editing_x11.py --run --xvfb /path/to/Xvfb
+```

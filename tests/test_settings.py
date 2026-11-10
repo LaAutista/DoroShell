@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 import shiboken6
@@ -17,6 +17,20 @@ class SettingsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_theme_caption_and_wallpaper_controls_keep_defaults(self):
+        with tempfile.TemporaryDirectory() as d:
+            window = settings.Settings(Path(d))
+            choice = window.choices['theme']
+            caption = next(label for label in window.findChildren(QLabel) if label.buddy() is choice)
+            self.assertEqual(caption.text(), 'Coordinated Doro theme')
+            self.assertEqual(choice.currentData(), 'keep')
+            self.assertEqual(window.commands(True), [])
+            with patch('settings.QProcess') as process:
+                window.wallpaper_controls.click()
+                process.return_value.startDetached.assert_called_once()
+            self.assertFalse((Path(d)/'.config/doroshell/wallpaper.json').exists())
+            shiboken6.delete(window)
 
     def test_live_refresh_never_stops_desktop_components(self):
         from unittest.mock import Mock

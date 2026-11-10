@@ -34,11 +34,13 @@ class ModulesTests(unittest.TestCase):
             (home/'.local/state/doroshell').mkdir(parents=True)
             (home/'.local/state/doroshell/native-panel.json').write_text('{}')
             before={p.relative_to(home):p.read_bytes() for p in home.rglob('*') if p.is_file()}
-            for m in modules.MODULES:
+            # Coordinated themes share palette keys with per-app dark themes.
+            for m in (m for m in modules.MODULES if m not in ('theme','wallpaper')):
                 modules.run(home,m,apply=True)
                 modules.run(home,m,apply=True)
             # Same XML shared by two modules: roll back out of order.
-            for m in modules.MODULES:
+            # Coordinated themes share palette keys with per-app dark themes.
+            for m in (m for m in modules.MODULES if m not in ('theme','wallpaper')):
                 modules.run(home,m,rollback=True)
             for p,data in before.items():
                 self.assertEqual((home/p).read_bytes(),data,p)

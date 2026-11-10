@@ -23,6 +23,74 @@ class MenuTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = menu.QApplication.instance() or menu.QApplication([])
 
+    def test_primary_session_choice_persists_and_routes_without_executing(self):
+        import json
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window=menu.StartMenu()
+            with patch.object(menu,'desktop_entry',return_value=Mock()), patch.object(window,'session_action') as launch:
+                for action_id,(label,_) in menu.SESSION_ACTIONS.items():
+                    window.set_primary_action(action_id)
+                    self.assertEqual(window.primary_action,action_id)
+                    self.assertEqual(window.session_button.text(),label+('' if action_id=='lockscreen' else '…'))
+                    window.session_button.click();launch.assert_called_with(action_id)
+                    visible={a.data() for a in window.power_menu.actions() if a.isVisible() and a.data()}
+                    self.assertEqual(visible,set(menu.SESSION_ACTIONS)-{action_id})
+            self.assertEqual(json.loads(window.primary_path.read_text())['action'],'lockscreen')
+            shiboken6.delete(window)
+            reopened=menu.StartMenu();self.assertEqual(reopened.primary_action,'lockscreen');shiboken6.delete(reopened)
+
+    def test_primary_session_choice_rejects_corruption_external_edits_and_symlinks(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window=menu.StartMenu();window.set_primary_action('reboot')
+            window.primary_path.write_text('personal edit')
+            with patch.object(window,'error') as error:
+                window.set_primary_action('logout');error.assert_called_once()
+            self.assertEqual(window.primary_action,'reboot');self.assertEqual(window.primary_path.read_text(),'personal edit')
+            path=window.primary_path;shiboken6.delete(window)
+            for content in ('{}','{"version":1,"action":[]}','{"version":1,"action":"unknown"}'):
+                path.write_text(content);window=menu.StartMenu()
+                self.assertEqual(window.primary_action,'shutdown')
+                with patch.object(window,'error') as error:window.set_primary_action('logout');error.assert_called_once()
+                self.assertEqual(path.read_text(),content);shiboken6.delete(window)
+            target=Path(directory)/'keep';target.write_text('original');path.unlink();path.symlink_to(target)
+            window=menu.StartMenu()
+            with patch.object(window,'error') as error:window.set_primary_action('logout');error.assert_called_once()
+            self.assertEqual(target.read_text(),'original');shiboken6.delete(window)
+
+    def test_primary_session_missing_action_is_disabled_and_selection_never_launches(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window=menu.StartMenu();fixture=Mock()
+            with patch.object(menu,'desktop_entry',return_value=fixture):
+                window.set_primary_action('reboot');fixture.launch.assert_not_called()
+            with patch.object(menu,'desktop_entry',return_value=None),patch.object(window,'session_action') as launch:
+                window.refresh_primary_action();self.assertFalse(window.session_button.isEnabled())
+                window.session_button.click();launch.assert_not_called()
+            shiboken6.delete(window)
+
+    def test_catalog_refresh_retains_view_and_missing_pin_records(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            folder=Path(directory)
+            apps=[]
+            for name in ('Alpha','Beta'):
+                path=folder/(name+'.desktop')
+                path.write_text('[Desktop Entry]\nType=Application\nName='+name+'\nExec=/usr/bin/true\nCategories=System;\n')
+                apps.append(menu.Gio.DesktopAppInfo.new_from_filename(str(path)))
+            with patch.object(menu,'applications',return_value=apps):
+                window=menu.StartMenu()
+            window.save_favorites([apps[0].get_id(),'missing.desktop'])
+            before=window.state.read_bytes()
+            window.category.setCurrentText('System');window.search.setText('Beta')
+            with patch.object(menu,'applications',return_value=[apps[1]]):window.refresh_catalog()
+            self.assertEqual(window.category.currentText(),'System')
+            self.assertEqual(window.search.text(),'Beta')
+            self.assertEqual(window.list.currentItem().data(menu.Qt.ItemDataRole.UserRole),apps[1].get_id())
+            self.assertEqual(window.state.read_bytes(),before)
+            self.assertIn('missing.desktop',window.favorites)
+            shiboken6.delete(window)
+
     def test_default_pin_order_missing_apps_and_configured_handler(self):
         from unittest.mock import Mock
         ids = ['qterminal.desktop', 'firefox.desktop', 'org.kde.dolphin.desktop',
@@ -65,8 +133,71 @@ class MenuTests(unittest.TestCase):
                 run.assert_called_once_with('nm-connection-editor.desktop')
                 buttons['Computer'].click()
                 folder.assert_called_once_with('/')
-            self.assertFalse(buttons['Printers'].isEnabled())
+            with patch.object(menu, 'desktop_entry', return_value=None), patch.object(menu.shutil, 'which', return_value=None), patch.object(window, 'error') as error:
+                buttons['Printers'].click()
+                error.assert_called_once()
             shiboken6.delete(window)
+
+    def test_printers_without_systemsettings_uses_kcm_host(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            window = menu.StartMenu()
+            with patch.object(menu, 'desktop_entry', side_effect=lambda key: Mock() if key in (
+                    'org.kde.ConfigurePrinter.desktop',) else None), patch.object(
+                    menu.shutil, 'which', side_effect=lambda exe: '/usr/bin/kcmshell6' if exe == 'kcmshell6' else None), patch.object(
+                    menu.Gio.AppInfo, 'create_from_commandline') as create, patch.object(
+                    menu.QStandardPaths, 'locate', return_value='/usr/share/applications/kcm_printer_manager.desktop'), patch.object(window, 'error') as error:
+                create.return_value.launch.return_value = True
+                window.open_printers()
+                create.assert_called_once_with('kcmshell6 kcm_printer_manager', 'Printers', menu.Gio.AppInfoCreateFlags.NONE)
+                create.return_value.launch.assert_called_once_with([], None)
+                error.assert_not_called()
+                create.return_value.launch.return_value = False
+                window.open_printers()
+                error.assert_called_once()
+            shiboken6.delete(window)
+
+    def test_app_export_uses_copy_only_file_urls_and_preserves_pins(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+            path = Path(directory)/"App space & 'quote' %.desktop"
+            path.write_text('[Desktop Entry]\nType=Application\nName=Export fixture\nExec=/usr/bin/true %F\n')
+            entry = menu.Gio.DesktopAppInfo.new_from_filename(str(path))
+            with patch.object(menu, 'applications', return_value=[entry]):
+                window = menu.StartMenu()
+            window.save_favorites([entry.get_id()])
+            saved = window.state.read_bytes()
+            for category in ('Home', 'All applications'):
+                window.category.setCurrentText(category)
+                window.list.setCurrentRow(0)
+                with patch.object(menu, 'QDrag') as drag:
+                    window.list.startDrag(menu.Qt.DropAction.CopyAction)
+                    data = drag.return_value.setMimeData.call_args.args[0]
+                    self.assertEqual([url.toLocalFile() for url in data.urls()], [str(path)])
+                    drag.return_value.exec.assert_called_once_with(menu.Qt.DropAction.CopyAction, menu.Qt.DropAction.CopyAction)
+                self.assertEqual(window.state.read_bytes(), saved)
+                self.assertTrue(path.is_file())
+            shiboken6.delete(window)
+
+    def test_power_arrow_is_centered_at_small_and_large_fonts(self):
+        from PySide6.QtGui import QFont
+        original = self.app.font()
+        try:
+            with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}):
+                for size in (10, 16, 20):
+                    self.app.setFont(QFont('Sans Serif', size))
+                    window = menu.StartMenu()
+                    window.show()
+                    self.app.processEvents()
+                    image = window.power_arrow.grab().toImage()
+                    points = [(x,y) for x in range(5,image.width()-5) for y in range(5,image.height()-5)
+                              if min(image.pixelColor(x,y).red(), image.pixelColor(x,y).green(), image.pixelColor(x,y).blue()) > 210]
+                    self.assertTrue(points)
+                    center = sum(x for x,y in points)/len(points)
+                    self.assertAlmostEqual(center, (image.width()-1)/2, delta=1, msg=str(size))
+                    window.close()
+                    shiboken6.delete(window)
+        finally:
+            self.app.setFont(original)
 
     def test_recent_limit_migrates_trims_and_preserves_disabled_privacy(self):
         import json

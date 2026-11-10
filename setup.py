@@ -8,6 +8,9 @@ import sys
 
 ROOT=Path(__file__).resolve().parent
 PACKAGES={
+ 'wallpaper-glass':['pyside6','python-pillow'],
+ 'wallpaper':['pcmanfm-qt','qt6-multimedia','qt6-multimedia-ffmpeg','pyside6'],
+ 'theme':['pyside6','openbox','breeze-icons'],
  'menu':['python','pyside6','python-gobject','lxqt-panel','lxqt-session','lxqt-globalkeys','lxqt-config','xdg-user-dirs','procps-ng'],
  'native-panel':['lxqt-panel','python-gobject','pyside6'],
  'panel':['lxqt-panel','lxqt-globalkeys','procps-ng'],
@@ -35,6 +38,8 @@ def main():
     p.add_argument('--icon',type=Path,help='Personal Start image; stored locally, never bundled')
     p.add_argument('--taskbar-size',choices=('small','medium','large'),default='medium')
     p.add_argument('--taskbar-style',choices=('icons','standard'),default='icons')
+    p.add_argument('--wallpaper-binary', type=Path, help='Verified optional native desktop executable; takes effect at normal login')
+    p.add_argument('--theme', choices=('windows','polar','heretic','spring'), default='windows')
     p.add_argument('--native-preview',type=Path,help='Import-enabled native ScreenGrab executable for screenshots')
     p.add_argument('--keep-panel-edits',action='store_true',help='Back up changed native panel settings before rollback')
     p.add_argument('--prepared',type=Path,help='Prepared native panel profile directory')
@@ -98,9 +103,11 @@ def main():
         if args.apply: cmd += ['--apply']
         if args.rollback: cmd += ['--rollback']
         if module=='screenshots' and args.native_preview: cmd += ['--native-preview',str(args.native_preview.resolve())]
+        if module=='wallpaper' and args.wallpaper_binary: cmd += ['--wallpaper-binary',str(args.wallpaper_binary.resolve())]
+        if module=='theme': cmd += ['--theme',args.theme]
         if module=='taskbar-size': cmd += ['--taskbar-size',args.taskbar_size]
         if module=='taskbar': cmd += ['--taskbar-style',args.taskbar_style]
-        if args.live and module not in ('menu','cursor','single-desktop','kate','dolphin','kate-dark','dolphin-dark'): cmd += ['--live']
+        if args.live and module not in ('menu','cursor','single-desktop','kate','dolphin','kate-dark','dolphin-dark','theme','wallpaper','wallpaper-glass'): cmd += ['--live']
         print('\n'+module+':',flush=True)
         subprocess.run(cmd,check=True)
     print('\nFinished selected modules. Package state was not changed. No session was restarted.')
