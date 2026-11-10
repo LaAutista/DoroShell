@@ -69,7 +69,10 @@ def main():
     if args.pink_pointer and 'cursor' not in selected:
         p.error('--pink-pointer requires the cursor module')
     if args.apply:
-        missing=[pkg for pkg in packages if subprocess.run(['pacman','-Q',pkg],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode]
+        try:
+            missing=[pkg for pkg in packages if subprocess.run(['pacman','-Q',pkg],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode]
+        except OSError as error:
+            p.error(f'Cannot query pacman: {error}. Setup apply requires Arch/CachyOS package checks; no files were changed.')
         if missing:
             p.error('Missing packages: '+', '.join(missing)+'. Run --packages to review the installation command.')
     if 'menu' in selected and ('panel' in selected or 'native-panel' in selected):
@@ -92,7 +95,9 @@ def main():
                 if not (prepared/'plan.json').is_file():
                     p.error('Prepare a native panel profile with panel/profile.py prepare before selecting native-panel')
                 cmd += ['--prepared', str(prepared.absolute())]
-            subprocess.run(cmd, check=True)
+            result = subprocess.run(cmd)
+            if result.returncode:
+                p.exit(result.returncode)
             continue
         elif module=='panel': cmd += [str(ROOT/'integrate.py')]
         elif module=='cursor':
@@ -110,7 +115,9 @@ def main():
         if module=='taskbar': cmd += ['--taskbar-style',args.taskbar_style]
         if args.live and module not in ('menu','cursor','single-desktop','kate','dolphin','kate-dark','dolphin-dark','theme','wallpaper','wallpaper-glass','clipboard'): cmd += ['--live']
         print('\n'+module+':',flush=True)
-        subprocess.run(cmd,check=True)
+        result = subprocess.run(cmd)
+        if result.returncode:
+            p.exit(result.returncode)
     print('\nFinished selected modules. Package state was not changed. No session was restarted.')
 
 if __name__=='__main__':

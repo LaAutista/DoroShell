@@ -37,6 +37,8 @@ def menu_style(p, composited=False):
         QWidget#placesPanel QPushButton[sessionPrimary="true"], QWidget#placesPanel QPushButton#powerMenuArrow {{ color: #fff5fb; }}
         QPushButton#programsButton {{ border-top-color: {p['edge']}; }}
         QWidget#placesPanel QPushButton:disabled {{ color: #c8bdc4; }}
+        QToolButton#folderBrowse {{ color: #fff5fb; background: transparent; }}
+        QToolButton#folderBrowse:hover, QToolButton#folderBrowse:focus {{ background: {p['side']}; border-color: {p['edge']}; }}
     """
 
 

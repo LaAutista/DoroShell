@@ -100,7 +100,7 @@ This list predates unified native taskbar pins, the later screenshot checks and 
 
 The updated menu and settings launcher were installed after preview and backup; installed menu bytes matched the checkout. The existing personal Start image and cursor were retained because the full-size replacement references were unavailable. The project now lives in the user-selected folder; the original checkout was retained as a backup.
 
-No screenshots from the personal desktop or test captures are committed. Source licensing remains a release decision. Open-Shell was used as a behavioral reference; no code, icons, skins or documentation were imported from it. Doro reference assets remain local pending provenance and the user's files.
+No screenshots from the personal desktop or test captures are committed. Original-source licensing is now GPL-2.0-or-later with existing component terms preserved; see ../LICENSING.md. Open-Shell was used as a behavioral reference; no code, icons, skins or documentation were imported from it. Doro reference assets remain local pending provenance and the user's files.
 
 
 ### DockBarX dragging follow-up

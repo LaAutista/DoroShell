@@ -1,6 +1,7 @@
 """Reversible DoroClipboard files and fixed panel button beside the tray chevron."""
 import base64
 from pathlib import Path
+from install import PlanError
 import shlex
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,16 +15,19 @@ def plans(home):
     def ini(name, section, key, value):
         edits.append({'file':name,'kind':'ini','section':section,'key':key,'after':value})
     panel = '.config/doroshell/panel.conf'
-    text = (home/panel).read_text()
+    try:
+        text = (home/panel).read_text()
+    except FileNotFoundError as error:
+        raise PlanError('Stage the DoroShell native panel before adding DoroClipboard.') from error
     plugins = ini_value(text, 'panel1', 'plugins')
-    if not plugins: raise ValueError('Stage the DoroShell native panel before adding DoroClipboard.')
+    if not plugins: raise PlanError('Stage the DoroShell native panel before adding DoroClipboard.')
     parts = [p.strip() for p in plugins.split(',')]
     notifier = next((p for p in parts if ini_value(text,p,'type') == 'statusnotifier' or p == 'statusnotifier'), None)
-    if notifier is None: raise ValueError('No notification-area widget found; refusing to guess button placement.')
+    if notifier is None: raise PlanError('No notification-area widget found; refusing to guess button placement.')
     name = 'doroClipboard'
     if name in parts or ini_value(text,name,'type'):
         if ini_value(text,name,'type') != 'quicklaunch' or ini_value(text,name,'apps\\1\\desktop') != str(home/'.local/share/applications/doroshell-clipboard.desktop'):
-            raise ValueError('Existing doroClipboard widget differs; preserve personal settings.')
+            raise PlanError('Existing doroClipboard widget differs; preserve personal settings.')
         parts.remove(name)
     parts.insert(parts.index(notifier), name)
     ini(panel,'panel1','plugins',', '.join(parts))

@@ -18,10 +18,10 @@ The reference shows the desktop with Start open above the left end of the taskba
 | --- | --- | --- |
 | Start menu | A pale, wide app list with a Pinned heading, large icons, All Programs and a bottom search box. The narrower berry-colored column has a framed portrait above folder and system links, with a split shutdown button at its foot. | The two columns, portrait, bottom controls and editable folders exist. Home opens on labeled pins in saved order. Recent programs open in a separate view. |
 | Advanced Start settings | A left navigation rail groups general settings, appearance, pins, folders, search, power and behavior. The preview shows controls for glass, icon size, recent programs and Start artwork. | The toolkit has category pages. Recent count and recording controls live in Start’s Menu options. The illustrated advanced editor remains a target. |
-| Menus and search | Folder, system-tool and custom-item groups sit alongside separate search scopes for apps, files, settings and custom paths. | App search and editable folder links exist. File and settings search and custom search roots remain future work. |
+| Menus and search | Folder, system-tool and custom-item groups sit alongside separate search scopes for apps, files, settings and custom paths. | Ranked local installed-app search, keyboard result navigation, folder cascades and editable folder links exist. File and settings search and custom search roots remain future work. |
 | Taskbar and snapping | Glossy pink bottom bar with a distinct Start tile, compact app icons, open space, then a separated notification area and two-line clock. The settings card shows grouping, icon size, auto-hide and a snap preview. | The native taskbar runs on the development desktop with grouped tasks, the hidden-icons arrow and Show Desktop. Private X11 previews verified the right-aligned two-line clock, calendar and compact chevron with a registered notification item. Openbox snapping works; the settings and snap-preview presentation need comparison. |
 | Screenshots | Capture a full screen, window or area, preview and annotate, then save, copy or share. | Print supports full desktop, visible application window or adjustable area, immediate annotation, PNG saving and clipboard copy. The optional native ScreenGrab importer displays the exact annotated result. App sharing and video recording are outside the core workflow. |
-| Modular setup | Four distinct actions for installing and managing modules, exporting a backup and importing it to restore settings. | Preview, apply and per-module rollback exist. Portable export/import remains a separate feature. |
+| Modular setup | Four distinct actions for installing and managing modules, exporting a backup and importing it to restore settings. | Preview, apply and per-module rollback exist. Path-free portable Start preferences support export, preview/import and conflict-checked restoration; full-machine backup is not included. |
 | Cursor and artwork | A plain arrow at rest and an animated Doro busy cursor. Personal Doro artwork appears on the Start tile and framed portrait. | At the configured 30 px size, private X11 sampling matched the ordinary Breeze pointer and all 16 distinct Doro poses across the 28-frame wait/watch cycle. Progress uses the arrow with a single animated badge. The approved transparent derivative is installed only in the personal theme. The neutral SVG remains the distributed default. |
 
 ## Implemented increments
@@ -31,6 +31,8 @@ The reference shows the desktop with Start open above the left end of the taskba
 - **Desktop modules:** Openbox edge snapping and keyboard halves, saved single-desktop configuration, screenshot capture/cancellation, optional Kate/Dolphin defaults and per-app dark themes, and personal busy-cursor generation. The ordinary pointer is inherited unless pink is explicitly selected.
 - **Print capture:** global Print and Print inside Start use the same frozen-desktop overlay. Start waits until the image is frozen before closing. Enter/Copy confirms, Escape preserves the clipboard, and Open in ScreenGrab imports the cropped and annotated pixels into the native window.
 - **Setup safety:** preview, explicit module selection, original-setting backups, repeat installation and conflict-checked rollback. Live panel/shortcut restarts are refused. No automatic gaming installer is included.
+
+- **Optional display controls:** the combined source can build guarded session-only RandR refresh tests and an NVIDIA future-client OpenGL VSync control into PCManFM Advanced preferences. Hardware changes/rollback remain unverified; no global Intel/AMD or Vulkan toggle is implemented. [Scope and build instructions](../display/README.md).
 
 ## Published core verified scope
 
@@ -45,11 +47,11 @@ Kate/Dolphin default resolution and dark appearance were checked in temporary ho
 
 ## Broader work deferred beyond the core release
 
-1. Complete menu composition: program-tree and folder cascades, opt-in document/settings search, and further editable composition. Configurable primary session actions are implemented in the newer source candidate. Keep destructive actions behind native confirmation and never execute them during tests.
+1. Complete menu composition: program-tree composition, opt-in document/settings search, and further editable composition. Folder cascades and configurable primary session actions are implemented in the newer source candidate. Keep destructive actions behind native confirmation and never execute them during tests.
 2. Complete native taskbar behavior and visuals: broader real-application identity matching, grouped window previews, attention/auto-hide transitions, keyboard focus, tray accessibility and supported progress/overlay data. Preserve native icon activation and context menus.
 3. Validate long labels, larger fonts, narrow screens, multiple monitors and scaling. Maintain readable normal/hover/selected/disabled states and system fonts.
 4. Extend the isolated Show Desktop checks to live orientation changes, pre-minimized windows, multiple desktops and other window managers. Basic horizontal/vertical show/restore has passed; do not hide personal windows as a test.
-5. Portable settings export/import, advanced search, Spectacle-style video capture and sharing remain separate feature requests.
+5. Broader file/settings search, Spectacle-style video capture and sharing remain future work. Ranked local app search and path-free portable Start preferences are implemented in the combined source candidate.
 
 ## One-desktop contract
 

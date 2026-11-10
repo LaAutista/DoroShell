@@ -22,7 +22,7 @@ Doro is the requested mascot. The existing personal Start icon and animated GIF 
 
 The [NIKKE EULA](https://nikke-en.com/pre/termsofservice/) does not establish a general license to redistribute character artwork as this toolkit's mascot. Its gameplay-video provisions are not evidence of permission for a software asset. This is a record of verification limits, not a conclusion that every possible fan use is prohibited.
 
-For a future bundled asset, record the exact original image URL, author, applicable permission/license, required credit, permitted modifications and distribution scope before adding it. Credit alone is not a license. Keep an artwork-specific notice separate from the project's eventual source-code license. Until suitable permission is verified, retain the neutral bundled SVG and the local custom-asset workflow.
+For a future bundled asset, record the exact original image URL, author, applicable permission/license, required credit, permitted modifications and distribution scope before adding it. Credit alone is not a license. Keep an artwork-specific notice separate from the project's source-code license. Until suitable permission is verified, retain the neutral bundled SVG and the local custom-asset workflow.
 
 
 ## Official-art request follow-up

@@ -143,7 +143,7 @@ class FolderTests(unittest.TestCase):
             self.assertTrue(window.exit_on_hide)
             window.exit_on_hide = False
             with patch.object(menu.Gio.AppInfo, 'launch_default_for_uri', return_value=True) as launch:
-                QTest.mouseClick(window.folder_layout.itemAt(0).widget(), Qt.MouseButton.LeftButton)
+                QTest.mouseClick(window.folder_layout.itemAt(0).widget().findChild(menu.QPushButton, 'folderLink'), Qt.MouseButton.LeftButton)
                 launch.assert_called_once_with(Path.home().as_uri(), None)
             shiboken6.delete(window)
 

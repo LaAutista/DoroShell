@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+--- a/pcmanfm/desktoppreferencesdialog.cpp
++++ b/pcmanfm/desktoppreferencesdialog.cpp
+@@ -18,6 +18,8 @@
+ */
+
+ #include "desktoppreferencesdialog.h"
++#include "dorodisplaycontrols.h"
++#include <QScrollArea>
+ #include "desktopwindow.h"
+ #include "settings.h"
+ #include "application.h"
+@@ -49,6 +51,17 @@
+
+   Settings& settings = static_cast<Application*>(qApp)->settings();
+   ui.setupUi(this);
++  auto advancedContent = new QWidget;
++  advancedContent->setLayout(ui.advancedPageLayout);
++  auto advancedScroll = new QScrollArea(ui.advancedPage);
++  advancedScroll->setWidgetResizable(true);
++  advancedScroll->setWidget(advancedContent);
++  auto advancedLayout = new QVBoxLayout(ui.advancedPage);
++  advancedLayout->setContentsMargins(0, 0, 0, 0);
++  advancedLayout->addWidget(advancedScroll);
++  ui.advancedPageLayout->insertWidget(1, new DoroDisplayControls(
++      {QStringLiteral("/usr/bin/python3"), QCoreApplication::applicationDirPath() + QStringLiteral("/doroshell-display-backend.py")}, this,
++      QByteArrayLiteral(DOROSHELL_DISPLAY_SHA256)));
+
+   // setup wallpaper modes
+   connect(ui.wallpaperMode, &QComboBox::currentIndexChanged, this, &DesktopPreferencesDialog::onWallpaperModeChanged);

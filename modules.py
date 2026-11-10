@@ -11,7 +11,7 @@ import shlex
 import subprocess
 import sysconfig
 import sys
-from install import atomic, safe, set_ini
+from install import PlanError, atomic, safe, set_ini, validate_backup
 import xml.etree.ElementTree as ET
 from xml.parsers import expat
 
@@ -328,6 +328,8 @@ def theme_transaction(manifest, original, changed, modes):
     except OSError:
         for path, previous in reversed(list(original.items())):
             current = path.read_bytes() if path.exists() else None
+            if current is not None and path.stat().st_mode & 0o777 != original_modes[path]:
+                raise RuntimeError('Concurrent mode edit during failed apply; retained recovery manifest: '+str(path))
             if current == previous:
                 continue
             if current != attempted.get(path, changed[path]):
@@ -343,12 +345,41 @@ def theme_transaction(manifest, original, changed, modes):
         raise
 
 
+
+def validate_module_record(saved):
+    if not isinstance(saved, dict) or not isinstance(saved.get('edits'), list) or not isinstance(saved.get('backup'), dict):
+        raise ValueError('Invalid module manifest; preserve it for recovery')
+    for entry in saved['backup'].values():
+        validate_backup(entry)
+    for edit in saved['edits']:
+        if not isinstance(edit, dict) or not isinstance(edit.get('file'), str) or edit['file'] not in saved['backup']:
+            raise ValueError('Missing module backup; preserve the recovery manifest')
+        if edit.get('kind') not in ('file', 'ini', 'obtheme', 'desktop', 'firstdesk', 'snapkeys'):
+            raise ValueError('Invalid module edit kind; preserve the recovery manifest')
+        for field in ('before', 'after'):
+            if field not in edit or (edit[field] is not None and not isinstance(edit[field], str)):
+                raise ValueError('Invalid module edit value; preserve the recovery manifest')
+            if edit['kind'] == 'file' and edit[field] is not None:
+                base64.b64decode(edit[field], validate=True)
+        if 'mode' in edit and (type(edit['mode']) is not int or not 0 <= edit['mode'] <= 0o777):
+            raise ValueError('Invalid module edit mode; preserve the recovery manifest')
+        if edit['kind'] == 'ini' and any(not isinstance(edit.get(k), str) for k in ('section', 'key')):
+            raise ValueError('Invalid module INI target; preserve the recovery manifest')
+
 def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None):
     if module not in MODULES:
         raise ValueError("Unknown module")
     manifest=home/'.local/state/doroshell'/f'{module}.json'
     safe(manifest,home)
     saved=json.loads(manifest.read_text()) if manifest.exists() else None
+    if saved is not None:
+        validate_module_record(saved)
+        # Optional writes preserve the mode captured in the first backup.
+        for name, backup in saved['backup'].items():
+            path = home/name
+            safe(path, home)
+            if path.exists() and path.stat().st_mode & 0o777 != backup['mode']:
+                raise RuntimeError(f'Personal mode edit detected; no changes applied: {path}')
     if rollback and not saved:
         print(module+': nothing to restore')
         return
@@ -406,12 +437,27 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
     if not apply and not rollback:
         print('Plan only. Add --apply.')
         return
+    restore_modes = {}
+    if rollback:
+        # Decode and reconstruct every target before any restoration or live update.
+        for path in changed:
+            before=saved['backup'][str(path.relative_to(home))]
+            # Restore exact bytes when no unrelated changes occurred.
+            base=base64.b64decode(before['data']) if before['data'] is not None else None
+            installed=base
+            for edit in saved['edits']:
+                if home/edit['file']==path:
+                    installed=write_value(edit,installed,edit['after'])
+            if original[path]==installed:
+                changed[path]=base
+                restore_modes[path]=before['mode']
     shortcuts = home/'.config/lxqt/globalkeyshortcuts.conf'
     update_print = None
     if active_print and original[shortcuts] != changed[shortcuts]:
         update_print = live_print_change(shortcuts, original[shortcuts], changed[shortcuts])
     transaction = theme_transaction(manifest, original, changed, modes) if module in ('theme','wallpaper','clipboard') else nullcontext()
     with transaction as attempted:
+        modes.update(restore_modes)
         if not rollback:
             backup=dict(saved['backup']) if saved else {}
             for p,v in original.items():
@@ -424,17 +470,6 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
                 if not rollback:
                     update_print()
                 continue
-            if rollback:
-                before=saved['backup'][str(path.relative_to(home))]
-                # Restore exact bytes when no unrelated changes occurred.
-                base=base64.b64decode(before['data']) if before['data'] is not None else None
-                installed=base
-                for edit in saved['edits']:
-                    if home/edit['file']==path:
-                        installed=write_value(edit,installed,edit['after'])
-                if original[path]==installed:
-                    data=base
-                    modes[path]=before['mode']
             if data==original[path]:
                 continue
             if attempted is not None:
@@ -455,7 +490,7 @@ def refresh_dockbarx():
         'at your next normal login; no running process was stopped.')
 
 
-if __name__=='__main__':
+def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--home',type=Path,default=Path.home())
@@ -475,6 +510,9 @@ if __name__=='__main__':
     if args.module in ('theme', 'wallpaper', 'wallpaper-glass', 'clipboard'):
         if args.live:
             parser.error('Theme settings apply on normal application/desktop startup; --live is unsupported')
+        if not (args.apply or args.rollback):
+            run(args.home, args.module, theme=args.theme, wallpaper_binary=args.wallpaper_binary)
+            raise SystemExit(0)
         # Serialize theme switch/restore against another setup process.
         import fcntl
         lock = args.home/'.local/state/doroshell'/f'{args.module}.lock'
@@ -525,3 +563,10 @@ if __name__=='__main__':
                 if subprocess.run(['pgrep','-u',str(os.getuid()),'-f','^/usr/bin/'+name+'$'],stdout=subprocess.DEVNULL).returncode==0:
                     parser.error('Component is running; live restarts are disabled. Use the native panel next-login workflow or apply while the component is stopped.')
         run(args.home,args.module,args.apply,args.rollback,args.taskbar_style,taskbar_size=args.taskbar_size,native_preview=args.native_preview)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except PlanError as error:
+        sys.exit(f'modules.py: error: {error}')

@@ -13,7 +13,9 @@ import subprocess
 import shutil
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from app_search import AppSearchIndex, is_visible
 from portrait_crop import PortraitCropDialog, validate_crop, load_image, render_crop
+from folder_cascade import FolderCascadeMenu
 
 import gi
 gi.require_version('Gio', '2.0')
@@ -22,7 +24,7 @@ from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QRectF, Signal, QU
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup, QPainterPath, QRegion, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QComboBox,
+    QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QToolButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
     QTableWidgetItem, QFileDialog, QCheckBox, QAbstractItemView, QScrollArea, QStyledItemDelegate)
 
@@ -424,8 +426,7 @@ class FolderEditor(QDialog):
 
 
 def applications():
-    return sorted([a for a in Gio.AppInfo.get_all() if a.should_show()
-                   and a.get_id() != 'lxqt-comfort.desktop'],
+    return sorted([a for a in Gio.AppInfo.get_all() if is_visible(a)],
                   key=lambda a: (a.get_display_name().casefold(), a.get_id() or ''))
 
 
@@ -568,6 +569,7 @@ class StartMenu(QWidget):
         self.resize(MENU_SIZE)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.apps = applications()
+        self.search_index = AppSearchIndex(self.apps)
         self.by_id = {app.get_id(): app for app in self.apps}
         self.state = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'lxqt-comfort/favorites.json'
         self.favorites = []
@@ -644,6 +646,11 @@ class StartMenu(QWidget):
         self.list.itemClicked.connect(self.launch_item)
         self.list.itemActivated.connect(self.launch_item)
         left.addWidget(self.list)
+        self.search_notice = QLabel()
+        self.search_notice.setWordWrap(True)
+        self.search_notice.setTextFormat(Qt.TextFormat.PlainText)
+        self.search_notice.setAccessibleName('Application search status')
+        left.addWidget(self.search_notice)
         self.search = QLineEdit()
         self.search.setPlaceholderText('Search programs…')
         self.search_action = self.search.addAction(QIcon(), QLineEdit.ActionPosition.LeadingPosition)
@@ -751,6 +758,10 @@ class StartMenu(QWidget):
             QPushButton { text-align: left; padding: 12px; border: 1px solid transparent; border-radius: 5px; }
             QListWidget::item:hover { background: #f5d1e6; border-radius: 4px; }
             QPushButton#folderLink { padding: 3px 8px; }
+            QToolButton#folderBrowse { color: #fff5fb; background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 2px; }
+            QToolButton#folderBrowse:hover, QToolButton#folderBrowse:focus { background: #783251; border-color: #dca5c5; }
+            QToolButton#folderBrowse::menu-indicator { image: none; }
+            QToolButton#folderBrowse:disabled { color: #c8bdc4; }
             QPushButton#menuControl { padding: 5px 8px; }
             QPushButton[sessionPrimary="true"] { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #934369,stop:1 #6f294c); border: 1px solid #dca5c5; border-top-right-radius: 0; border-bottom-right-radius: 0; }
             QPushButton#powerMenuArrow { text-align: center; padding: 5px 2px; background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #934369,stop:1 #6f294c); border: 1px solid #dca5c5; border-top-left-radius: 0; border-bottom-left-radius: 0; }
@@ -795,7 +806,8 @@ class StartMenu(QWidget):
         QShortcut(QKeySequence('Escape'), self, activated=self.navigate_back)
         QShortcut(QKeySequence('Alt+F1'), self, activated=self.close)
         QShortcut(QKeySequence('Ctrl+F'), self, activated=self.search.setFocus)
-        QShortcut(QKeySequence('Down'), self.search, activated=self.focus_results)
+        self.results_shortcut = QShortcut(QKeySequence('Down'), self.search, activated=self.focus_results)
+        self.results_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         self.refresh()
         self.search.setFocus()
         self.catalog_timer = QTimer(self)
@@ -818,6 +830,7 @@ class StartMenu(QWidget):
         row = self.list.currentRow()
         scroll = self.list.verticalScrollBar().value()
         self.apps = applications()
+        self.search_index = AppSearchIndex(self.apps)
         self.by_id = {app.get_id(): app for app in self.apps}
         self.refresh()
         for index in range(self.list.count()):
@@ -842,7 +855,13 @@ class StartMenu(QWidget):
             button.setObjectName('folderLink')
             button.setToolTip(path or 'Folder location is not configured')
             button.clicked.connect(lambda checked=False, p=path: self.open_folder(p))
-            self.folder_layout.addWidget(button)
+            row=QWidget();line=QHBoxLayout(row);line.setContentsMargins(0,0,0,0);line.setSpacing(0)
+            line.addWidget(button,1)
+            browse=QToolButton();browse.setText('›');browse.setObjectName('folderBrowse')
+            browse.setAccessibleName('Browse '+link['label']+' contents');browse.setToolTip('Browse folder contents')
+            browse.setFixedWidth(22);browse.setEnabled(bool(path));browse.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            if path:browse.setMenu(FolderCascadeMenu(path,self.open_browsed_path,browse))
+            line.addWidget(browse);self.folder_layout.addWidget(row)
         for group in SYSTEM_GROUPS:
             entries = [(label, ids) for label, ids in group if label not in self.folder_settings.hidden]
             if entries and self.folder_layout.count():
@@ -979,7 +998,8 @@ class StartMenu(QWidget):
             self.close()
 
     def focus_results(self):
-        self.list.setFocus()
+        if self.list.count():
+            self.list.setFocus()
 
     def set_remember(self, enabled):
         try:
@@ -1035,7 +1055,7 @@ class StartMenu(QWidget):
     def refresh(self):
         self.list.clear()
         category = self.category.currentText()
-        query = self.search.text()
+        query = self.search.text().strip()
         back = bool(query) or category != 'Home'
         self.programs.setText('Back' if back else 'All Programs')
         self.programs.setIcon(control_icon('go-previous' if back else 'go-next', self.programs))
@@ -1054,9 +1074,17 @@ class StartMenu(QWidget):
             apps = recent
         else:
             apps = self.apps
-        filtered = [a for a in apps if matches(a, query, 'All applications' if query or category in ('Home', 'Pinned', 'Recent') else category)]
         if query:
-            filtered.sort(key=lambda a: (not a.get_display_name().casefold().startswith(query.casefold()), a.get_display_name().casefold()))
+            results = self.search_index.search(query)
+            filtered = results[:100]
+            notice = ('No matching applications. Try a name, command or keyword.' if not results else
+                      f'Showing 100 of {len(results)} matches. Refine your search.' if len(results) > 100 else '')
+        else:
+            filtered = [a for a in apps if matches(a, '', 'All applications' if category in ('Home', 'Pinned', 'Recent') else category)]
+            notice = ('' if filtered else 'No pinned applications. Open All Programs or search.' if category in ('Home', 'Pinned') else
+                      'No recent applications.' if category == 'Recent' else 'No applications in this category.')
+        self.search_notice.setText(notice)
+        self.search_notice.setVisible(bool(notice))
         for app in filtered:
             item = QListWidgetItem(icon_for(app), app.get_display_name())
             item.setData(Qt.ItemDataRole.UserRole, app.get_id())
@@ -1208,6 +1236,15 @@ class StartMenu(QWidget):
         item = QListWidgetItem()
         item.setData(Qt.ItemDataRole.UserRole, app.get_id())
         self.launch_item(item)
+
+    def open_browsed_path(self, path):
+        # Native URI dispatch, never interpret filenames or desktop Exec as shell text.
+        try:
+            if not Gio.AppInfo.launch_default_for_uri(Path(path).as_uri(), None):
+                raise RuntimeError('The selected item could not be opened.')
+            self.close()
+        except (GLib.Error, RuntimeError, ValueError) as error:
+            self.error(str(error))
 
     def open_folder(self, path):
         if not path or not Path(path).is_dir():

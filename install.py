@@ -14,6 +14,55 @@ SOURCE = Path(__file__).resolve().parent
 PACKAGES = ['pyside6', 'python-gobject', 'lxqt-panel', 'xdg-user-dirs', 'lxqt-session', 'lxqt-globalkeys', 'lxqt-config', 'procps-ng']
 
 
+class PlanError(ValueError):
+    """An expected missing prerequisite or invalid user-supplied plan input."""
+
+
+def validate_backup(entry, data_key='data'):
+    """Validate recovery bytes/mode before any part of a transaction writes."""
+    if not isinstance(entry, dict) or data_key not in entry or 'mode' not in entry:
+        raise ValueError('Invalid backup record; preserve the manifest and recover it before retrying')
+    data, mode = entry[data_key], entry['mode']
+    if data is not None:
+        if not isinstance(data, str) or type(mode) is not int or not 0 <= mode <= 0o777:
+            raise ValueError('Invalid backup bytes or mode; preserve the recovery manifest')
+        base64.b64decode(data, validate=True)
+    elif mode is not None and (type(mode) is not int or not 0 <= mode <= 0o777):
+        raise ValueError('Invalid backup mode; preserve the recovery manifest')
+
+
+def validate_menu_record(record):
+    if not isinstance(record, dict):
+        raise ValueError('Invalid menu manifest; preserve it for recovery')
+    for entry in record.values():
+        validate_backup(entry, 'original')
+        for field in ('installed_mode', 'pending_mode'):
+            if field in entry and entry[field] is not None and (type(entry[field]) is not int or not 0 <= entry[field] <= 0o777):
+                raise ValueError('Invalid menu recovery mode; preserve the recovery manifest')
+        for field in ('installed', 'pending_from'):
+            if field == 'pending_from' and entry.get(field) is None:
+                continue
+            value = entry.get(field)
+            if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value):
+                raise ValueError('Invalid menu recovery hash; preserve the recovery manifest')
+
+
+def check_menu_mode(path, entry, installed_mode, rollback=False):
+    if not path.exists():
+        return
+    current = (digest(path.read_bytes()), path.stat().st_mode & 0o777)
+    allowed = {(entry['installed'], entry.get('installed_mode', installed_mode))}
+    if 'pending_from' in entry:
+        # Older interrupted manifests recorded hashes only. Existing payload modes
+        # and the original mode are the only supported legacy recovery states.
+        pending_modes = [entry['pending_mode']] if 'pending_mode' in entry else [installed_mode, entry['mode']]
+        allowed.update((entry['pending_from'], mode) for mode in pending_modes)
+    if rollback and entry['original'] is not None:
+        allowed.add((digest(base64.b64decode(entry['original'], validate=True)), entry['mode']))
+    if current not in allowed:
+        raise RuntimeError(f'Locally modified file contents or mode; preserve it before retrying: {path}')
+
+
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -102,8 +151,10 @@ def targets(home, icon=None):
         icon_path = custom.with_name('framed-start-icon.png')
     desktop = '[Desktop Entry]\nType=Application\nName=DoroShell Start\nComment=Two-column application and personal folder menu\nExec="' + quoted + '"\nIcon=' + str(icon_path) + '\nTerminal=false\nCategories=Utility;\n'
     files = {app: (SOURCE.joinpath('menu/start_menu.py').read_bytes(), 0o644),
+            home / '.local/share/lxqt-comfort/app_search.py': (SOURCE.joinpath('menu/app_search.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/wallpaper_glass.py': (SOURCE.joinpath('menu/wallpaper_glass.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/themes.py': (SOURCE.joinpath('themes.py').read_bytes(), 0o644),
+            home / '.local/share/lxqt-comfort/folder_cascade.py': (SOURCE.joinpath('menu/folder_cascade.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/portrait_crop.py': (SOURCE.joinpath('menu/portrait_crop.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/start.svg': (SOURCE.joinpath('menu/start.svg').read_bytes(), 0o644),
             launcher: (wrapper.encode(), 0o755),
@@ -112,8 +163,8 @@ def targets(home, icon=None):
         files[custom] = (custom_data, 0o644)
         files[icon_path] = (start_tile(custom_data), 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
-    for name in ['clipboard/__init__.py','clipboard/clipboard.py','clipboard/install.py','clipboard/clipboard.svg','wallpaper/control.py','wallpaper/install.py','settings.py','setup.py','themes.py','modules.py','cursor.py','install.py','integrate.py',
-                 'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/portrait_crop.py','menu/wallpaper_glass.py','menu/start.svg']:
+    for name in ['clipboard/__init__.py','clipboard/clipboard.py','clipboard/install.py','clipboard/clipboard.svg','wallpaper/control.py','wallpaper/install.py','settings.py','portable_settings.py','setup.py','themes.py','modules.py','cursor.py','install.py','integrate.py',
+                 'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/app_search.py','menu/portrait_crop.py','menu/folder_cascade.py','menu/wallpaper_glass.py','menu/start.svg']:
         files[toolkit/name] = ((SOURCE/name).read_bytes(), 0o644)
     settings_launcher = home / '.local/bin/doroshell-settings'
     files[settings_launcher] = (('#!/usr/bin/python\nimport runpy\nrunpy.run_path('+repr(str(toolkit/'settings.py'))+', run_name="__main__")\n').encode(), 0o755)
@@ -149,9 +200,12 @@ def install(home, apply=False, icon=None):
     for path in [*files, manifest]:
         safe(path, home)
     record = json.loads(manifest.read_text()) if manifest.exists() else {}
+    validate_menu_record(record)
     for path, (data, mode) in files.items():
         key = str(path.relative_to(home))
         current = path.read_bytes() if path.exists() else None
+        if key in record:
+            check_menu_mode(path, record[key], mode)
         if current == data and (path.stat().st_mode & 0o777) == mode:
             print('Unchanged:', key)
             continue
@@ -180,9 +234,11 @@ def install(home, apply=False, icon=None):
             record[key] = {'original': base64.b64encode(path.read_bytes()).decode() if path.exists() else None,
                            'mode': path.stat().st_mode & 0o777 if path.exists() else None}
         current = path.read_bytes() if path.exists() else None
-        if current != data:
+        if current != data or (path.exists() and path.stat().st_mode & 0o777 != mode):
+            record[key]['pending_mode'] = path.stat().st_mode & 0o777 if path.exists() else None
             record[key]['pending_from'] = digest(current) if current is not None else None
         record[key]['installed'] = digest(data)
+        record[key]['installed_mode'] = mode
     # Save rollback evidence before writing any managed files.
     atomic(manifest, (json.dumps(record, indent=2) + '\n').encode())
     for path, (data, mode) in files.items():
@@ -192,6 +248,7 @@ def install(home, apply=False, icon=None):
     if any('pending_from' in entry for entry in record.values()):
         for entry in record.values():
             entry.pop('pending_from', None)
+            entry.pop('pending_mode', None)
         atomic(manifest, (json.dumps(record, indent=2) + '\n').encode())
     print('Installed. Run:', home / '.local/bin/lxqt-comfort-menu')
 
@@ -203,6 +260,7 @@ def rollback(home):
         print('Nothing installed.')
         return
     record = json.loads(manifest.read_text())
+    validate_menu_record(record)
     if (manifest.parent / 'menu-integration.json').exists():
         raise RuntimeError('Restore the Start button and shortcut integration before removing its launcher.')
     if (home/'.local/state/doroshell/native-panel.json').is_file():
@@ -211,12 +269,14 @@ def rollback(home):
         desktop = str(home/'.local/share/applications/lxqt-comfort.desktop')
         if any(cfg.value(key) == desktop for key in cfg.allKeys() if key.endswith('/desktop')):
             raise RuntimeError('Restore the native panel integration before removing its Start launcher.')
-    allowed = set(targets(home)) | {home/".local/share/lxqt-comfort/start-icon.png"}
+    payloads = targets(home)
+    allowed = set(payloads) | {home/".local/share/lxqt-comfort/start-icon.png"}
     for name, entry in record.items():
         path = home / name
         safe(path, home)
         if path not in allowed:
             raise RuntimeError(f'Unexpected manifest target: {path}')
+        check_menu_mode(path, entry, payloads.get(path, (None, 0o644))[1], rollback=True)
         current = path.read_bytes() if path.exists() else None
         before = base64.b64decode(entry['original'], validate=True) if entry['original'] is not None else None
         if current != before and (digest(current) if current is not None else None) not in (

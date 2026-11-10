@@ -4,11 +4,13 @@
 
 The first module is a two-column Qt Start menu: application search, categories, pinning, personal-folder links, LXQt settings, and confirmed split session/power controls. A dedicated LXQt Quick Launch button and Alt+F1 open it. Alt+F1 again closes it. Escape clears a search, returns from a category to Home, then closes the menu. The All Programs button changes to Back while browsing or searching. The original Fancy Menu preferences are retained for rollback.
 
+The combined source candidate includes ranked local installed-app search, folder cascades, path-free portable Start preferences and optional guarded display controls. See [current release evidence](RELEASE-CANDIDATE.md) and [display scope](display/README.md); historical checkpoints below do not replace current acceptance limits.
+
 ## Status and support
 
 The core release candidate at `182c1e5` targets CachyOS LXQt 2.4 on X11 with Openbox and Python 3.14. It includes Start, the native taskbar with notification overflow and calendar, window snapping, full-desktop/window/area screenshots with annotation, and setup with backup and rollback. All 84 automated tests passed from the extracted source ZIP. The corrected panel was verified running on the development desktop after a panel-only refresh. Private LXQt testing covered autostart, and private Openbox testing verified window captures pixel for pixel at 100% and 150% scale.
 
-Two acceptance checks remain open: a user-chosen normal login with the final build on the development machine, and the clean-system checklist below. The [core release candidate is published on GitHub](https://github.com/LaAutista/DoroShell/releases/tag/core-candidate-2026-11-09), including the source ZIP and its SHA-256 checksum. Advanced search, portable settings export/import and broader Windows and Spectacle parity are deferred. [Roadmap](docs/roadmap.md).
+Two acceptance checks remain open: a user-chosen normal login with the final build on the development machine, and the clean-system checklist below. The [core release candidate is published on GitHub](https://github.com/LaAutista/DoroShell/releases/tag/core-candidate-2026-11-09), including the source ZIP and its SHA-256 checksum. This historical core release predates the ranked local app search and portable settings now included in the combined source candidate. Broader Windows and Spectacle parity remains incomplete. [Roadmap](docs/roadmap.md).
 
 Integration currently expects `panel1`, the Fancy Menu plugin, and the standard `Alt+F1.1` Fancy Menu shortcut. It rejects custom shortcut mappings and unsupported layouts rather than replacing them silently. Other LXQt layouts need inspection and adaptation. Multi-monitor/panel-edge positioning and long-session behavior need more testing. Folder links respect the existing default file manager; this module does not install or select Dolphin.
 
@@ -64,6 +66,8 @@ To switch back, run `python setup.py native-panel --rollback --keep-panel-edits`
 5. **Rollback.** Use the rollback commands above on both the clean install and upgraded install. Compare managed files, modes and originally absent paths with the baseline. Check that personal pins and unrelated edits survive. At a tester-chosen normal login, confirm the stock panel returns. Record any conflict refusal or mismatch before marking acceptance complete.
 
 ## Dependencies
+
+See [clean-environment simulation and setup boundaries](docs/clean-environment-simulation.md) for dependency checks, scoped installation and rollback limits.
 
 Use your distribution's package manager. On CachyOS/Arch, runtime packages are `python`, `pyside6`, `python-gobject`, `lxqt-panel`, `lxqt-session`, `lxqt-globalkeys`, `lxqt-config`, `xdg-user-dirs`, and `procps-ng`. Qt's image and platform plugins must be usable in the desktop session. Python packages installed through pip alone do not supply the complete LXQt/GIO environment.
 
@@ -122,7 +126,7 @@ Tests use Qt's offscreen platform, mocks for external actions, and temporary ins
 
 The menu-specific commands above change only the Start menu and its panel integration. The working tree also contains experimental optional modules and a `setup.py` dispatcher, described below; they are not yet a clean-install-tested release.
 
-Source licensing has not yet been selected; private access does not itself grant redistribution rights. Choose a source license before a public release.
+Original DoroShell source is GPL-2.0-or-later, with existing component licenses preserved. See [license scope and third-party notices](LICENSING.md) and [GPL text](LICENSE). Artwork and non-code material are not relicensed by this source-code decision.
 
 ## Current development checkpoint
 
@@ -173,6 +177,14 @@ python cursor.py --rollback
 ```
 
 The module updates the LXQt cursor theme, the user default cursor theme, and the Xresources theme entry. It preserves cursor size and the rest of each configuration file. Original bytes/modes are backed up in `~/.local/state/lxqt-comfort/cursor-install.json`. Repeat application is supported. Rollback refuses any managed file changed since installation rather than overwriting personal edits. Keep that private backup. There is no automatic package installation or session restart. Restart applications that cache cursors; log out and back in when convenient for consistent session-wide pickup. The installer does not force-refresh running applications or the X server resource database. The transparent personal cursor is installed locally on the development machine. The source distribution includes only the neutral Start SVG. Automated cursor tests use temporary homes and synthetic artwork. A separate private X11 check sampled the installed personal animation and ordinary/pink/restored pointer pixels at 30 px. Wayland is untested.
+
+## Portable Start preferences
+
+Settings → Start Menu → **Portable Start preferences…** exports path-free Start preferences, previews imports and provides conflict-checked restoration. Pins, history entries, custom paths, artwork and machine settings stay local. [Scope, safety and verification](docs/portable-settings.md).
+
+## Browse folder contents
+
+Use the arrow beside a folder link for a lazy cascading contents menu. The label still opens the folder normally. Lists are bounded and load only on demand, without indexing or thumbnails. [Behavior, limits and private verification](docs/folder-cascades.md).
 
 ## Edit the Start menu's folder links
 

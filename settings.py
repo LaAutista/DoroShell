@@ -161,6 +161,9 @@ class Settings(QWidget):
         self.start_link.clicked.connect(self.open_start)
         self.start_link.setEnabled(self.start_entry().is_file())
         forms['Start Menu'].addRow(self.start_link)
+        self.portable = QPushButton('Portable Start preferences…')
+        self.portable.clicked.connect(self.open_portable)
+        forms['Start Menu'].addRow(self.portable)
         self.wallpaper_controls = QPushButton('Wallpaper controls…')
         self.wallpaper_controls.setToolTip('Prepare local media choices; does not enable or replace the running desktop.')
         self.wallpaper_controls.clicked.connect(self.open_wallpaper)
@@ -206,6 +209,10 @@ class Settings(QWidget):
             QPushButton:hover, QPushButton:focus { border: 1px solid #672044; background: #ffd9ee; }
             QPushButton:disabled { color: #684b5c; background: #eadce4; }
         ''')
+
+    def open_portable(self):
+        from portable_settings import open_dialog
+        open_dialog(self, self.home)
 
     @staticmethod
     def note(form,text):
