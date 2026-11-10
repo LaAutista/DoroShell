@@ -10,12 +10,14 @@ import re
 import shlex
 import subprocess
 import sysconfig
+import sys
 from install import atomic, safe, set_ini
 import xml.etree.ElementTree as ET
+from xml.parsers import expat
 
 ROOT = Path(__file__).resolve().parent
 TASKBAR_SIZES = {'small': (20, 36), 'medium': (28, 48), 'large': (36, 56)}
-MODULES = ('wallpaper-glass', 'wallpaper', 'theme', 'taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
+MODULES = ('clipboard', 'wallpaper-glass', 'wallpaper', 'theme', 'taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
 
 
 def ini_value(text, section, key):
@@ -41,6 +43,9 @@ def ini_set(text, section, key, value):
 
 
 def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None):
+    if module == 'clipboard':
+        from clipboard.install import plans as clipboard_plans
+        return clipboard_plans(home)
     if module == 'wallpaper':
         from wallpaper.install import plans as wallpaper_plans
         return wallpaper_plans(home, wallpaper_binary)
@@ -147,6 +152,41 @@ def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_pre
     return edits
 
 
+def openbox_theme_spans(text):
+    """Locate direct theme/name elements without rewriting unrelated XML bytes.
+
+    Openbox theme sections also contain font/name elements. Regex matching all
+    descendant names mistakes ordinary font settings for duplicate themes.
+    Expat byte offsets preserve comments, whitespace, namespaces and fonts.
+    """
+    raw = text.encode()
+    parser = expat.ParserCreate(namespace_separator='}')
+    stack, themes, names = [], [], []
+    def local(tag): return tag.rsplit('}', 1)[-1]
+    def start(tag, attrs):
+        offset = parser.CurrentByteIndex
+        end = raw.index(b'>', offset) + 1
+        span = [offset, end, None, None]
+        path = [item[0] for item in stack] + [local(tag)]
+        if path == ['openbox_config', 'theme']: themes.append(span)
+        if path == ['openbox_config', 'theme', 'name']: names.append(span)
+        stack.append((local(tag), span))
+    def end(tag):
+        _, span = stack.pop()
+        offset = parser.CurrentByteIndex
+        if raw[span[0]:span[1]].rstrip().endswith(b'/>'):
+            span[2] = span[3] = span[1]
+        else:
+            span[2] = offset
+            span[3] = raw.index(b'>', offset) + 1
+    parser.StartElementHandler = start
+    parser.EndElementHandler = end
+    parser.Parse(raw, True)
+    if len(themes) > 1: raise RuntimeError('Expected one Openbox theme section')
+    if len(names) > 1: raise RuntimeError('Expected one Openbox theme name')
+    return raw, themes[0] if themes else None, names[0] if names else None
+
+
 def read_value(edit, data):
     if edit['kind']=='file':
         return base64.b64encode(data).decode() if data is not None else None
@@ -156,16 +196,8 @@ def read_value(edit, data):
     if edit['kind'] == 'obtheme':
         if not text.strip():
             raise RuntimeError('An existing Openbox rc.xml is required; start an LXQt/Openbox session first')
-        ET.fromstring(text)
-        blocks = re.findall(r'<theme\b[^>]*>(.*?)</theme>', text, re.S)
-        if not blocks:
-            return None
-        if len(blocks) != 1:
-            raise RuntimeError('Expected one Openbox theme section')
-        names = re.findall(r'<name>(.*?)</name>', blocks[0], re.S)
-        if len(names) > 1:
-            raise RuntimeError('Expected one Openbox theme name')
-        return names[0] if names else None
+        raw, theme, name = openbox_theme_spans(text)
+        return raw[name[1]:name[2]].decode() if name else None
     if edit['kind'] in ('desktop', 'firstdesk'):
         # Validate XML, but edit only the owned element to preserve formatting/comments.
         tree = ET.fromstring(text)
@@ -196,18 +228,23 @@ def write_value(edit, data, value):
         return ini_set(text,edit['section'],edit['key'],value).encode()
     if kind == 'obtheme':
         read_value(edit, data)
-        if not re.search(r'<theme\b', text):
+        raw, theme, name = openbox_theme_spans(text)
+        if theme is None:
             if value is None:
                 return data
             if text.count('</openbox_config>') != 1:
                 raise RuntimeError('Expected Openbox configuration root')
             return text.replace('</openbox_config>', '<theme><name>'+value+'</name></theme></openbox_config>').encode()
-        def update_theme(match):
-            body = match[2]
-            replacement = '<name>'+value+'</name>' if value is not None else ''
-            body = re.sub(r'<name>.*?</name>', lambda _: replacement, body, flags=re.S) if '<name>' in body else replacement+body
-            return match[1]+body+match[3]
-        return re.sub(r'(<theme\b[^>]*>)(.*?)(</theme>)', update_theme, text, count=1, flags=re.S).encode()
+        if name:
+            if value is None:
+                return raw[:name[0]] + raw[name[3]:]
+            if raw[name[0]:name[1]].rstrip().endswith(b'/>'):
+                return raw[:name[0]] + ('<name>'+value+'</name>').encode() + raw[name[3]:]
+            return raw[:name[1]] + value.encode() + raw[name[2]:]
+        if value is None: return data
+        if raw[theme[0]:theme[1]].rstrip().endswith(b'/>'):
+            return raw[:theme[0]] + ('<theme><name>'+value+'</name></theme>').encode() + raw[theme[3]:]
+        return raw[:theme[1]] + ('<name>'+value+'</name>').encode() + raw[theme[1]:]
     if kind in ('desktop', 'firstdesk'):
         read_value(edit, data)
         tag = 'number' if kind=='desktop' else 'firstdesk'
@@ -373,7 +410,7 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
     update_print = None
     if active_print and original[shortcuts] != changed[shortcuts]:
         update_print = live_print_change(shortcuts, original[shortcuts], changed[shortcuts])
-    transaction = theme_transaction(manifest, original, changed, modes) if module in ('theme','wallpaper') else nullcontext()
+    transaction = theme_transaction(manifest, original, changed, modes) if module in ('theme','wallpaper','clipboard') else nullcontext()
     with transaction as attempted:
         if not rollback:
             backup=dict(saved['backup']) if saved else {}
@@ -435,7 +472,7 @@ if __name__=='__main__':
     if os.geteuid()==0:
         parser.error('Run as your desktop user, not root')
     components={'screenshots':['lxqt-globalkeysd'], 'taskbar':['lxqt-panel']}.get(args.module,[])
-    if args.module in ('theme', 'wallpaper', 'wallpaper-glass'):
+    if args.module in ('theme', 'wallpaper', 'wallpaper-glass', 'clipboard'):
         if args.live:
             parser.error('Theme settings apply on normal application/desktop startup; --live is unsupported')
         # Serialize theme switch/restore against another setup process.
@@ -446,6 +483,8 @@ if __name__=='__main__':
         with lock.open('a') as stream:
             fcntl.flock(stream, fcntl.LOCK_EX)
             run(args.home, args.module, args.apply, args.rollback, theme=args.theme, wallpaper_binary=args.wallpaper_binary)
+        if args.module == 'clipboard' and args.rollback and args.home.resolve() == Path.home().resolve():
+            subprocess.run([sys.executable, str(ROOT/'clipboard/clipboard.py'), '--stop'], check=True)
         raise SystemExit(0)
     if args.module == 'screenshots' and (args.apply or args.rollback) and args.home.resolve() == Path.home().resolve():
         if subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', '^/usr/bin/lxqt-globalkeysd$'], stdout=subprocess.DEVNULL).returncode == 0:

@@ -12,7 +12,7 @@ from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QImage, QPainter, QColor, QLinearGradient
 
 class WallpaperGlass:
-    def __init__(self, path, screen_size, mode='crop', background='#202028', transform=True):
+    def __init__(self, path, screen_size, mode='crop', background='#202028', transform=True,edge_geometry=None):
         from PIL import Image, ImageFilter, ImageOps
         self.path = Path(path)
         self.width, self.height = screen_size
@@ -41,6 +41,27 @@ class WallpaperGlass:
         full = Image.alpha_composite(Image.new('RGBA', reduced, background), full).convert('RGB')
         small = full.filter(ImageFilter.GaussianBlur(2.0))
         self.blurred = self._qimage(small)
+        self.edge_geometry=edge_geometry;self.edge_tiles=[]
+        # Temporary raw image is discarded after bounded device-pixel strip extraction.
+        if mode == 'stretch' and edge_geometry and self.width*self.height<=9000000 and source.width*source.height<=9000000:
+            from math import ceil
+            x,y,w,h,dpr=edge_geometry
+            if dpr>0 and w>0 and h>0 and x>=0 and y>=0 and x+w<=self.width and y+h<=self.height:
+                from PySide6.QtGui import QImageReader
+                reader=QImageReader(str(path));reader.setAutoTransform(transform)
+                decoded=reader.read()
+                if not decoded.isNull():
+                    raw=QImage(self.width,self.height,QImage.Format.Format_RGB32);raw.fill(QColor(background))
+                    paint=QPainter(raw);paint.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+                    paint.drawImage(raw.rect(),decoded);paint.end();del decoded
+                    c=min(ceil(17*dpr),w//2,h//2);t=2
+                    boxes=[(0,0,c,c),(w-c,0,c,c),(0,h-c,c,c),(w-c,h-c,c,c),
+                           (c,0,w-2*c,t),(c,h-t,w-2*c,t),(0,c,t,h-2*c),(w-t,c,t,h-2*c)]
+                    if sum(max(0,bw)*max(0,bh)*4 for _,_,bw,bh in boxes)<=256*1024:
+                        for bx,by,bw,bh in boxes:
+                            if bw>0 and bh>0:
+                                tile=raw.copy(x+bx,y+by,bw,bh);tile.setDevicePixelRatio(dpr)
+                                self.edge_tiles.append((bx/dpr,by/dpr,tile))
         self.build_ms = (time.perf_counter()-start)*1000
         self.renders = 0
         self.cache = {}
@@ -112,6 +133,29 @@ class Backdrop(QWidget):
         path=QPainterPath();path.addRoundedRect(self.rect(),14,14);p.setClipPath(path)
         p.drawImage(0,0,self.image)
 
+class WallpaperEdge(QWidget):
+    def __init__(self,parent):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.tiles=[];self.glass=None;self.paints=0
+    def paintEvent(self,event):
+        if not self.tiles:return
+        from PySide6.QtCore import QRectF
+        self.paints+=1
+        dpr=self.devicePixelRatioF();band=2.0/dpr
+        box=QRectF(self.rect());outer=QPainterPath();outer.addRect(box)
+        inner=QPainterPath();inner.addRoundedRect(box.adjusted(band,band,-band,-band),max(0,15-band),max(0,15-band))
+        ring=outer.subtracted(inner)
+        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setClipPath(ring)
+        from PySide6.QtCore import QPointF
+        for x,y,tile in self.tiles:p.drawImage(QPointF(x,y),tile)
+        smooth=QPainterPath();inset=1.0/dpr
+        smooth.addRoundedRect(box.adjusted(inset,inset,-inset,-inset),15-inset,15-inset)
+        # drawPath coverage blends fractional glass pixels into the actual wallpaper.
+        from PySide6.QtGui import QBrush
+        p.fillPath(smooth,QBrush(self.glass))
+
 class MenuGlassController(QObject):
     decoded=Signal(object,object,int)
     def __init__(self,menu,path,palette,mode='stretch',background='#202028',transform=True):
@@ -120,6 +164,7 @@ class MenuGlassController(QObject):
         self.baseline=menu.styleSheet();self.atlas=None;self.generation=0;self.busy=False;self.pending=False;self.closed=False;self.enabled=True;self.active=False;self.signature=None
         self.pool=ThreadPoolExecutor(max_workers=1,thread_name_prefix='doro-glass')
         self.backdrop=Backdrop(menu.frame);self.backdrop.hide()
+        self.edge=WallpaperEdge(menu.frame);self.edge.hide()
         self.watcher=QFileSystemWatcher(self)
         self.watcher.directoryChanged.connect(self.source_changed);self.watcher.fileChanged.connect(self.source_changed)
         self.watcher.addPath(str(self.path.parent))
@@ -150,8 +195,10 @@ class MenuGlassController(QObject):
     def start_decode(self):
         if self.closed or not self.enabled or self.busy or not self.pending:return
         self.busy=True;self.pending=False;generation=self.generation
-        size,_,_=self.screen_spec()
-        future=self.pool.submit(WallpaperGlass,self.path,size,self.mode,self.background,self.transform)
+        size,dpr,origin=self.screen_spec()
+        point=self.menu.frame.mapToGlobal(QPoint(0,0))-origin;rect=self.menu.frame.rect()
+        geometry=(round(point.x()*dpr),round(point.y()*dpr),round(rect.width()*dpr),round(rect.height()*dpr),dpr)
+        future=self.pool.submit(WallpaperGlass,self.path,size,self.mode,self.background,self.transform,geometry)
         def complete(future):
             try:value,error=future.result(),None
             except Exception as e:value,error=None,str(e)
@@ -165,7 +212,7 @@ class MenuGlassController(QObject):
         if generation==self.generation and self.enabled:
             self.atlas=value
             if error:
-                self.backdrop.hide();self.menu.setStyleSheet(self.baseline);self.active=False
+                self.backdrop.hide();self.edge.hide();self.menu.setStyleSheet(self.baseline);self.active=False
             else:self.geometry_changed()
         self.start_decode()
     def geometry_changed(self):
@@ -176,8 +223,11 @@ class MenuGlassController(QObject):
         try:
             image=self.atlas.surface((round(point.x()*dpr),round(point.y()*dpr),round(rect.width()*dpr),round(rect.height()*dpr)),self.palette)
         except (ValueError, MemoryError, RuntimeError):
-            self.backdrop.hide();self.menu.setStyleSheet(self.baseline);self.active=False
+            self.backdrop.hide();self.edge.hide();self.menu.setStyleSheet(self.baseline);self.active=False
             return
+        geometry=(round(point.x()*dpr),round(point.y()*dpr),round(rect.width()*dpr),round(rect.height()*dpr),dpr)
+        if geometry!=self.atlas.edge_geometry:
+            self.edge.hide();self.source_changed(force=True);return
         image.setDevicePixelRatio(dpr)
         self.backdrop.image=image;self.backdrop.setGeometry(rect);self.backdrop.lower()
         if not self.active:
@@ -186,6 +236,9 @@ QWidget#placesPanel {{ background: {rgba(self.palette['side'],135)}; }}
 QWidget#applicationsPanel {{ background: {rgba(self.palette['base'],236)}; }}''')
             self.active=True
         self.backdrop.show();self.backdrop.update()
+        self.edge.setGeometry(rect);self.edge.tiles=self.atlas.edge_tiles
+        self.edge.glass=image
+        self.edge.show();self.edge.raise_();self.edge.update()
     def configure(self,path,mode='stretch',background='#000000',transform=False):
         if self.closed:return
         self.path=Path(path);self.mode=mode;self.background=background;self.transform=transform
@@ -197,7 +250,7 @@ QWidget#applicationsPanel {{ background: {rgba(self.palette['base'],236)}; }}'''
     def suspend(self):
         if self.closed:return
         self.enabled=False;self.generation+=1;self.pending=False;self.atlas=None
-        self.backdrop.hide();self.menu.setStyleSheet(self.baseline);self.active=False
+        self.backdrop.hide();self.edge.hide();self.menu.setStyleSheet(self.baseline);self.active=False
         watched=self.watcher.directories()+self.watcher.files()
         if watched:self.watcher.removePaths(watched)
     def shutdown(self):
@@ -205,7 +258,7 @@ QWidget#applicationsPanel {{ background: {rgba(self.palette['base'],236)}; }}'''
         self.pool.shutdown(wait=False,cancel_futures=True)
     def stop(self):
         self.shutdown();self.watcher.removePaths(self.watcher.directories()+self.watcher.files());self.coalesce.stop()
-        self.backdrop.hide();self.menu.setStyleSheet(self.baseline);self.active=False
+        self.backdrop.hide();self.edge.hide();self.menu.setStyleSheet(self.baseline);self.active=False
 
 
 def resolve_wallpaper(home,config_root=None):

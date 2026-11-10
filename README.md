@@ -375,3 +375,7 @@ Start now listens for GIO application-catalog changes while open. Installing or 
 ## Optional compositor-free wallpaper glass
 
 The newer `DoroShell-wallpaper-glass-candidate.zip` source adds **Wallpaper glass (no compositor)** under Apps & Themes. Start and a newly built native panel can blur/tint a cached copy of the standard PCManFM wallpaper, without capturing windows or adding a compositor. It is not true window transparency; animation stays frozen. This setting is off unless explicitly applied and has exact backup/rollback. The integrated source suite passes 116 tests and private installed-menu/panel enable/change/restore checks passed. No personal-session activation is claimed. See [behavior, limitations, build and verification](docs/wallpaper-glass.md).
+
+## DoroClipboard candidate
+
+Optional session-only clipboard history is available through `python setup.py clipboard`. It adds a fixed clipboard button immediately before the hidden-icons arrow, rather than inside overflow. Search and reuse text/image copies, pause collection, delete items or clear history. No clipboard content is written to disk. Recognized password-manager markers are excluded, but ordinary copied secrets cannot be reliably detected. See [privacy, installation and verification](clipboard/README.md). This module is privately tested; no personal clipboard was inspected or collected during development.

@@ -8,6 +8,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parent
 PACKAGES={
+ 'clipboard':['python','pyside6','lxqt-panel'],
  'wallpaper-glass':['pyside6','python-pillow'],
  'wallpaper':['pcmanfm-qt','qt6-multimedia','qt6-multimedia-ffmpeg','pyside6'],
  'theme':['pyside6','openbox','breeze-icons'],
@@ -107,7 +108,7 @@ def main():
         if module=='theme': cmd += ['--theme',args.theme]
         if module=='taskbar-size': cmd += ['--taskbar-size',args.taskbar_size]
         if module=='taskbar': cmd += ['--taskbar-style',args.taskbar_style]
-        if args.live and module not in ('menu','cursor','single-desktop','kate','dolphin','kate-dark','dolphin-dark','theme','wallpaper','wallpaper-glass'): cmd += ['--live']
+        if args.live and module not in ('menu','cursor','single-desktop','kate','dolphin','kate-dark','dolphin-dark','theme','wallpaper','wallpaper-glass','clipboard'): cmd += ['--live']
         print('\n'+module+':',flush=True)
         subprocess.run(cmd,check=True)
     print('\nFinished selected modules. Package state was not changed. No session was restarted.')

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
 
 ROOT = Path(__file__).resolve().parent
 OPTIONS = [
+    ('clipboard', 'DoroClipboard history button'),
     ('menu', 'Start menu'),
     ('theme', 'Coordinated Doro theme'),
     ('wallpaper-glass', 'Wallpaper glass (no compositor)'),
@@ -30,7 +31,7 @@ OPTIONS = [
 
 PAGES = [
     ('Start Menu', ('menu', 'panel')),
-    ('Taskbar & Windows', ('native-panel', 'taskbar-size', 'snapping', 'single-desktop', 'taskbar', 'taskbar-drag')),
+    ('Taskbar & Windows', ('native-panel', 'clipboard', 'taskbar-size', 'snapping', 'single-desktop', 'taskbar', 'taskbar-drag')),
     ('Screenshots', ('screenshots',)),
     ('Apps & Themes', ('theme', 'wallpaper-glass', 'kate', 'dolphin', 'kate-dark', 'dolphin-dark')),
     ('Cursor', ('cursor',)),
@@ -127,6 +128,9 @@ class Settings(QWidget):
                 elif module == 'wallpaper-glass':
                     choice.addItem('Enable wallpaper glass', 'enable')
                     choice.setToolTip('Frozen blur/tint from the standard PCManFM-Qt wallpaper, not moving-window transparency. Start updates on its next open; taskbar needs a glass-capable DoroShell panel. Animated wallpaper stays frozen. Restore returns the previous setting.')
+                elif module == 'clipboard':
+                    choice.addItem('Enable at next login', 'enable')
+                    choice.setToolTip('A visible history button beside the hidden-icons arrow. Up to 50 text/image copies in memory only; no PRIMARY selection or disk history. Pause before copying secrets. Does not replace another running clipboard manager.')
                 elif module == 'taskbar-size':
                     for name, pixels in [('Small', 20), ('Medium', 28), ('Large', 36)]:
                         choice.addItem(f'{name} ({pixels} px icons)', name.lower())

@@ -1,0 +1,1 @@
+"""DoroClipboard optional module."""

@@ -51,3 +51,11 @@ python tests/check_wallpaper_glass_x11.py --run --xvfb /path/to/Xvfb \
 A clean CachyOS installation, normal user login, physical multi-monitor/mixed-DPI and longer-running performance acceptance remain open. The implementation was not activated in the personal session during this work.
 
 Setup explicitly rejects custom `XDG_CONFIG_HOME`; standard `~/.config` is required. Oversized source configurations are rejected before parsing. Surface rendering errors restore the opaque theme.
+
+## Rounded-edge smoothing without a compositor
+
+The optional Start backdrop now blends a two-physical-pixel **inner** border against cached static-wallpaper samples, with an antialiased glass contour inset by one physical pixel. Its X11 bounding/input mask is unchanged. This addresses the clipped staircase on the outer frame corners; it does not alter the portrait crop or its frame.
+
+The extra decode runs in the existing asynchronous worker. Only eight corner/edge tiles remain afterward, capped at 256 KiB (20,784 bytes at 100% and 31,376 bytes for the screen-fitted 150% test). There is no periodic capture, decoder or repaint timer. The temporary raw source/screen are capped at 9 megapixels; null Qt decodes, unsupported geometry, and fit/crop modes keep the previous edge rendering. Qt orientation and alpha/background composition are handled for supported stretch input.
+
+Regression tests cover bounds, alpha, JPEG rotation and tile retention. Private X11 checks at 100% and screen-fitted 150% verify actual smoothing, movement refresh, exactly unchanged masks, disabled fallback and zero idle edge paints. Like wallpaper glass itself, this cannot provide correct fractional transparency over another application or animated wallpaper. It is a static-wallpaper visual approximation, not a compositor.

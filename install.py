@@ -27,7 +27,7 @@ def set_ini(text, section, key, value):
     end = match.end()+end_match.start() if end_match else len(text)
     body = text[match.end():end]
     line = re.compile(r'(?m)^'+re.escape(key)+r'\s*=.*$')
-    body = line.sub(key+'='+value,body) if line.search(body) else body.rstrip()+'\n'+key+'='+value+'\n'
+    body = line.sub(lambda _: key+'='+value,body) if line.search(body) else body.rstrip()+'\n'+key+'='+value+'\n'
     return text[:match.end()]+body+text[end:]
 
 
@@ -112,7 +112,7 @@ def targets(home, icon=None):
         files[custom] = (custom_data, 0o644)
         files[icon_path] = (start_tile(custom_data), 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
-    for name in ['wallpaper/control.py','wallpaper/install.py','settings.py','setup.py','themes.py','modules.py','cursor.py','install.py','integrate.py',
+    for name in ['clipboard/__init__.py','clipboard/clipboard.py','clipboard/install.py','clipboard/clipboard.svg','wallpaper/control.py','wallpaper/install.py','settings.py','setup.py','themes.py','modules.py','cursor.py','install.py','integrate.py',
                  'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/portrait_crop.py','menu/wallpaper_glass.py','menu/start.svg']:
         files[toolkit/name] = ((SOURCE/name).read_bytes(), 0o644)
     settings_launcher = home / '.local/bin/doroshell-settings'

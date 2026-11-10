@@ -34,6 +34,35 @@ class ThemeTests(unittest.TestCase):
             path.chmod(0o640)
         return {home/k: (v.encode(), 0o640) for k,v in configs.items()}
 
+    def test_theme_name_targets_direct_child_and_preserves_fonts_comments(self):
+        edit = {'kind': 'obtheme'}
+        for namespace in ('', ' xmlns="http://openbox.org/3.4/rc"'):
+            before = ('<openbox_config'+namespace+'><theme>\n'
+                      '<!-- <name>Comment is not a setting</name> -->\n'
+                      '<font place="ActiveWindow"><name>Sans</name><size>10</size></font>\n'
+                      '<name>Clearlooks</name>\n'
+                      '<font place="MenuItem"><name>Déjà Vu</name></font>\n'
+                      '</theme></openbox_config>').encode()
+            self.assertEqual(modules.read_value(edit, before), 'Clearlooks')
+            after = modules.write_value(edit, before, 'DoroShell')
+            self.assertEqual(after, before.replace(b'<name>Clearlooks</name>', b'<name>DoroShell</name>'))
+            self.assertEqual(modules.write_value(edit, after, 'Clearlooks'), before)
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d); self.seed(home)
+            path=home/'.config/openbox/rc.xml'; path.write_bytes(before)
+            modules.run(home,'theme',apply=True,theme='heretic')
+            self.assertEqual(path.read_bytes(), before.replace(b'<name>Clearlooks</name>', b'<name>DoroShell</name>'))
+            modules.run(home,'theme',rollback=True)
+            self.assertEqual(path.read_bytes(),before)
+
+    def test_theme_duplicate_direct_names_refused_and_empty_name_supported(self):
+        edit={'kind':'obtheme'}
+        with self.assertRaisesRegex(RuntimeError, 'Expected one Openbox theme name'):
+            modules.read_value(edit,b'<openbox_config><theme><name>A</name><name>B</name></theme></openbox_config>')
+        data=b'<openbox_config><theme><name/><font><name>Sans</name></font></theme></openbox_config>'
+        self.assertEqual(modules.read_value(edit,data),'')
+        self.assertEqual(modules.read_value(edit,modules.write_value(edit,data,'DoroShell')),'DoroShell')
+
     def test_four_theme_switch_repeat_restore_preserve_personal_values(self):
         with tempfile.TemporaryDirectory() as d:
             home = Path(d)
