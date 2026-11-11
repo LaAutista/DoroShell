@@ -32,10 +32,22 @@ def worker(binary, evidence):
         path = entries/(name+'.desktop')
         path.write_text(f'[Desktop Entry]\nType=Application\nName={name}\nExec=/usr/bin/false\nIcon={icon}\nStartupWMClass={cls}\n')
         paths.append(str(path))
+    # Mirror a system installation plus a visible Flatpak export sharing a class.
+    system = home/'system/share'
+    flatpak = home/'flatpak/exports/share'
+    os.environ['XDG_DATA_DIRS'] = str(system)+':'+str(flatpak)+':'+os.environ.get('XDG_DATA_DIRS','/usr/local/share:/usr/share')
+    chat_paths=[]
+    for directory,name,color in [(system,'example-chat','#8a35df'),(flatpak,'org.example.Chat','#f07819')]:
+        (directory/'applications').mkdir(parents=True)
+        icon=home/(name+'.png');pix=QPixmap(28,28);pix.fill(QColor(color));pix.save(str(icon))
+        path=directory/'applications'/(name+'.desktop')
+        path.write_text(f'[Desktop Entry]\nType=Application\nName={name}\nExec=/usr/bin/false\nIcon={icon}\nStartupWMClass=DoroChat\n')
+        chat_paths.append(str(path))
+    paths.append(chat_paths[0])
     conf = home/'panel.conf'
     conf.write_text('panels=panel1\n[panel1]\nplugins=taskbar\nposition=Bottom\nwidth=900\nwidth-percent=false\nreserve-space=false\npanelSize=40\n[taskbar]\ntype=taskbar\nbuttonStyle=Icon\nbuttonWidth=48\ngroupingEnabled=true\niconByClass=true\nshowOnlyOneDesktopTasks=false\n')
     cfg=QSettings(str(conf),QSettings.Format.IniFormat);cfg.setValue('taskbar/doroshellPinned',paths);cfg.sync()
-    before={p:Path(p).read_bytes() for p in paths}
+    before={p:Path(p).read_bytes() for p in paths+[chat_paths[1]]}
     wm=subprocess.Popen(['openbox','--sm-disable'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     panel=None;windows=[]
     evidence.mkdir(parents=True,exist_ok=True)
@@ -65,6 +77,22 @@ def worker(binary, evidence):
         x,y,w,h=geometry(xw);return x<=icon_x(color)<x+w
     try:
         wait();panel=subprocess.Popen([str(binary),'--config',str(conf)],stdout=log,stderr=log);wait();wait()
+        chat,xchat=fixture('DoroChat','DoroChat')
+        assert matches(xchat,'#8a35df'),'unique system pin lost to equally strong Flatpak launcher'
+        panel_image()[0].save(str(evidence/'identity-unique-pin.png'))
+        # A stronger application ID must beat the sole weaker pinned class match.
+        xchat.change_property(server.intern_atom('_GTK_APPLICATION_ID'),server.intern_atom('UTF8_STRING'),8,b'org.example.Chat')
+        server.sync();wait()
+        assert matches(xchat,'#f07819') and not matches(xchat,'#8a35df'),'pin overrode stronger unpinned app ID'
+        xchat.delete_property(server.intern_atom('_GTK_APPLICATION_ID'));server.sync();wait()
+        assert matches(xchat,'#8a35df'),'removing app ID did not restore unique pinned match'
+        panel.terminate();panel.wait(timeout=5)
+        cfg.setValue('taskbar/doroshellPinned',paths+[chat_paths[1]]);cfg.sync()
+        panel=subprocess.Popen([str(binary),'--config',str(conf)],stdout=log,stderr=log);wait();wait()
+        assert not matches(xchat,'#8a35df') and not matches(xchat,'#f07819'),'two equal pinned matches guessed'
+        panel_image()[0].save(str(evidence/'identity-two-pins.png'))
+        xchat.change_property(server.intern_atom('_GTK_APPLICATION_ID'),server.intern_atom('UTF8_STRING'),8,b'org.example.Chat')
+        server.sync();wait();assert matches(xchat,'#f07819'),'strong app ID failed with two pinned class matches'
         pin_x=icon_x('#01e3c7')
         w,xw=fixture('ModOrganizer','ModOrganizer-core','org.example.Manager')
         panel_image()[0].save(str(evidence/'identity-appid.png'))
@@ -108,7 +136,7 @@ def worker(binary, evidence):
             wm.send_signal(signal.SIGCONT)
         for p,data in before.items():assert Path(p).read_bytes()==data
         assert panel.poll() is None
-        print('PASS app-ID/desktop-file/basename grouping, multiple windows, StartupWMClass, instance, ambiguity, precedence, late changes, both icon modes, missing-native fallback, unchanged launchers')
+        print('PASS unique pinned system/Flatpak tie, two-pin ambiguity, stronger unpinned/pinned app-ID precedence, app-ID/desktop-file/basename grouping, multiple windows, StartupWMClass, instance, ambiguity, precedence, late changes, both icon modes, missing-native fallback, unchanged launchers')
     finally:
         for w in windows:w.close()
         if panel and panel.poll() is None:panel.terminate();panel.wait(timeout=5)

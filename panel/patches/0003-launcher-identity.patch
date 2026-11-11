@@ -84,10 +84,10 @@ index 55eb8d1..5890287 100644
      virtual LXQtTaskBarWindowLayer getWindowLayer(WId windowId) const override;
      virtual bool setWindowLayer(WId windowId, LXQtTaskBarWindowLayer layer) override;
 diff --git a/plugin-taskbar/lxqttaskbar.cpp b/plugin-taskbar/lxqttaskbar.cpp
-index f0dfe5d..20945d8 100644
+index f0dfe5d..f1a8002 100644
 --- a/plugin-taskbar/lxqttaskbar.cpp
 +++ b/plugin-taskbar/lxqttaskbar.cpp
-@@ -346,44 +346,77 @@ LXQtTaskGroup *LXQtTaskBar::createGroup(const QString &name, WId window)
+@@ -346,44 +346,81 @@ LXQtTaskGroup *LXQtTaskBar::createGroup(const QString &name, WId window)
      return group;
  }
  
@@ -171,8 +171,12 @@ index f0dfe5d..20945d8 100644
 -        if (matches.size() == 1) path = *matches.cbegin();
      }
 +    g_list_free_full(apps, g_object_unref);
-+    // Never guess between launchers sharing a Wine/wrapper class.
-+    return matches.size() == 1 ? *matches.cbegin() : QString();
++    if (matches.size() == 1) return *matches.cbegin();
++    // An explicit pin breaks only equal-strength ties, never a stronger app ID.
++    QSet<QString> pinnedMatches;
++    for (const auto& path : mPinnedPaths)
++        if (matches.contains(path)) pinnedMatches.insert(path);
++    return pinnedMatches.size() == 1 ? *pinnedMatches.cbegin() : QString();
 +}
 +
 +QString LXQtTaskBar::windowGroupName(WId window) const
@@ -197,7 +201,7 @@ index f0dfe5d..20945d8 100644
      if (path.isEmpty()) return;
      const bool pinned = mPinnedPaths.contains(path);
      QAction* action = menu->addAction(pinned ? tr("Unpin from taskbar") : tr("Pin to taskbar"));
-@@ -421,9 +454,7 @@ void LXQtTaskBar::loadPinnedLaunchers()
+@@ -421,9 +458,7 @@ void LXQtTaskBar::loadPinnedLaunchers()
      {
          XdgDesktopFile entry;
          if (!QFileInfo(path).isAbsolute() || !entry.load(path) || entry.value(QStringLiteral("Type")).toString() != QStringLiteral("Application")) continue;
@@ -208,7 +212,7 @@ index f0dfe5d..20945d8 100644
          group->setPinnedDesktop(path, entry.name(), XdgIcon::fromTheme(entry.value(QStringLiteral("Icon")).toString()));
      }
  }
-@@ -433,7 +464,7 @@ void LXQtTaskBar::addWindow(WId window)
+@@ -433,7 +468,7 @@ void LXQtTaskBar::addWindow(WId window)
      if (mExcludedList.contains(mBackend->getWindowClass(window), Qt::CaseInsensitive))
          return;
      // If grouping disabled group behaves like regular button
