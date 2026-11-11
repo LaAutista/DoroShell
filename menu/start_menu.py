@@ -1334,7 +1334,11 @@ def main():
     area = screen.availableGeometry()
     window.resize(min(MENU_SIZE.width(), area.width()), min(MENU_SIZE.height(), area.height()))
     window.move(area.left(), area.bottom() - window.height() + 1)
-    window.show()
+    controller = window.wallpaper_glass.controller if window.wallpaper_glass else None
+    if controller:
+        controller.present()
+    else:
+        window.show()
     if args.screenshot:
         def capture():
             window.grab().save(str(args.screenshot))

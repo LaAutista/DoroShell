@@ -1,37 +1,90 @@
+"""Regression coverage for opaque simulated glass and bounded first presentation."""
 import os
-os.environ['QT_QPA_PLATFORM']='offscreen'
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+import shiboken6
 import tempfile
+import threading
+import time
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 from PIL import Image
-from menu.wallpaper_glass import WallpaperGlass
+from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
+from menu.wallpaper_glass import WallpaperGlass, MenuGlassController
+from themes import PALETTES
 
 
 class GlassEdgeTests(unittest.TestCase):
-    def test_edge_tiles_bounded_without_full_resolution_retention(self):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+        cls.app.setQuitOnLastWindowClosed(False)
+
+    def wait(self, predicate, seconds=2):
+        end = time.monotonic() + seconds
+        while not predicate() and time.monotonic() < end:
+            loop = QEventLoop(); QTimer.singleShot(5, loop.quit); loop.exec()
+        self.assertTrue(predicate())
+
+    def test_atlas_retains_only_blurred_wallpaper_for_all_modes(self):
         with tempfile.TemporaryDirectory() as d:
-            path=Path(d)/'wall.png';Image.new('RGB',(128,128),'purple').save(path)
-            for dpr in (1,1.5):
-                atlas=WallpaperGlass(path,(int(1024*dpr),int(768*dpr)),'stretch',edge_geometry=(0,0,int(508*dpr),int(634*dpr),dpr))
-                self.assertEqual(len(atlas.edge_tiles),8)
-                self.assertLessEqual(sum(image.sizeInBytes() for _,_,image in atlas.edge_tiles),256*1024)
-                self.assertFalse(hasattr(atlas,'raw'))
-    def test_unsupported_layouts_and_outside_geometry_skip_edge_not_glass(self):
+            path = Path(d)/'wall.png'; Image.new('RGBA', (64, 64), (255, 0, 0, 128)).save(path)
+            for mode in ('stretch', 'fit', 'crop'):
+                atlas = WallpaperGlass(path, (100, 100), mode, '#0000ff')
+                color = atlas.blurred.pixelColor(0, 0)
+                self.assertEqual(color.alpha(), 255)
+                self.assertGreater(color.red(), 100); self.assertGreater(color.blue(), 100)
+                self.assertFalse(hasattr(atlas, 'edge_tiles'))
+                self.assertFalse(hasattr(atlas, 'raw'))
+
+    def test_gif_is_frozen_first_frame_and_jpeg_orientation_retained(self):
         with tempfile.TemporaryDirectory() as d:
-            path=Path(d)/'wall.png';Image.new('RGB',(64,64),'red').save(path)
-            for mode,size,geometry in [('fit',(100,100),(0,0,80,80,1)),('stretch',(10000,1000),(0,0,80,80,1)),('stretch',(100,100),(-10,0,80,80,1))]:
-                atlas=WallpaperGlass(path,size,mode,edge_geometry=geometry)
-                self.assertFalse(atlas.edge_tiles)
-                self.assertFalse(atlas.blurred.isNull())
-    def test_transparent_edge_uses_opaque_configured_background(self):
+            path = Path(d)/'wall.gif'
+            Image.new('RGB', (80, 40), 'red').save(path, save_all=True,
+                append_images=[Image.new('RGB', (80, 40), 'blue')], duration=20, loop=0)
+            atlas = WallpaperGlass(path, (100, 100))
+            self.assertGreater(atlas.blurred.pixelColor(5, 5).red(), 240)
+            path = Path(d)/'wall.jpg'
+            im = Image.new('RGB', (80, 40), 'red'); im.paste('blue', (40, 0, 80, 40))
+            exif = Image.Exif(); exif[274] = 6; im.save(path, exif=exif, quality=100)
+            atlas = WallpaperGlass(path, (100, 100), 'stretch', transform=True)
+            self.assertGreater(atlas.blurred.pixelColor(5, 0).red(), 240)
+            self.assertGreater(atlas.blurred.pixelColor(5, 11).blue(), 240)
+
+    def exercise_presentation(self, outcome):
         with tempfile.TemporaryDirectory() as d:
-            path=Path(d)/'alpha.png';Image.new('RGBA',(64,64),(255,0,0,128)).save(path)
-            atlas=WallpaperGlass(path,(100,100),'stretch',background='#0000ff',edge_geometry=(0,0,80,80,1))
-            color=atlas.edge_tiles[0][2].pixelColor(0,0)
-            self.assertEqual(color.alpha(),255);self.assertGreater(color.red(),100);self.assertGreater(color.blue(),100)
-    def test_jpeg_rotation_applies_to_raw_edge(self):
-        with tempfile.TemporaryDirectory() as d:
-            path=Path(d)/'rotated.jpg';im=Image.new('RGB',(80,40),'red');im.paste('blue',(40,0,80,40));exif=Image.Exif();exif[274]=6;im.save(path,exif=exif,quality=100)
-            atlas=WallpaperGlass(path,(100,100),'stretch',transform=True,edge_geometry=(0,0,100,100,1))
-            top=atlas.edge_tiles[0][2].pixelColor(0,0);bottom=atlas.edge_tiles[2][2].pixelColor(0,0)
-            self.assertGreater(top.red(),240);self.assertGreater(bottom.blue(),240)
+            path = Path(d)/'wall.png'; Image.new('RGB', (64, 64), 'red').save(path)
+            menu = QWidget(); menu.frame = QWidget(menu)
+            QVBoxLayout(menu).addWidget(menu.frame); menu.resize(300, 300)
+            gate = threading.Event()
+            def decode(*args):
+                gate.wait(2)
+                if outcome == 'error': raise ValueError('broken image')
+                return WallpaperGlass(*args)
+            with patch('menu.wallpaper_glass.WallpaperGlass', side_effect=decode) as build:
+                c = MenuGlassController(menu, path, PALETTES['windows'])
+                try:
+                    c.present(); self.assertFalse(menu.isVisible())
+                    heartbeat = []; QTimer.singleShot(0, lambda: heartbeat.append(True))
+                    if outcome != 'slow': gate.set()
+                    self.wait(menu.isVisible)
+                    self.assertTrue(heartbeat)
+                    self.assertEqual(c.active, outcome == 'ready')
+                    if outcome == 'slow':
+                        gate.set(); self.wait(lambda: not c.busy)
+                        self.assertFalse(c.active)  # Late result cannot flash into view.
+                    if outcome == 'ready':
+                        atlas = c.atlas; generation = c.generation
+                        menu.move(20, 30); menu.resize(320, 310)
+                        self.app.processEvents()
+                        self.assertIs(c.atlas, atlas); self.assertEqual(c.generation, generation)
+                        self.assertEqual(build.call_count, 1)
+                        menu.hide(); c.present(); self.assertTrue(c.active)
+                        self.assertEqual(build.call_count, 1)
+                finally:
+                    gate.set(); c.stop(); c.pool.shutdown(wait=True); menu.close(); shiboken6.delete(menu)
+
+    def test_first_show_ready_without_geometry_redecode(self): self.exercise_presentation('ready')
+    def test_first_show_error_uses_opaque_fallback(self): self.exercise_presentation('error')
+    def test_first_show_deadline_keeps_late_result_opaque(self): self.exercise_presentation('slow')

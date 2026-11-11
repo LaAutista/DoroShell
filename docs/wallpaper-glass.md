@@ -52,10 +52,15 @@ A clean CachyOS installation, normal user login, physical multi-monitor/mixed-DP
 
 Setup explicitly rejects custom `XDG_CONFIG_HOME`; standard `~/.config` is required. Oversized source configurations are rejected before parsing. Surface rendering errors restore the opaque theme.
 
-## Rounded-edge smoothing without a compositor
+## Start first paint and frame edges
 
-The optional Start backdrop now blends a two-physical-pixel **inner** border against cached static-wallpaper samples, with an antialiased glass contour inset by one physical pixel. Its X11 bounding/input mask is unchanged. This addresses the clipped staircase on the outer frame corners; it does not alter the portrait crop or its frame.
+Start exits when hidden, so each ordinary opening decodes again. It now waits asynchronously for the first glass surface before showing, with a 250 ms readiness deadline after construction/positioning. If decoding fails or misses that deadline, the opening stays on its opaque theme; a late result does not flash into view. The event loop remains responsive. This deadline is not a bound on Python/application startup or process exit.
 
-The extra decode runs in the existing asynchronous worker. Only eight corner/edge tiles remain afterward, capped at 256 KiB (20,784 bytes at 100% and 31,376 bytes for the screen-fitted 150% test). There is no periodic capture, decoder or repaint timer. The temporary raw source/screen are capped at 9 megapixels; null Qt decodes, unsupported geometry, and fit/crop modes keep the previous edge rendering. Qt orientation and alpha/background composition are handled for supported stretch input.
+The raw-wallpaper border overlay has been removed: wallpaper samples are the wrong background when an application or animated video is behind Start, and produced colorful specks along straight edges. The blurred/tinted opaque surface now reaches the frame edge, with the backdrop radius matching the existing 15 px X11 mask. The portrait and input/bounding mask are unchanged. Binary X11 masks still have pixel steps at curved corners; this does not promise fractional transparency without a compositor.
 
-Regression tests cover bounds, alpha, JPEG rotation and tile retention. Private X11 checks at 100% and screen-fitted 150% verify actual smoothing, movement refresh, exactly unchanged masks, disabled fallback and zero idle edge paints. Like wallpaper glass itself, this cannot provide correct fractional transparency over another application or animated wallpaper. It is a static-wallpaper visual approximation, not a compositor.
+Moving/resizing reuses the blurred atlas instead of decoding again. Screen-size and wallpaper-source changes still invalidate it. Regression coverage includes cold first paint, delayed/failed decode fallback, geometry reuse, alpha, JPEG orientation and frozen GIF input. The private X11 check exercises three fresh processes, straight-edge pixels over a dark window, unchanged masks, supported modes and zero idle backdrop paints at 100%/150%:
+
+```sh
+QT_SCALE_FACTOR=1 python tests/check_glass_edges_x11.py --run --xvfb /path/to/Xvfb --output /tmp/start-render-evidence
+QT_SCALE_FACTOR=1.5 python tests/check_glass_edges_x11.py --run --xvfb /path/to/Xvfb --output /tmp/start-render-evidence
+```
