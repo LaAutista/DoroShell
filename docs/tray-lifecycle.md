@@ -57,9 +57,9 @@ Escape. Use the command above with either value for `--case`. The fallback test
 checks protocol dispatch; it cannot establish the behavior of menus drawn by an
 external real application.
 
-## Keyboard-only entry: known limitation
+## Keyboard-only entry: historical native limitation
 
-The pinned LXQt Panel 2.4.1 sets `Qt::WindowDoesNotAcceptFocus` deliberately to
+At source checkpoint `d525ae4`, the pinned LXQt Panel 2.4.1 sets `Qt::WindowDoesNotAcceptFocus` deliberately to
 preserve taskbar minimize/restore behavior. The overflow arrow has the accessible
 name “Show hidden icons”, but a name alone does not provide keyboard access.
 Unlike the main-menu and taskbar plugins, `plugin-statusnotifier` registers no
@@ -85,3 +85,7 @@ and screen-reader usability is not established by accessible labels alone.
 No production change, global shortcut, service installation or personal binding
 change is made for this acceptance checkpoint. The known entry gap remains open;
 all nine native patches and live-session safeguards are preserved.
+
+The [configurable native action](tray-shortcut.md) added afterward provides entry
+without changing the panel focus policy. It is unbound by default, so the historical
+probe still describes ordinary Tab/window cycling without a configured action.

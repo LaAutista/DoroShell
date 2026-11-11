@@ -1,0 +1,116 @@
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp
+@@ -41,9 +41,43 @@
+ #include <QScreen>
+ #include <QKeyEvent>
+ #include <QDBusMessage>
++#include <QKeySequence>
++#include <LXQtGlobalKeys/Client>
++#include <LXQtGlobalKeys/Action>
+ #include <algorithm>
+ 
+ namespace {
++class OverflowPopup : public QFrame
++{
++public:
++    OverflowPopup(QWidget *parent, GlobalKeyShortcut::Action *shortcut, const QString &binding)
++        : QFrame(parent, Qt::Popup), mBinding(sequence(binding))
++    {
++        if (shortcut)
++            connect(shortcut, &GlobalKeyShortcut::Action::shortcutChanged, this,
++                [this](const QString &, const QString &key) { mBinding = sequence(key); });
++    }
++protected:
++    bool eventFilter(QObject *object, QEvent *event) override
++    {
++        if (!mBinding.isEmpty() && (event->type() == QEvent::KeyPress || event->type() == QEvent::ShortcutOverride))
++        {
++            auto key = static_cast<QKeyEvent *>(event);
++            if (mBinding == QKeySequence(key->keyCombination()))
++            {
++                if (event->type() == QEvent::KeyPress && !key->isAutoRepeat())
++                    close();
++                event->accept();
++                return true;
++            }
++        }
++        return QFrame::eventFilter(object, event);
++    }
++private:
++    static QKeySequence sequence(QString key) { return QKeySequence(key.replace(QStringLiteral("Control+"), QStringLiteral("Ctrl+"))); }
++    QKeySequence mBinding;
++};
++
+ class OverflowButton : public StatusNotifierButton
+ {
+ public:
+@@ -131,6 +165,23 @@
+         for (const auto &btn : allButtons)
+             btn->show();
+     });
++
++    // Empty default preserves an explicitly configured binding without claiming a key.
++    mShortcut = GlobalKeyShortcut::Client::instance()->addAction(QString(),
++        QStringLiteral("/panel/%1/show_hidden_icons").arg(mPlugin->settings()->group()),
++        tr("Show/hide hidden notification icons"), this);
++    if (mShortcut)
++    {
++        connect(mShortcut, &GlobalKeyShortcut::Action::registrationFinished, this,
++            [this] { mShortcutSequence = mShortcut->shortcut(); });
++        // LXQt's shortcutChanged signal carries external edits; its getter can be stale.
++        connect(mShortcut, &GlobalKeyShortcut::Action::shortcutChanged, this,
++            [this](const QString &, const QString &key) { mShortcutSequence = key; });
++        connect(mShortcut, &GlobalKeyShortcut::Action::activated, this, [this] {
++            if (mPlugin->settings()->value(QStringLiteral("doroshellPopup"), false).toBool())
++                showOverflow();
++        }, Qt::QueuedConnection);
++    }
+ 
+     settingsChanged();
+ 
+@@ -393,7 +444,7 @@
+         mOverflow->close();
+         return;
+     }
+-    auto popup = new QFrame(this, Qt::Popup);
++    auto popup = new OverflowPopup(this, mShortcut, mShortcutSequence);
+     popup->setObjectName(QStringLiteral("doroshellTrayPopup"));
+     popup->setWindowTitle(tr("Hidden icons"));
+     popup->setAccessibleName(tr("Hidden notification icons"));
+@@ -419,6 +470,7 @@
+         button->setAutoHide(false);
+         button->setFixedSize(36, 36);
+         button->setFocusPolicy(Qt::StrongFocus);
++        button->installEventFilter(popup);
+         button->setAccessibleName(original->title());
+         grid->addWidget(button, count / 4, count % 4);
+         ++count;
+--- a/plugin-statusnotifier/statusnotifierwidget.h
++++ b/plugin-statusnotifier/statusnotifierwidget.h
+@@ -36,6 +36,7 @@
+ #include "statusnotifierbutton.h"
+ 
+ class StatusNotifierProxy;
++namespace GlobalKeyShortcut { class Action; }
+ 
+ class StatusNotifierWidget : public QWidget
+ {
+@@ -64,6 +65,8 @@
+     bool isHidden(const QString &title) const;
+     void showOverflow();
+     QPointer<QWidget> mOverflow;
++    QPointer<GlobalKeyShortcut::Action> mShortcut;
++    QString mShortcutSequence;
+     ILXQtPanelPlugin *mPlugin;
+ 
+     QTimer mHideTimer;
+--- a/plugin-statusnotifier/CMakeLists.txt
++++ b/plugin-statusnotifier/CMakeLists.txt
+@@ -43,6 +43,7 @@
+ list(APPEND SOURCES "${DBUS_SOURCES}")
+ 
+ set(LIBRARIES
++    lxqt-globalkeys
+     dbusmenu-lxqt
+     Qt6::Concurrent
+ )

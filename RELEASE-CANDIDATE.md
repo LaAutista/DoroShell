@@ -25,6 +25,17 @@ changes tests/docs only, preserves all nine patches, and reruns the full 237-tes
 suite plus popup/imported-menu/fallback keyboard checks on the same tested runtime.
 It makes no new build or live activation claim.
 
+## Subsequent native shortcut checkpoint
+
+The [tenth patch](docs/tray-shortcut.md) adds an unbound LXQt tray action. Pointer-free
+entry, focus, navigation, menus, toggle, disconnect/empty state and daemon reconnect
+are privately tested. Queued entry measured 44–46 ms in five synthetic samples, not
+physical latency. The strict AT-SPI popup-label probe still fails on both old and
+new runtimes; that limitation is retained explicitly. Native task/tray regressions,
+237 unit tests, clean patch-chain and source-export checks cover this increment.
+The parent reported nine-patch activation; the tenth patch remains staged pending
+an explicit safe point. No live queries or binding changes were performed here.
+
 ## Source, tests and live installation are different claims
 
 The [acceptance matrix](docs/final-acceptance.md) records the distinction. Read-only
@@ -102,7 +113,7 @@ private backups, caches and toolchains. Neutral project SVGs remain included.
 - Review staged-versus-installed provenance and prepare a later activation/rollback
   plan without changing the session; activation itself needs the user's chosen time.
 - Broaden real notifier/app and long-session acceptance; keyboard-only overflow
-  entry is a confirmed native limitation; real-client XEmbed variants remain unverified.
+  entry now has an unbound configurable action; popup AT-SPI labels and real-client XEmbed variants remain open.
 - Physical mixed-DPI/multi-monitor, Wayland, real audio/DPMS and display recovery
   remain outside private Xvfb/fake-driver evidence.
 - Fresh-login and clean-system acceptance remain explicitly user-deferred.

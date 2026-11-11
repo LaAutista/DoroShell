@@ -25,22 +25,24 @@ def worker(binary,evidence,case):
     bus=dbus.SessionBus();assert not bus.name_has_owner('org.kde.StatusNotifierWatcher')
     calls=[]
     class Item(dbus.service.Object):
-        def __init__(self):
+        def __init__(self, second=False):
+            self.second=second
             self.status='Passive'
-            self.name=dbus.service.BusName('org.kde.StatusNotifierItem.Lifecycle',bus)
-            super().__init__(bus,'/StatusNotifierItem')
+            self.fixture_bus=dbus.SessionBus(private=True) if second else bus
+            self.name=dbus.service.BusName('org.kde.StatusNotifierItem.Lifecycle'+('Second' if second else ''),self.fixture_bus)
+            super().__init__(self.fixture_bus,'/StatusNotifierItem')
         @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
         def Get(self,interface,key):
             pixels=bytes([255,237,1,201])*24*24
             pix=dbus.Array([dbus.Struct((dbus.Int32(24),dbus.Int32(24),dbus.ByteArray(pixels)),signature='iiay')],signature='(iiay)')
             values={'Category':'ApplicationStatus','Id':'Lifecycle','Title':'LifecycleFixture','Status':self.status,'WindowId':dbus.Int32(0),'ItemIsMenu':False,'IconName':'','IconThemePath':'','OverlayIconName':'','AttentionIconName':'','AttentionMovieName':'','IconPixmap':pix,'OverlayIconPixmap':dbus.Array([],signature='(iiay)'),'AttentionIconPixmap':pix,'ToolTip':dbus.Struct(('',pix,'LifecycleFixture','Disposable item'),signature='sa(iiay)ss')}
-            if key=='Menu' and case=='context':return dbus.ObjectPath('/Menu')
+            if key=='Menu' and case in ('context','global','global-labels'):return dbus.ObjectPath('/Menu')
             if key not in values:raise dbus.exceptions.DBusException('Unavailable',name='org.freedesktop.DBus.Error.UnknownProperty')
             return values[key]
         @dbus.service.signal('org.kde.StatusNotifierItem',signature='s')
         def NewStatus(self,status):pass
         @dbus.service.method('org.kde.StatusNotifierItem',in_signature='ii',out_signature='')
-        def Activate(self,x,y):calls.append('activate')
+        def Activate(self,x,y):calls.append('activate-second' if self.second else 'activate')
         @dbus.service.method('org.kde.StatusNotifierItem',in_signature='ii',out_signature='')
         def ContextMenu(self,x,y):calls.append('context')
     class TestMenu(dbus.service.Object):
@@ -83,7 +85,7 @@ def worker(binary,evidence,case):
     cfg=QSettings(str(conf),QSettings.Format.IniFormat)
     cfg.setValue('statusnotifier/'+('autoHideList' if case=='attention' else 'hideList'),['LifecycleFixture']);cfg.sync();del cfg
     log=open(evidence/'panel.log','w');wm=subprocess.Popen(['openbox','--sm-disable'],stdout=log,stderr=log)
-    panel=None;item=None;menu=None;fields=[]
+    panel=None;item=None;menu=None;fields=[];keys=None;second=None;registry_process=None
     def panel_window():return next(w for w in windows(panel.pid) if w.get_geometry().width>200)
     def panel_visible_height():
         panel_rect=panel_window();pos=root.translate_coords(panel_rect,0,0)
@@ -102,12 +104,113 @@ def worker(binary,evidence,case):
         im=app.primaryScreen().grabWindow(panel_window().id).toImage()
         return any(im.pixelColor(x,y)==QColor('#ed01c9') for x in range(im.width()) for y in range(im.height()))
     try:
-        wait();panel=subprocess.Popen([str(binary),'--config',str(conf)],stdout=log,stderr=log);wait(1.4)
+        if case in ('global','global-labels'):
+            # Explicit empty private config prevents loading system command bindings.
+            keyconf=home/'.config/lxqt/globalkeyshortcuts.conf';keyconf.parent.mkdir(parents=True,exist_ok=True);keyconf.write_text('[General]\n')
+            keys=subprocess.Popen(['lxqt-globalkeysd','--no-daemon','--log-level','debug','--config-file',str(keyconf)],stdout=log,stderr=log)
+            wait(.8)
+            address=dbus.Interface(bus.get_object('org.a11y.Bus','/org/a11y/bus'),'org.a11y.Bus').GetAddress()
+            accessibility=dbus.bus.BusConnection(str(address))
+            registry_process=subprocess.Popen(['/usr/lib/at-spi2-registryd'],env=dict(os.environ,AT_SPI_BUS_ADDRESS=str(address)),stdout=log,stderr=log)
+            wait(.7)
+            registry=accessibility.get_object('org.a11y.atspi.Registry','/org/a11y/atspi/accessible/root')
+        wait();panel=subprocess.Popen([str(binary),'--config',str(conf)],stdout=log,stderr=log,env=dict(os.environ,QT_LINUX_ACCESSIBILITY_ALWAYS_ON='1') if case in ('global','global-labels') else None);wait(1.4)
         item=Item()
-        if case=='context':menu=TestMenu()
+        if case in ('context','global','global-labels'):menu=TestMenu()
         watcher=dbus.Interface(bus.get_object('org.kde.StatusNotifierWatcher','/StatusNotifierWatcher'),'org.kde.StatusNotifierWatcher');watcher.RegisterStatusNotifierItem('org.kde.StatusNotifierItem.Lifecycle');wait(1.5)
         for i in range(2):
             field=QLineEdit();field.setWindowTitle('Disposable focus '+str(i));field.setGeometry(150+i*350,200,240,70);field.show();fields.append(field)
+        if case in ('global','global-labels'):
+            import json
+            daemon=dbus.Interface(bus.get_object('org.lxqt.global_key_shortcuts','/daemon'),'org.lxqt.global_key_shortcuts.daemon')
+            actions=daemon.getAllActions()
+            selected=[(ident,info) for ident,info in actions.items() if str(info[4])=='/panel/statusnotifier/show_hidden_icons']
+            assert len(selected)==1,('missing unique tray action',actions)
+            ident,info=selected[0]
+            assert str(info[0])=='' and str(info[1])=='Show/hide hidden notification icons','action claimed default key or wrong label'
+            assert daemon.changeShortcut(ident,'Shift+Control+F9')=='Shift+Control+F9'
+            second=Item(True);watcher.RegisterStatusNotifierItem('org.kde.StatusNotifierItem.LifecycleSecond');wait(.7)
+            app.sync();wait();fields[0].activateWindow();fields[0].setFocus();wait()
+            key('a');assert fields[0].text()=='a'
+            pointer=root.query_pointer();latencies=[];chord_key="F9"
+            def shortcut(held=False):
+                start=time.monotonic()
+                codes=[d.keysym_to_keycode(XK.string_to_keysym(n)) for n in ('Control_L','Shift_L',chord_key)]
+                for code in codes:xtest.fake_input(d,X.KeyPress,code)
+                if held:
+                    d.sync()
+                    wait(.3)
+                    assert len(popups())==1,'held shortcut did not open or toggled repeatedly'
+                for code in reversed(codes):xtest.fake_input(d,X.KeyRelease,code)
+                d.sync()
+                return start
+            def invoke_open():
+                start=shortcut()
+                while not popups() and time.monotonic()-start<2:wait(.01)
+                assert len(popups())==1,'shortcut failed to open overflow within 2s'
+                latencies.append((time.monotonic()-start)*1000)
+                (evidence/'open-samples.json').write_text(json.dumps(latencies))
+                assert not panel_window().get_wm_hints()['input'],'panel focus policy changed'
+                return popups()[0]
+            invoke_open()
+            # Inspect exported accessibility labels; this is not a screen-reader test.
+            apps=dbus.Interface(registry,'org.a11y.atspi.Accessible').GetChildren()
+            labels=[]
+            def visit(service,path):
+                obj=accessibility.get_object(str(service),str(path))
+                props=dbus.Interface(obj,'org.freedesktop.DBus.Properties')
+                labels.append(str(props.Get('org.a11y.atspi.Accessible','Name')))
+                for child in dbus.Interface(obj,'org.a11y.atspi.Accessible').GetChildren():visit(*child)
+            for service,path in apps:
+                if accessibility.call_blocking('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','GetConnectionUnixProcessID','s',(str(service),))==panel.pid:
+                    visit(service,path)
+                    cache=dbus.Interface(accessibility.get_object(str(service),'/org/a11y/atspi/cache'),'org.a11y.atspi.Cache').GetItems()
+                    (evidence/'accessible-cache.txt').write_text(str(cache))
+                    for entry in cache:
+                        reference=entry[0]
+                        obj=accessibility.get_object(str(reference[0]),str(reference[1]))
+                        labels.append(str(dbus.Interface(obj,'org.freedesktop.DBus.Properties').Get('org.a11y.atspi.Accessible','Name')))
+
+            assert 'Show hidden icons' in labels,('missing arrow label',labels)
+            if case=='global-labels':
+                assert 'Hidden notification icons' in labels and labels.count('LifecycleFixture')>=2,('popup labels not exported in inspected AT-SPI tree',labels)
+            (evidence/'accessible-labels.json').write_text(json.dumps(labels,indent=2)+'\n')
+            key('Return');assert calls==['activate'],'first icon did not receive focus'
+            key('Tab');key('Return');assert calls==['activate','activate-second'],'Tab did not reach second item'
+            shift=d.keysym_to_keycode(XK.string_to_keysym('Shift_L'))
+            xtest.fake_input(d,X.KeyPress,shift);key('Tab');xtest.fake_input(d,X.KeyRelease,shift);d.sync();wait()
+            key('Menu');wait(.5);key('Down');key('Return')
+            assert calls==['activate','activate-second','menu-clicked'],'menu selection double-activated app'
+            key('Escape');key('b');assert fields[0].text()=='ab','Escape did not restore original app'
+            invoke_open()
+            assert daemon.changeShortcut(ident,'Shift+Control+F8')=='Shift+Control+F8'
+            chord_key='F8';wait(.2)
+            shortcut();wait(.5)
+            assert not popups(),'repeat shortcut did not toggle overflow closed'
+            key('c');assert fields[0].text()=='abc'
+            invoke_open();second.fixture_bus.release_name('org.kde.StatusNotifierItem.LifecycleSecond');wait(.7)
+            assert not popups(),'disconnect left popup open'
+            key('d');assert fields[0].text()=='abcd'
+            invoke_open();key('Escape')
+            shortcut(held=True);wait(.1);key('Escape')
+            assert calls==['activate','activate-second','menu-clicked'],'held chord activated an item'
+            bus.release_name('org.kde.StatusNotifierItem.Lifecycle');wait(.7)
+            shortcut();wait(.5);assert not popups(),'shortcut opened empty overflow'
+            key('e');assert fields[0].text()=='abcde','empty action stole focus'
+            # A daemon restart must preserve the user's explicit assignment.
+            keys.terminate();keys.wait(timeout=5);wait(.3)
+            keys=subprocess.Popen(['lxqt-globalkeysd','--no-daemon','--log-level','debug','--config-file',str(keyconf)],stdout=log,stderr=log);wait(1)
+            daemon=dbus.Interface(bus.get_object('org.lxqt.global_key_shortcuts','/daemon'),'org.lxqt.global_key_shortcuts.daemon')
+            rebound=daemon.getAllActions()
+            assert any(str(v[4])=='/panel/statusnotifier/show_hidden_icons' and str(v[0])=='Shift+Control+F8' for v in rebound.values()),'saved binding lost on daemon reconnect'
+            bus.request_name('org.kde.StatusNotifierItem.Lifecycle')
+            watcher.RegisterStatusNotifierItem('org.kde.StatusNotifierItem.Lifecycle');wait(.5)
+            invoke_open();key('Return');key('Escape')
+            assert calls==['activate','activate-second','menu-clicked','activate'],'reconnected action misrouted activation'
+            after=root.query_pointer();assert (after.root_x,after.root_y)==(pointer.root_x,pointer.root_y),'pointer moved during global keyboard path'
+            (evidence/'latency.json').write_text(json.dumps({'method':'XTest chord injection plus XSync to first mapped popup observation; monotonic clock, 10ms polling; private Xvfb/Openbox, not hardware latency','milliseconds':latencies,'bound_ms':2000},indent=2)+'\n')
+            print('PASS unbound native action, pointer-free entry/focus/navigation/activation/menu/Escape/toggle/disconnect/empty/reconnect; timings ms',latencies,flush=True)
+            return
         if case=='entry-limit':
             # This is a limitation probe, not a claim of keyboard-only entry.
             app.sync();wait()
@@ -187,13 +290,14 @@ def worker(binary,evidence,case):
         for f in fields:f.close()
         if menu:menu.remove_from_connection()
         if item:item.remove_from_connection()
-        for process in (panel,wm):
+        if second:second.remove_from_connection()
+        for process in (panel,wm,keys,registry_process):
             if process and process.poll() is None:process.terminate();process.wait(timeout=5)
         log.close();d.close()
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--binary',type=Path,required=True);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--case',choices=['popup','attention','context-fallback','context','entry-limit'],default='popup');p.add_argument('--xvfb',type=Path);p.add_argument('--run',action='store_true');p.add_argument('--worker',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--binary',type=Path,required=True);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--case',choices=['popup','attention','context-fallback','context','entry-limit','global','global-labels'],default='popup');p.add_argument('--xvfb',type=Path);p.add_argument('--run',action='store_true');p.add_argument('--worker',action='store_true');a=p.parse_args()
     if a.worker:worker(a.binary.resolve(),a.evidence.resolve(),a.case)
     elif a.run and a.xvfb:isolated(a.xvfb.resolve(),[sys.executable,str(Path(__file__).resolve()),'--worker','--binary',str(a.binary.resolve()),'--evidence',str(a.evidence.resolve()),'--case',a.case])
     else:p.error('Opt in with --run --xvfb PATH')

@@ -39,6 +39,7 @@
     "docs/taskbar-identity.md",
     "docs/themes.md",
     "docs/tray-lifecycle.md",
+    "docs/tray-shortcut.md",
     "docs/verification.md",
     "docs/wallpaper-glass.md",
     "docs/wallpaper-isolation-verification.md",
@@ -70,6 +71,7 @@
     "panel/patches/0007-show-desktop-drag.patch",
     "panel/patches/0008-panel-density.patch",
     "panel/patches/0009-tray-registration-popup.patch",
+    "panel/patches/0010-tray-shortcut.patch",
     "panel/profile.py",
     "portable_settings.py",
     "runtime/dockbarx_drag.py",
@@ -181,8 +183,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 180,
-  "source_payload_count": 178,
+  "file_count": 182,
+  "source_payload_count": 180,
   "checks": [
     "Tracked regular UTF-8 source files; no NUL binaries or symlinks",
     "Payload hashes and complete file inventory checked",

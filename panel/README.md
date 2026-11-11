@@ -143,4 +143,4 @@ a new item registers. The synthetic XEmbed/SNI docking, pixel, input and restart
 check and precise plugin/profile limits are in [legacy tray acceptance](../docs/xembed-tray.md).
 This patch remains staged; no live panel refresh was performed.
 
-Keyboard-only entry to the arrow is a [confirmed native limitation](../docs/tray-lifecycle.md#keyboard-only-entry-known-limitation), distinct from tested keyboard controls inside an already-open popup. No new shortcut is assigned.
+`0010-tray-shortcut.patch` adds the unbound LXQt action **Show/hide hidden notification icons**. Configure an unused chord in LXQt Shortcut Keys after safe deployment. [Behavior, latency evidence, conflict policy and accessibility limits](../docs/tray-shortcut.md). No user binding is assigned by default.

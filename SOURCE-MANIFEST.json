@@ -1,7 +1,7 @@
 {
   "format": 8,
-  "candidate": "doroshell-source-20261111-tray-entry-limit",
-  "published_ancestor": "f26f43978936ccdd7c69387030b1bd996f1c3570",
+  "candidate": "doroshell-source-20261111-tray-shortcut",
+  "published_ancestor": "d525ae48aa9d1ec12df22a6fd59d2a05800623d2",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -11,7 +11,8 @@
     "show_desktop": "3262715",
     "panel_density": "5749fa1",
     "release_consistency": "1e029cc",
-    "xembed_coexistence": "f26f439"
+    "xembed_coexistence": "f26f439",
+    "keyboard_entry_probe": "d525ae4"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -50,14 +51,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "e88494deffba5a98cb7a7afab943dceec8d2a0bbfdc83cd00bf0c6a785c8520c",
-      "size": 6517,
+      "sha256": "22d86a637942a86199576b8908b633b6b760c1dbb2fc5eec54f5eb52d60307b9",
+      "size": 7252,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "67a040494b8d5bdfac4da6686e5fc650841d78a311c0d46e4c969153037221c5",
-      "size": 6515,
+      "sha256": "60794fc64fe2aea8e98bc672f07baaf904ddf70ad2753406edf23639e75b0184",
+      "size": 6590,
       "mode": "0o644"
     },
     {
@@ -152,8 +153,8 @@
     },
     {
       "path": "docs/final-acceptance.md",
-      "sha256": "117d15dc5c86788d332342c9518c4ce8593d47e1103c0bf2f89abd8d8bb2dcba",
-      "size": 6352,
+      "sha256": "77389b4d3262845c2270674de448361f58e4a5affbcdba0120b3d8a936b1e442",
+      "size": 6672,
       "mode": "0o644"
     },
     {
@@ -200,8 +201,8 @@
     },
     {
       "path": "docs/roadmap.md",
-      "sha256": "c9e0a6a63c21cb8b1fc75832e2762ecd31f1f9c0646baa5acd94a5539b553dc2",
-      "size": 4514,
+      "sha256": "4587c1331cc67e3f5731ffed2905d546f284a78dd192dde1f1529c9403855251",
+      "size": 4488,
       "mode": "0o644"
     },
     {
@@ -236,8 +237,14 @@
     },
     {
       "path": "docs/tray-lifecycle.md",
-      "sha256": "9de3c8ad3f6fe4712c5cbe8702feadc4845ea2c23dbdcb1faf601451030bbe82",
-      "size": 5324,
+      "sha256": "d1d772cfcd345e095376d1b9cce77f048f2db54f59a369b761e1be36c5bf18d6",
+      "size": 5615,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/tray-shortcut.md",
+      "sha256": "c09975c86b7f17154f716b65e9ff7e8ed07c6113cc60d644da0c768fd2af5883",
+      "size": 5044,
       "mode": "0o644"
     },
     {
@@ -272,8 +279,8 @@
     },
     {
       "path": "docs/xembed-tray.md",
-      "sha256": "7a214c5592bde6c971f8175c0604fb77fed8c90b4c0d6bd45d9c0bcb9acde598",
-      "size": 3328,
+      "sha256": "747cffbbd504058448b3b4fea9c5bd070402cd203636629a3980a1698379dcb9",
+      "size": 3342,
       "mode": "0o644"
     },
     {
@@ -332,14 +339,14 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "3ccc3faab3170a3906e9e59c5dad6b6dcd9bba1478f6dbef1b31d8fe9e247cbc",
-      "size": 13100,
+      "sha256": "d96973978c48dbe34b664ce9b8a41b590c3dc322ce477e2fff8f47e76b0d0879",
+      "size": 13175,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "c07f96db85f40cbdf28c2137011896b830fe0270d1b1ddada055266e079988f0",
-      "size": 3495,
+      "sha256": "6358c9a7ebf14764127d6d96b9c25e7359f79db40e3abe91957081de311ebbc3",
+      "size": 3522,
       "mode": "0o644"
     },
     {
@@ -424,6 +431,12 @@
       "path": "panel/patches/0009-tray-registration-popup.patch",
       "sha256": "dbd4a3739b9dbeccf18c349044859d5e65f97af2063c9730d5c014a9267302ad",
       "size": 730,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0010-tray-shortcut.patch",
+      "sha256": "177fe6db85a2ed302e906612f96abb54b7bd160ec920fc8c25c1cb685363e662",
+      "size": 4199,
       "mode": "0o644"
     },
     {
@@ -734,8 +747,8 @@
     },
     {
       "path": "tests/check_tray_lifecycle_x11.py",
-      "sha256": "4e63dc48b7dbdf28bfab75b7777ee5aef3d43b7c5163b42857e5a7b8f2eeeadf",
-      "size": 14044,
+      "sha256": "440b892895b36ba6897973e1dac888f9af1644cc0b9b60de7ec63c386e10dac0",
+      "size": 22556,
       "mode": "0o644"
     },
     {

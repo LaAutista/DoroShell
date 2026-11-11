@@ -21,6 +21,12 @@ The later [XEmbed/SNI checkpoint](xembed-tray.md) adds a private synthetic docki
 pixel, input and restart check and a ninth registration-popup patch. It is staged,
 not live; no independent rerun is inferred.
 
+The [tenth patch](tray-shortcut.md) adds an unbound configurable native action.
+Its private pointer-free keyboard checks pass; it remains staged. The parent
+reported safe nine-patch activation and an independent XEmbed repeat; this worker
+did not re-query the live session or perform another refresh. Earlier process-path
+observations are historical, not a fresh statement of the active runtime.
+
 ## What independent evidence establishes
 
 Independent controlled native/live acceptance is recorded for launcher identity
@@ -51,7 +57,7 @@ remain available; building this source does not invoke them.
 - A controlled panel-only activation of the staged fixes, if explicitly chosen,
   followed by real-notifier/app checks and verification that clients/settings survive.
 - Broader real-application/notifier diversity, real-client XEmbed variants, long-session use,
-  other fonts/layouts and keyboard-only entry to tray overflow. The [private entry probe](tray-lifecycle.md#keyboard-only-entry-known-limitation) now confirms the native no-focus/absent-shortcut limitation; popup keyboard controls remain separately tested.
+  other fonts/layouts and broader [configured native shortcut](tray-shortcut.md) coverage. Pointer-free synthetic entry passes; popup AT-SPI labels remain an inherited limitation.
 - Physical multi-monitor/mixed-DPI, Wayland, physical audio/DPMS and display recovery
   remain unverified. Private Xvfb or fake-driver tests do not establish them.
 - Fresh-login and clean CachyOS install/upgrade/rollback are user-deferred. Do not
