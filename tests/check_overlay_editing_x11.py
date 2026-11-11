@@ -13,7 +13,7 @@ def worker():
     assert Path.home() == Path(os.environ['TMPDIR']).parent
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from PySide6.QtCore import QPoint, QRect, QTimer, Qt
-    from PySide6.QtGui import QColor, QImage
+    from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPen
     from PySide6.QtWidgets import QApplication, QFileDialog, QLineEdit
     from Xlib import X, XK, display
     from Xlib.ext import xtest
@@ -107,6 +107,51 @@ def worker():
         click(overlay.actions['Redo'])
         assert overlay.rendered_image() == image.copy(crop)
         click(overlay.actions['Undo'])
+        assert overlay.rendered_image() == marked
+        click(overlay.tool_buttons['Line'])
+        event(X.KeyPress, shift)
+        drag((310, 360), (410, 364))
+        event(X.KeyRelease, shift)
+        assert overlay.strokes[-1][1] == [QPoint(310, 360), QPoint(410, 360)]
+        click(overlay.tool_buttons['Number'])
+        drag((380, 400), (380, 400))
+        click(overlay.tool_buttons['Edit marks'])
+        drag((380, 400), (390, 410))
+        assert overlay.strokes[-1][1] == [QPoint(390, 410)]
+        def change_number():
+            event(X.KeyPress, ctrl_key)
+            key('a')
+            event(X.KeyRelease, ctrl_key)
+            key('7')
+            key('Return')
+        ctrl_key = server.keysym_to_keycode(XK.string_to_keysym('Control_L'))
+        QTimer.singleShot(200, change_number)
+        key('F2')
+        wait()
+        assert overlay.strokes[-1][2] == '7'
+        key('Delete')
+        wait()
+        click(overlay.actions['Undo'])
+        assert overlay.strokes[-1][2] == '7'
+        # Independent reference raster, in desktop coordinates clipped to the crop.
+        with QPainter(marked) as painter:
+            painter.translate(-crop.topLeft())
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            ink = QColor('#f04761')
+            painter.setPen(QPen(ink, width+1, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+            painter.drawLine(310, 360, 410, 360)
+            font = QFont(overlay.font())
+            font.setPixelSize(14)
+            font.setBold(True)
+            painter.setFont(font)
+            size = QFontMetrics(font).height()+10
+            circle = QRect(0, 0, size, size)
+            circle.moveCenter(QPoint(390, 410))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(ink)
+            painter.drawEllipse(circle)
+            painter.setPen(Qt.GlobalColor.black)
+            painter.drawText(circle, Qt.AlignmentFlag.AlignCenter, '7')
         assert overlay.rendered_image() == marked
         seen = []
         def cancel_save():
@@ -210,6 +255,10 @@ def worker():
         point_click(313, 300)
         assert editor.selected_mark is None
         drag((254, 275), (264, 285))
+        click(editor.tool_buttons['Line'])
+        drag((300, 300), (360, 320))
+        click(editor.tool_buttons['Number'])
+        point_click(360, 320)
         key('Escape')
         wait()
         assert editor.selected_image() is None and not editor.isVisible()
@@ -219,7 +268,7 @@ def worker():
         assert app.clipboard().image().convertToFormat(marked.format()) == marked
         app.clipboard().setText('replacement')
         wait()
-        print('PASS real X11 crop resize/move, redaction, Undo/Redo, text editing, save-dialog cancel/save, exact edited PNG and clipboard pixels, full-desktop Enter and Escape preservation',flush=True)
+        print('PASS real X11 crop resize/move, redaction, snapped line, numbered stamp, Undo/Redo, label editing, save-dialog cancel/save, exact edited PNG and clipboard pixels, full-desktop Enter and Escape preservation',flush=True)
     finally:
         overlay.close(); wm.terminate(); wm.wait(timeout=5); server.close()
 

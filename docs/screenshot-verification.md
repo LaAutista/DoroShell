@@ -20,6 +20,14 @@ Drag the selected mark to move it, press **Delete** to remove it, or double-clic
 
 Edits preserve the crop and the mark’s color and stroke width. Marks can cross the crop boundary. Export clips the artwork to the crop and omits the selection outline. Switch to **Select** to move or resize the crop with the mouse or arrow keys. Escape in the overlay cancels the capture.
 
+## Straight lines and numbered stamps
+
+Choose **Line** and drag between two points. Hold **Shift** while dragging or releasing to snap to the nearest multiple of 45°. Snapping keeps the pointer distance from the fixed endpoint, rounded to whole logical coordinates. A click or a drag back to the start adds no mark and preserves redo history. Lines use the current ink color and stroke width.
+
+Choose **Number** and click to stamp a filled circle. Each new stamp uses the smallest unused positive integer, starting at 1. For example, deleting 2 from a set of 1, 2 and 3 leaves 1 and 3 in place, and the next stamp gets 2. Undo and redo restore the original labels. In **Edit marks**, double-click a stamp or select it and press **F2** to set its number. Manually assigned labels may repeat. Stamps use the current ink color, a contrasting label and a circle sized to fit its digits.
+
+In **Edit marks**, drag either mark to move it or press **Delete** to remove it. Click a line first to expose its endpoint handles. Drag a handle to reshape the line, optionally holding Shift. Dropping one endpoint exactly on the other restores the original line. Each completed change takes one undo step. Crop boundaries clip the exported artwork. The toolbars wrap on narrow screens. Layout checks cover widths of 320, 400 and 600 logical pixels at a height of 480 with the test font.
+
 ## Checks
 
 - On a private X11 display, real Print input froze an open Start menu before dismissal. A selected region retained the expected menu pixels. Escape before selection and during a drag preserved the previous clipboard contents.

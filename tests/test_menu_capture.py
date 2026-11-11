@@ -299,3 +299,91 @@ class MenuCaptureTests(unittest.TestCase):
                                    15 if tool == 'Highlight' else 3)]
                 self.assertEqual(dialog.mark_at(QPoint(*hit)), 0)
                 self.assertIsNone(dialog.mark_at(QPoint(*miss)))
+
+    def test_line_octants_free_drag_zero_length_and_endpoint_history(self):
+        dialog = FrozenCapture(self.image(), QRect(0, 0, 400, 300))
+        self.addCleanup(shiboken6.delete, dialog)
+        dialog.set_tool('Line')
+        origin = QPoint(140, 150)
+        shift = Qt.KeyboardModifier.ShiftModifier
+        left = Qt.MouseButton.LeftButton
+        for dx, dy, sx, sy in ((40, 4, 40, 0), (29, 27, 28, 28), (-4, 40, 0, 40),
+                               (-27, 29, -28, 28), (-40, 4, -40, 0), (-29, -27, -28, -28),
+                               (4, -40, 0, -40), (27, -29, 28, -28)):
+            QTest.mousePress(dialog, left, pos=origin)
+            QTest.mouseRelease(dialog, left, shift, origin+QPoint(dx, dy))
+            self.assertEqual(dialog.strokes[-1][1], [origin, origin+QPoint(sx, sy)])
+            dialog.undo()
+        QTest.mouseClick(dialog, left, pos=origin)
+        self.assertEqual(dialog.strokes, [])
+        self.assertTrue(dialog.redo_stack)
+        end = origin + QPoint(70, 10)
+        QTest.mousePress(dialog, left, pos=origin)
+        QTest.mouseRelease(dialog, left, pos=end)
+        self.assertEqual(dialog.strokes[0][1], [origin, end])
+        self.assertIsNone(dialog.mark_at(origin+QPoint(35, 15)))
+        dialog.set_tool('Edit marks')
+        QTest.mouseClick(dialog, left, pos=origin+QPoint(35, 5))
+        QTest.mouseClick(dialog, left, pos=end+QPoint(2, 1))
+        self.assertEqual(dialog.strokes[0][1], [origin, end])
+        self.assertEqual(len(dialog.undo_stack), 1)
+        QTest.mousePress(dialog, left, pos=end)
+        QTest.mouseRelease(dialog, left, shift, origin+QPoint(29, 27))
+        self.assertEqual(dialog.strokes[0][1], [origin, origin+QPoint(28, 28)])
+        dialog.undo()
+        self.assertEqual(dialog.strokes[0][1], [origin, end])
+
+    def test_number_reuse_after_delete_undo_redo_and_label_edit(self):
+        dialog = FrozenCapture(self.image(), QRect(0, 0, 400, 300))
+        self.addCleanup(shiboken6.delete, dialog)
+        def click(x):
+            QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=QPoint(x, 150))
+        def labels():
+            return [mark[2] for mark in dialog.strokes]
+        dialog.set_tool('Number')
+        for x in (40, 100, 160):
+            click(x)
+        self.assertEqual(labels(), ['1', '2', '3'])
+        dialog.undo()
+        dialog.redo()
+        self.assertEqual(labels(), ['1', '2', '3'])
+        dialog.set_tool('Edit marks')
+        click(100)
+        QTest.keyClick(dialog, Qt.Key.Key_Delete)
+        dialog.undo()
+        self.assertEqual(labels(), ['1', '2', '3'])
+        dialog.redo()
+        dialog.set_tool('Number')
+        click(220)
+        self.assertEqual(labels(), ['1', '3', '2'])
+        dialog.set_tool('Edit marks')
+        click(220)
+        with patch('runtime.menu_capture.QInputDialog.getInt', return_value=(12345, True)):
+            QTest.keyClick(dialog, Qt.Key.Key_F2)
+        self.assertEqual(labels(), ['1', '3', '12345'])
+        box = dialog.mark_bounds(dialog.strokes[-1])
+        self.assertIsNone(dialog.mark_at(box.topLeft()))
+        self.assertEqual(dialog.mark_at(box.center()), 2)
+        dialog.undo()
+        self.assertEqual(labels(), ['1', '3', '2'])
+        dialog.redo()
+        self.assertEqual(labels(), ['1', '3', '12345'])
+
+    def test_toolbars_fit_narrow_selection_display(self):
+        for width in (320, 400, 600):
+            dialog = FrozenCapture(self.image(), QRect(0, 0, width, 480))
+            self.addCleanup(shiboken6.delete, dialog)
+            dialog.show()
+            self.app.processEvents()
+            for bar in (dialog.tools, dialog.controls):
+                self.assertTrue(dialog.rect().contains(bar.geometry()), (width, bar.geometry()))
+            for button in (*dialog.tool_buttons.values(), *dialog.actions.values()):
+                self.assertTrue(button.isVisibleTo(dialog))
+                self.assertTrue(button.parentWidget().rect().contains(button.geometry()))
+
+            for y in (0, 470):
+                dialog.selection = QRect(width//2, y, 8, 8)
+                dialog.updated()
+                self.assertFalse(dialog.tools.geometry().intersects(dialog.controls.geometry()))
+                self.assertTrue(dialog.rect().contains(dialog.tools.geometry()))
+                self.assertTrue(dialog.rect().contains(dialog.controls.geometry()))
