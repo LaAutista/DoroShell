@@ -8,7 +8,8 @@ Adds a native **Display (current session)** group inside PCManFM Desktop Prefere
 - **VSync — NVIDIA OpenGL (X screen 0)** queries and changes `[screen:0]/SyncToVBlank`. It affects OpenGL clients started afterward; apps can override it. This is not a universal Vulkan/game VSync toggle. Intel/AMD have no implemented global toggle; the checkbox is disabled when NV-CONTROL cannot report a Boolean value.
 - **Test display changes** starts an independent helper. **Keep** confirms only after the actual state is rechecked. Revert, closing Preferences, application exit/EOF, SIGTERM, invalid confirmation input or timeout request restoration. Duplicate transactions are locked out.
 - The confirmation window is 15 seconds after initial application/verification. Verification subprocess timeouts are capped to its remaining time. Rollback starts at expiry, but driver commands may delay completion. The UI does not promise completed restoration at precisely 15 seconds.
-- Reload is required after each completed transaction. PCManFM's ordinary Apply/OK buttons do not apply these controls. Unconfirmed changes revert when the dialog closes.
+- Ordinary **Apply** starts the same guarded test when the display selection differs from the last query, while saving the other desktop preferences normally. **OK** opens a visible Keep/Revert confirmation and waits: a successful Keep saves ordinary preferences and closes; Revert, timeout or error keeps Preferences open. With no pending display edits, Apply/OK behave as before. The separate Test button remains available.
+- After each completed or failed transaction, an open Preferences window automatically reads actual state and repopulates its controls. The transaction result remains visible; a successful read does not imply successful rollback. OK→Keep closes normally without starting an unnecessary query. Reload remains available if reading fails. Closing Preferences explicitly requests rollback even if another PCManFM window keeps the process alive. Closing the confirmation requests Revert; application exit still supplies EOF to the independent guard.
 - No compositor, force-composition-pipeline, environment override, config file, login persistence, package installation or system service is introduced. Originals stay in the guard's memory until Keep or rollback. No settings are applied merely by opening the tab.
 
 Unsupported: Wayland/Xwayland; inactive outputs; shared-CRTC clones; interlaced/doublescan current modes; zero-Hz/non-timing modes. Other active outputs, geometry, transform, panning, gamma and output properties participate in the state fingerprint. Detected concurrent edits cause refusal rather than overwriting another tool's work. RandR/NV-CONTROL changes are not an atomic transaction across other display tools; avoid concurrent external changes during confirmation.
@@ -106,3 +107,18 @@ The patch is a source candidate, not a claim of hardware acceptance. The previou
 ## Licensing
 
 The original display helper, build script, native controls and PCManFM patch are GPL-2.0-or-later. The native integration retains PCManFM's upstream notices; see [source licensing](../LICENSING.md) and [GPL text](../LICENSE).
+
+## Native dialog button regression gate
+
+```sh
+python tests/check_native_display_buttons.py --run --xvfb /path/to/Xvfb \
+  --binary /path/to/private/build/pcmanfm/pcmanfm-qt
+```
+
+This runs the actual candidate executable with a test-only Qt preload driver on authenticated private X11, private home and D-Bus. Production helper bytes/integrity checks and the production 15-second guard remain in use; synthetic xrandr/nvidia-settings executables only change a temporary JSON fixture. It covers the reported 2560×1440 479.99→59.95 Hz selection through bottom Apply/OK, Keep/Revert, timeout, apply failure, unchanged selection, ordinary preference saving, and closing Preferences while the process stays alive. The preload library is not part of the candidate. No physical mode/VSync mutation or live activation is established.
+
+## Post-transition verification diagnostics
+
+The parser canonicalizes whitespace left by the RandR `*current` annotation on a preferred mode. Strict layout and external-edit comparisons are retained. Failed verification/recovery reports bounded structured field labels (mode, connection, geometry/rotation, CRTC, gamma, brightness, transforms and other protected properties). Raw property values, EDID, serials and fingerprint hashes are not emitted. Both the initial verification failure and any recovery failure are retained; there is no persistent diagnostic log or automatic write retry.
+
+Private regressions cover a successful preferred 59.95 Hz switch, refused recovery after a synthetic external property change with the new mode still active, and read-only repopulation with the error preserved. The original user-reported false-layout cause remains unknown without the post-switch snapshot. The user reported successfully switching and manually restoring the original rate; this does not establish automatic hardware rollback reliability.

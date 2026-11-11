@@ -3,15 +3,15 @@
 +++ b/pcmanfm/desktoppreferencesdialog.cpp
 @@ -18,6 +18,8 @@
  */
-
+ 
  #include "desktoppreferencesdialog.h"
 +#include "dorodisplaycontrols.h"
 +#include <QScrollArea>
  #include "desktopwindow.h"
  #include "settings.h"
  #include "application.h"
-@@ -49,6 +51,17 @@
-
+@@ -49,6 +51,18 @@
+ 
    Settings& settings = static_cast<Application*>(qApp)->settings();
    ui.setupUi(this);
 +  auto advancedContent = new QWidget;
@@ -22,9 +22,57 @@
 +  auto advancedLayout = new QVBoxLayout(ui.advancedPage);
 +  advancedLayout->setContentsMargins(0, 0, 0, 0);
 +  advancedLayout->addWidget(advancedScroll);
-+  ui.advancedPageLayout->insertWidget(1, new DoroDisplayControls(
++  displayControls_ = new DoroDisplayControls(
 +      {QStringLiteral("/usr/bin/python3"), QCoreApplication::applicationDirPath() + QStringLiteral("/doroshell-display-backend.py")}, this,
-+      QByteArrayLiteral(DOROSHELL_DISPLAY_SHA256)));
-
++      QByteArrayLiteral(DOROSHELL_DISPLAY_SHA256));
++  ui.advancedPageLayout->insertWidget(1, displayControls_);
+ 
    // setup wallpaper modes
    connect(ui.wallpaperMode, &QComboBox::currentIndexChanged, this, &DesktopPreferencesDialog::onWallpaperModeChanged);
+@@ -237,12 +251,19 @@
+ 
+ void DesktopPreferencesDialog::onApplyClicked()
+ {
++  displayControls_->submitFromDialog();
+   applySettings();
+   static_cast<Application*>(qApp)->updateDesktopsFromSettings(true, // change slide
+                                                               true); // allow shortcut removal
+ }
+ 
++void DesktopPreferencesDialog::reject() {
++  displayControls_->cancelPending();
++  QDialog::reject();
++}
++
+ void DesktopPreferencesDialog::accept() {
++  if(displayControls_->submitFromDialog([this] { accept(); })) return;
+   applySettings();
+   static_cast<Application*>(qApp)->updateDesktopsFromSettings(false, // do not change slide
+                                                               true); // allow shortcut removal
+--- a/pcmanfm/desktoppreferencesdialog.h
++++ b/pcmanfm/desktoppreferencesdialog.h
+@@ -26,6 +26,8 @@
+ 
+ #include "ui_desktop-folder.h"
+ 
++class DoroDisplayControls;
++
+ namespace PCManFM {
+ 
+ class DesktopPreferencesDialog : public QDialog {
+@@ -36,6 +38,7 @@
+   virtual ~DesktopPreferencesDialog();
+ 
+   virtual void accept();
++  void reject() override;
+ 
+   void selectPage(const QString& name);
+ 
+@@ -53,6 +56,7 @@
+   void applySettings();
+ 
+ private:
++  DoroDisplayControls* displayControls_;
+   Ui::DesktopPreferencesDialog ui;
+   Ui::DesktopFolder uiDesktopFolder;
+ 

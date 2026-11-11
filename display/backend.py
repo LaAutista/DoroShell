@@ -16,7 +16,45 @@ import time
 
 
 class DisplayError(RuntimeError):
-    pass
+    def __init__(self, message, differences=None):
+        self.differences = (differences or [])[:32]
+        detail = ', '.join(f"{d['field']} (output {d['output']})" for d in self.differences)
+        super().__init__(message + (': ' + detail if detail else ''))
+
+
+def differences(expected, actual):
+    """Bounded field labels only: never output property values, EDID or identifiers."""
+    result = []
+    def add(index, field):
+        if len(result) < 32:
+            result.append(dict(output=index, field=field))
+    if expected['framebuffer'] != actual['framebuffer']:
+        add(-1, 'framebuffer geometry')
+    before, after = expected['outputs'], actual['outputs']
+    for index, output in enumerate(before):
+        found = next((o for o in after if o['name'] == output['name']), None)
+        if found is None:
+            add(index, 'output disappeared')
+            continue
+        if output.get('connection') != found.get('connection'):
+            add(index, 'connection status changed')
+        for field in ('current', 'crtc', 'modes'):
+            if output[field] != found[field]:
+                add(index, {'current': 'current mode mismatch', 'crtc': 'CRTC assignment', 'modes': 'advertised mode timings/flags'}[field])
+    if any(o['name'] not in [b['name'] for b in before] for o in after):
+        add(-1, 'output added')
+    if [o['name'] for o in before] != [o['name'] for o in after]:
+        add(-1, 'output enumeration changed')
+    if expected.get('vsync') != actual.get('vsync'):
+        add(-1, 'NVIDIA OpenGL VSync')
+    a, b = expected.get('layout_fields', {}), actual.get('layout_fields', {})
+    for key in sorted(a.keys() | b.keys()):
+        if a.get(key) != b.get(key):
+            index, field = key.split(':', 1)
+            add(int(index), field)
+    if expected['layout'] != actual['layout'] and a == b:
+        add(-1, 'protected layout fingerprint')
+    return result
 
 
 class DeadlineExpired(DisplayError):
@@ -51,6 +89,8 @@ def parse(text):
     outputs = []
     output = mode = None
     signature = []
+    layout_fields = {}
+    category = "screen geometry"
     for line in text.splitlines():
         head = re.match(r'^(\S+) (connected|disconnected|unknown connection)(.*)$', line)
         if head:
@@ -58,7 +98,7 @@ def parse(text):
             if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]*', name) or name.startswith('XWAYLAND'):
                 raise DisplayError('Unsupported output name or Xwayland display')
             active = re.search(r'\b\d+x\d+[+-]\d+[+-]\d+ \((0x[0-9a-f]+)\)', tail)
-            output = dict(name=name, current=active[1] if active else None, crtc=None, modes=[])
+            output = dict(name=name, connection=status, current=active[1] if active else None, crtc=None, modes=[])
             outputs.append(output)
             mode = None
         crtc = re.match(r'\s+CRTC:\s+(\d+)$', line)
@@ -66,7 +106,7 @@ def parse(text):
             output['crtc'] = int(crtc[1])
         entry = re.match(r'^  (\S+) \((0x[0-9a-f]+)\) .*MHz(.*)$', line)
         if entry and output:
-            mode = dict(id=entry[2], name=entry[1], flags=entry[3].replace('*current', '').strip())
+            mode = dict(id=entry[2], name=entry[1], flags=' '.join(entry[3].replace('*current', '').split()))
             output['modes'].append(mode)
         if mode:
             horizontal = re.search(r'h: width\s+(\d+)', line)
@@ -79,7 +119,24 @@ def parse(text):
         if not re.match(r'\s*Timestamp:', line):
             if head:
                 line = re.sub(r' \(0x[0-9a-f]+\)', '', line)
-            signature.append(line.replace(' *current', '').rstrip())
+            normalized = line.replace(' *current', '').rstrip()
+            signature.append(normalized)
+            # Only fixed labels escape the process. Unknown properties (including
+            # EDID/serial data) stay in an opaque fingerprint, never in diagnostics.
+            if head:
+                category = 'connection/geometry/rotation'
+            elif entry:
+                category = 'mode timings/flags'
+            elif ':' in line:
+                label = line.strip().split(':', 1)[0]
+                category = {'Gamma': 'gamma', 'Brightness': 'brightness',
+                    'CRTC': 'CRTC assignment', 'Transform': 'transform',
+                    'Border': 'border', '_KDE_SCREEN_INDEX': 'screen index',
+                    'CTM': 'color transform', 'CscMatrix': 'color matrix'}.get(label, 'other protected properties')
+                if label in ('h', 'v'):
+                    category = 'mode timings/flags'
+            key = f'{len(outputs)-1}:{category}'
+            layout_fields.setdefault(key, []).append(normalized)
     for output in outputs:
         for mode in output['modes']:
             if not {'width', 'height', 'hz'} <= mode.keys():
@@ -87,6 +144,7 @@ def parse(text):
         if output['current'] and not any(m['id'] == output['current'] for m in output['modes']):
             raise DisplayError('Current RandR mode missing')
     return dict(framebuffer='x'.join(framebuffer.groups()), outputs=outputs,
+                layout_fields={k: hashlib.sha256('\n'.join(v).encode()).hexdigest() for k, v in layout_fields.items()},
                 layout=hashlib.sha256('\n'.join(signature).encode()).hexdigest())
 
 
@@ -167,12 +225,14 @@ class Transaction:
         if self.new_vsync != self.before['vsync']:
             self.nv_attempted = True
             self.execute(['nvidia-settings', '-a', f'[screen:0]/SyncToVBlank={self.new_vsync}'])
-        if self.query() != self.expected:
-            raise DisplayError('Driver did not apply the requested state exactly')
+        actual = self.query()
+        if actual != self.expected:
+            raise DisplayError('Driver did not apply the requested state exactly', differences(self.expected, actual))
 
     def verify(self):
-        if self.query() != self.expected:
-            raise DisplayError('Display disconnected or settings changed; refusing Keep')
+        actual = self.query()
+        if actual != self.expected:
+            raise DisplayError('Display state changed; refusing Keep', differences(self.expected, actual))
 
     def revert(self):
         current = self.query()
@@ -199,7 +259,7 @@ class Transaction:
         if not errors and self.query() != self.before:
             errors.append('Original state not restored exactly; reload and inspect display settings')
         if errors:
-            raise DisplayError('; '.join(errors))
+            raise DisplayError('; '.join(errors), differences(self.before, current))
 
 
 def emit(**message):
@@ -213,6 +273,7 @@ def guard(transaction, stream=sys.stdin, timeout=15, cancelled=lambda: False):
     """Own rollback independently of the UI event loop, including EOF and termination."""
     kept = False
     deadline_token = None
+    failure = None
     try:
         transaction.apply()
         emit(pending=True, seconds=timeout)
@@ -230,11 +291,21 @@ def guard(transaction, stream=sys.stdin, timeout=15, cancelled=lambda: False):
             transaction.verify()
     except DeadlineExpired:
         pass
+    except DisplayError as error:
+        failure = error
     finally:
         if deadline_token is not None:
             command_deadline.reset(deadline_token)
         if not kept:
-            transaction.revert()
+            try:
+                transaction.revert()
+            except DisplayError as error:
+                if failure:
+                    raise DisplayError(f'{failure}; recovery failed: {error}',
+                                       failure.differences + error.differences) from error
+                raise
+    if failure:
+        raise failure
     emit(done=True, kept=kept)
 
 
@@ -263,7 +334,7 @@ def main():
             signal.signal(signal.SIGINT, interrupted)
             guard(Transaction(json.loads(sys.argv[2])), cancelled=lambda: stopped)
     except (DisplayError, OSError, ValueError) as error:
-        emit(error=str(error))
+        emit(error=str(error), differences=getattr(error, 'differences', []))
         sys.exit(1)
 
 
