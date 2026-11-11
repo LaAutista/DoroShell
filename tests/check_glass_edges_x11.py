@@ -19,7 +19,7 @@ def launch():
         if not records:
             c=menu.wallpaper_glass.controller
             records.append(dict(first_paint_ms=(time.monotonic()-start)*1000, active=c.active))
-            QTimer.singleShot(100, menu.close)
+            QTimer.singleShot(100, start_menu.QApplication.instance().quit)
     start_menu.StartMenu.paintEvent=paint
     sys.argv=[sys.argv[0]]
     start_menu.main()

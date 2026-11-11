@@ -54,7 +54,7 @@ Setup explicitly rejects custom `XDG_CONFIG_HOME`; standard `~/.config` is requi
 
 ## Start first paint and frame edges
 
-Start exits when hidden, so each ordinary opening decodes again. It now waits asynchronously for the first glass surface before showing, with a 250 ms readiness deadline after construction/positioning. If decoding fails or misses that deadline, the opening stays on its opaque theme; a late result does not flash into view. The event loop remains responsive. This deadline is not a bound on Python/application startup or process exit.
+Start keeps its loaded menu and wallpaper atlas after hiding; repeated opens reuse them. The first opening (or a rebuild after preferences change) waits asynchronously for the first glass surface before showing, with a 250 ms readiness deadline after construction/positioning. If decoding fails or misses that deadline, the opening stays on its opaque theme; a late result does not flash into view. The event loop remains responsive. This deadline is not a bound on Python/application startup or process exit.
 
 The raw-wallpaper border overlay has been removed: wallpaper samples are the wrong background when an application or animated video is behind Start, and produced colorful specks along straight edges. The blurred/tinted opaque surface now reaches the frame edge, with the backdrop radius matching the existing 15 px X11 mask. The portrait and input/bounding mask are unchanged. Binary X11 masks still have pixel steps at curved corners; this does not promise fractional transparency without a compositor.
 
@@ -64,3 +64,21 @@ Moving/resizing reuses the blurred atlas instead of decoding again. Screen-size 
 QT_SCALE_FACTOR=1 python tests/check_glass_edges_x11.py --run --xvfb /path/to/Xvfb --output /tmp/start-render-evidence
 QT_SCALE_FACTOR=1.5 python tests/check_glass_edges_x11.py --run --xvfb /path/to/Xvfb --output /tmp/start-render-evidence
 ```
+
+## Repeated-opening performance
+
+The first request starts Start normally; there is no autostart change. Thereafter a lightweight Unix-socket request runs before Qt/GIO imports and toggles one resident menu. Hiding leaves no polling/repaint timer. Reopening resets launch protection, search and category, recomputes screen placement, reloads managed glass configuration, and retries a prior failed/timed-out decode.
+
+Changed favorites, folder/crop preferences, primary action, theme or portrait metadata rebuild the window. Own pin, recent-program and primary-button writes preserve reuse; external edits rebuild. Existing GIO catalog notifications still refresh installed applications. Helper metadata is included in the IPC protocol so a later launch retires an obsolete resident after a code upgrade. Settings modals and active drags are not dismissed by toggle requests. Screenshot mode remains a separate one-shot process.
+
+Private tests measured repeated first paint at 39–47 ms including Python/client startup, versus roughly 508 ms to map the previous fresh-process launcher. Cold opening remains approximately 0.5 seconds. These are private X11 timings, not physical click-to-photon measurements. The hidden resident used approximately 125 MiB RSS (46 MiB anonymous memory); a one-second idle sample recorded zero CPU ticks. This trades retained memory for rapid reopening.
+
+Run the installed private lifecycle/timing check with synthetic settings:
+
+```sh
+python tests/check_start_latency_x11.py --run --xvfb /path/to/Xvfb --output /tmp/start-latency.json
+```
+
+An optional `--preferences /path/to/config` copies only relevant preferences into the temporary home and references their wallpaper/portrait read-only. It records timings/state, not screenshots or clipboard content. Tests cover first-frame glass, repeated reuse, settings/theme changes and resident retirement on a helper upgrade. Unit tests additionally cover startup cancellation, slow fallback/retry, successful fake launches, modal/drag preservation, portrait changes and the pre-import IPC path.
+
+Rollback to a pre-resident version requires stopping the specific resident as well as restoring helpers. The old client sends no protocol bytes, so restoring its file alone can leave the resident alive. With Start naturally closed, verify the resident PID, UID, executable, exact launcher command and process start time against the deployment receipt; terminate only that verified process, then restore the backed-up files if their deployed hashes still match. Never use a broad process-name kill or restart the desktop session.

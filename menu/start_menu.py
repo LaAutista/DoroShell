@@ -12,7 +12,49 @@ import time
 import subprocess
 import shutil
 
+def runtime_signature():
+    """Detect helper upgrades before reusing a loaded resident."""
+    import hashlib
+    root = Path(__file__).resolve().parent
+    paths = [root / name for name in ('start_menu.py', 'wallpaper_glass.py', 'app_search.py',
+                                     'folder_cascade.py', 'portrait_crop.py', 'themes.py')]
+    paths.append(root.parent / 'themes.py')
+    return hashlib.sha256(repr([(str(p), file_stamp(p)) for p in paths]).encode()).hexdigest()
+
+
+def file_stamp(path):
+    try:
+        stat = path.stat()
+        return stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
+    except OSError:
+        return None
+
+
+def toggle_existing():
+    # This path must stay above Qt/GIO imports: ordinary repeated clicks cost only IPC.
+    import socket
+    address = str(Path(tempfile.gettempdir()) / ('lxqt-comfort-' + str(os.getuid())))
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+        client.settimeout(1)
+        try:
+            client.connect(address)
+        except OSError:
+            return False
+        try:
+            client.sendall((runtime_signature() + '\n').encode())
+            return client.recv(16) == b'OK'
+        except TimeoutError:
+            return True  # A busy/startup-pending resident still owns the queued toggle.
+        except OSError:
+            return False
+
+
+if __name__ == '__main__' and len(sys.argv) == 1 and toggle_existing():
+    sys.exit(0)
+
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from app_search import AppSearchIndex, is_visible
 from portrait_crop import PortraitCropDialog, validate_crop, load_image, render_crop
 from folder_cascade import FolderCascadeMenu
@@ -21,7 +63,7 @@ import gi
 gi.require_version('Gio', '2.0')
 from gi.repository import Gio, GLib
 from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QRectF, Signal, QUrl
-from PySide6.QtNetwork import QLocalServer, QLocalSocket
+from PySide6.QtNetwork import QLocalServer
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup, QPainterPath, QRegion, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QToolButton, QComboBox,
@@ -1310,27 +1352,89 @@ class StartMenu(QWidget):
         self.save_favorites(updated)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--screenshot', type=Path, help='Render this menu to a PNG and exit without launching anything')
-    args = parser.parse_args()
-    app = QApplication(sys.argv[:1])
-    server = None
-    if not args.screenshot:
-        name = 'lxqt-comfort-' + str(os.getuid())
-        socket = QLocalSocket()
-        socket.connectToServer(name)
-        if socket.waitForConnected(150):
-            socket.disconnectFromServer()
-            return 0
-        server = QLocalServer()
-        QLocalServer.removeServer(name)
-        if not server.listen(name):
-            raise RuntimeError('Could not create menu toggle socket: ' + server.errorString())
-        server.newConnection.connect(app.quit)
-    window = StartMenu()
-    window.exit_on_hide = True
-    screen = QApplication.screenAt(QCursor.pos()) or app.primaryScreen()
+class ResidentMenu:
+    """Created on first demand only; hidden windows have no polling timer."""
+    def __init__(self, app, server):
+        self.app, self.server = app, server
+        self.version = runtime_signature()
+        self.window = None
+        self.preferences = None
+        server.newConnection.connect(self.accept)
+        app.setQuitOnLastWindowClosed(False)
+
+    def snapshot(self):
+        root = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config'))
+        paths = [root / 'lxqt-comfort' / name for name in
+                 ('folders.json',)]
+        paths += [root / 'doroshell' / name for name in
+                  ('start-theme.qss', 'start-theme-glass.qss', 'theme.conf', 'wallpaper-glass.json')]
+        art = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)) / 'lxqt-comfort'
+        paths += [art / name for name in ('framed-start-icon.png', 'start-icon.png')]
+        if self.window and self.window.folder_settings.portrait:
+            paths.append(Path(self.window.folder_settings.portrait))
+        # Saved bytes distinguish our own edits from external preference changes.
+        changed = []
+        for path, original in ((self.window.state, self.window.state_original),
+                               (self.window.recent.path, self.window.recent.original),
+                               (self.window.primary_path, self.window.primary_original)):
+            try:
+                different = (path.read_bytes() if path.exists() else None) != original
+            except OSError:
+                different = True
+            changed.append((str(path), different))
+        return [(str(p), file_stamp(p)) for p in paths] + changed
+
+    def accept(self):
+        while self.server.hasPendingConnections():
+            client = self.server.nextPendingConnection()
+            def read(client=client):
+                if not client.canReadLine():
+                    if client.bytesAvailable() > 256: client.abort()
+                    return
+                version = bytes(client.readLine(256)).strip().decode('ascii', errors='replace')
+                if version != self.version:
+                    self.server.close()
+                    client.write(b'RELOAD'); client.flush(); client.disconnectFromServer()
+                    self.app.quit()
+                    return
+                self.toggle()
+                client.write(b'OK'); client.flush(); client.disconnectFromServer()
+            client.readyRead.connect(read)
+            client.disconnected.connect(client.deleteLater)
+            read()
+
+    def toggle(self):
+        window = self.window
+        if QApplication.activeModalWidget() or (window and window.list.dragging):
+            return
+        controller = window.wallpaper_glass.controller if window and window.wallpaper_glass else None
+        if window and (window.isVisible() or (controller and controller.show_pending)):
+            if controller:
+                controller.show_pending = False
+                controller.presentation.stop()
+            window.hide()
+            return
+        if window is None or self.snapshot() != self.preferences:
+            if window:
+                if controller: controller.stop()
+                import shiboken6
+                shiboken6.delete(window)
+            self.window = window = StartMenu()
+            self.preferences = self.snapshot()
+        if window.wallpaper_glass:
+            managed = window.wallpaper_glass
+            managed.reload()
+            if managed.last and managed.controller and not managed.controller.enabled:
+                managed.controller.configure(**managed.last)
+        window.launching = False
+        window.search.clear()
+        window.category.setCurrentText('Home')
+        window.refresh()
+        present_menu(window)
+
+
+def present_menu(window):
+    screen = QApplication.screenAt(QCursor.pos()) or QApplication.primaryScreen()
     area = screen.availableGeometry()
     window.resize(min(MENU_SIZE.width(), area.width()), min(MENU_SIZE.height(), area.height()))
     window.move(area.left(), area.bottom() - window.height() + 1)
@@ -1339,15 +1443,37 @@ def main():
         controller.present()
     else:
         window.show()
-    if args.screenshot:
+    window.search.setFocus()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--screenshot', type=Path, help='Render this menu to a PNG and exit without launching anything')
+    args = parser.parse_args()
+    app = QApplication(sys.argv[:1])
+    server = None
+    resident = None
+    if not args.screenshot:
+        name = 'lxqt-comfort-' + str(os.getuid())
+        server = QLocalServer()
+        if not server.listen(name):
+            if toggle_existing(): return 0
+            QLocalServer.removeServer(name)
+            if not server.listen(name):
+                raise RuntimeError('Could not create menu toggle socket: ' + server.errorString())
+        resident = ResidentMenu(app, server)
+        resident.toggle()
+    else:
+        window = StartMenu()
+        window.exit_on_hide = True
+        present_menu(window)
         def capture():
             window.grab().save(str(args.screenshot))
             app.quit()
         QTimer.singleShot(250, capture)
     result = app.exec()
-    # Destroy Qt callbacks before Python tears down imported modules.
     import shiboken6
-    shiboken6.delete(window)
+    shiboken6.delete(resident.window if resident else window)
     return result
 
 
