@@ -211,3 +211,91 @@ class MenuCaptureTests(unittest.TestCase):
         QTest.mousePress(dialog, Qt.MouseButton.LeftButton, pos=point)
         self.assertTrue(dialog.lens_rect().isEmpty())
         QTest.mouseRelease(dialog, Qt.MouseButton.LeftButton, pos=point)
+
+    def test_edit_marks_hit_order_hollow_shapes_and_history(self):
+        dialog = FrozenCapture(self.image(), QRect(0, 0, 400, 300))
+        self.addCleanup(shiboken6.delete, dialog)
+        self.select(dialog)
+        crop = QRect(dialog.pixel_rect())
+        def drag(start, end):
+            QTest.mousePress(dialog, Qt.MouseButton.LeftButton, pos=start)
+            QTest.mouseMove(dialog, end)
+            QTest.mouseRelease(dialog, Qt.MouseButton.LeftButton, pos=end)
+        a, b = QPoint(30, 90), QPoint(70, 125)
+        for tool in ('Redact', 'Rectangle'):
+            dialog.set_tool(tool)
+            drag(a, b)
+        dialog.set_tool('Edit marks')
+        def pick(p):
+            QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=p)
+        pick(a)
+        self.assertEqual(dialog.selected_mark, 1)
+        pick(QPoint(50, 104))
+        self.assertEqual(dialog.selected_mark, 0)
+        pick(QPoint(95, 104))
+        self.assertIsNone(dialog.selected_mark)
+        old = dialog.rendered_image()
+        drag(QPoint(50, 104), QPoint(85, 104))
+        moved = dialog.rendered_image()
+        self.assertNotEqual(moved, old)
+        self.assertEqual(dialog.pixel_rect(), crop)
+        QTest.keyClick(dialog, Qt.Key.Key_Left, Qt.KeyboardModifier.AltModifier)
+        self.assertEqual(dialog.pixel_rect(), crop)
+        QTest.keyClick(dialog, Qt.Key.Key_Delete)
+        deleted = dialog.rendered_image()
+        self.assertNotEqual(deleted, moved)
+        for operation, expected in ((dialog.undo, moved), (dialog.undo, old),
+                                    (dialog.redo, moved), (dialog.redo, deleted)):
+            operation()
+            self.assertEqual(dialog.rendered_image(), expected)
+        dialog.undo()
+        pick(QPoint(75, 108))
+        self.assertTrue(dialog.redo_stack)  # Selection alone keeps the redo branch.
+        drag(QPoint(75, 108), QPoint(64, 108))
+        self.assertFalse(dialog.redo_stack)
+
+    def test_text_edits_preserve_one_pixel_crop_and_style(self):
+        dialog = FrozenCapture(self.image(), QRect(-30, -20, 200, 150))
+        self.addCleanup(shiboken6.delete, dialog)
+        dialog.raw_selection = QRect(100, 100, 1, 1)
+        dialog.selection = dialog.view_rect(dialog.raw_selection)
+        dialog.set_tool('Text')
+        anchor = QPoint(46, 55)
+        def text_input(answer):
+            return patch('runtime.menu_capture.QInputDialog.getText', return_value=answer)
+        with text_input(('old', True)):
+            QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=anchor)
+        original = dialog.strokes[0]
+        dialog.set_tool('Edit marks')
+        hit = dialog.mark_bounds(original).center()
+        QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=hit)
+        with text_input(('ignored', False)):
+            QTest.keyClick(dialog, Qt.Key.Key_F2)
+        self.assertEqual(len(dialog.undo_stack), 1)
+        with text_input(('replacement', True)):
+            QTest.mouseDClick(dialog, Qt.MouseButton.LeftButton, pos=hit)
+        changed = dialog.strokes[0]
+        self.assertEqual(changed, (*original[:2], 'replacement', *original[3:]))
+        self.assertEqual(dialog.pixel_rect(), QRect(100, 100, 1, 1))
+        dialog.undo()
+        self.assertEqual(dialog.strokes, [original])
+        dialog.redo()
+        self.assertEqual(dialog.strokes, [changed])
+
+    def test_mark_picker_matches_linework_and_filled_regions(self):
+        dialog = FrozenCapture(self.image(), QRect(0, 0, 400, 300))
+        self.addCleanup(shiboken6.delete, dialog)
+        # All checks are in view coordinates, including the tip of an arrowhead.
+        for tool, points, hit, miss in (
+            ('Pen', [(40, 50), (80, 90), (120, 50)], (60, 70), (80, 55)),
+            ('Highlight', [(40, 50), (120, 50)], (80, 56), (80, 80)),
+            ('Arrow', [(40, 50), (120, 50)], (108, 56), (80, 70)),
+            ('Ellipse', [(40, 50), (120, 90)], (80, 50), (80, 70)),
+            ('Rectangle', [(40, 50), (120, 90)], (80, 90), (80, 70)),
+            ('Redact', [(40, 50), (120, 90)], (80, 70), (130, 70)),
+        ):
+            with self.subTest(tool=tool):
+                dialog.strokes = [(tool, [QPoint(*p) for p in points], '', QColor('red'),
+                                   15 if tool == 'Highlight' else 3)]
+                self.assertEqual(dialog.mark_at(QPoint(*hit)), 0)
+                self.assertIsNone(dialog.mark_at(QPoint(*miss)))

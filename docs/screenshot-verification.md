@@ -12,6 +12,14 @@ After releasing the mouse, use the arrow keys to move the crop. Each press moves
 
 Releasing the drag or Shift hides the lens. Annotation tools and window picking hide it as well. Copy, Save and ScreenGrab use the frozen crop and its annotations. The interaction was implemented independently using the tagged [Spectacle 6.4 selection editor](https://github.com/KDE/spectacle/blob/v6.4.0/src/Gui/SelectionEditor.cpp) and [capture overlay](https://github.com/KDE/spectacle/blob/v6.4.0/src/Gui/CaptureOverlay.qml) as references.
 
+## Editing existing annotations
+
+Choose **Edit marks** and click an annotation. A dashed outline identifies the selected mark. Where marks overlap, the most recently drawn mark under the pointer wins. Click the outline of a hollow rectangle or ellipse, the ink of a freehand stroke or arrow, the filled area of a redaction, or the text label. Click empty space to clear the selection.
+
+Drag the selected mark to move it, press **Delete** to remove it, or double-click a text label (or select it and press **F2**) to edit its contents. Cancelling the text dialog or submitting an empty label retains the original text. Each completed move, deletion or text replacement takes one undo step. Undo restores the mark at its original stacking position. Redo reapplies the edit. A fresh edit clears redo history.
+
+Edits preserve the crop and the mark’s color and stroke width. Marks can cross the crop boundary. Export clips the artwork to the crop and omits the selection outline. Switch to **Select** to move or resize the crop with the mouse or arrow keys. Escape in the overlay cancels the capture.
+
 ## Checks
 
 - On a private X11 display, real Print input froze an open Start menu before dismissal. A selected region retained the expected menu pixels. Escape before selection and during a drag preserved the previous clipboard contents.

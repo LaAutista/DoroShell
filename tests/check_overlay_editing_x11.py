@@ -17,7 +17,7 @@ def worker():
     from PySide6.QtWidgets import QApplication, QFileDialog, QLineEdit
     from Xlib import X, XK, display
     from Xlib.ext import xtest
-    from runtime.menu_capture import FrozenCapture
+    from runtime.menu_capture import FrozenCapture, transfer_png
     app = QApplication([])
     app.setQuitOnLastWindowClosed(False)
     app.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
@@ -91,6 +91,23 @@ def worker():
         assert overlay.rendered_image().pixelColor(60,70) == QColor('#c4d9e9')
         click(overlay.actions['Redo'])
         assert overlay.rendered_image() == marked
+        click(overlay.tool_buttons['Edit marks'])
+        drag((285, 285), (245, 285))
+        # Moving 40 left clips the redaction at the crop boundary.
+        marked = image.copy(crop)
+        for y in range(270, 321):
+            for x in range(crop.left(), 291):
+                marked.setPixelColor(x-crop.x(), y-crop.y(), QColor('black'))
+        assert overlay.rendered_image() == marked
+        key('Delete')
+        wait()
+        assert overlay.rendered_image() == image.copy(crop)
+        click(overlay.actions['Undo'])
+        assert overlay.rendered_image() == marked
+        click(overlay.actions['Redo'])
+        assert overlay.rendered_image() == image.copy(crop)
+        click(overlay.actions['Undo'])
+        assert overlay.rendered_image() == marked
         seen = []
         def cancel_save():
             dialog = app.activeModalWidget()
@@ -149,7 +166,60 @@ def worker():
         wait()
         assert not cancelled.isVisible() and cancelled.selected_image() is None
         assert app.clipboard().text() == 'editing sentinel'
-        print('PASS real X11 crop resize/move, redaction, Undo/Redo, actual save-dialog cancel/save, exact PNG pixels, full-desktop Enter and unchanged clipboard',flush=True)
+        # Cancel with a selected annotation on the private clipboard sentinel.
+        editor = FrozenCapture(image, image.rect())
+        editor.show()
+        wait()
+        click(editor.tool_buttons['Redact'])
+        drag((250, 250), (280, 280))
+        def point_click(x, y):
+            event(X.MotionNotify, x=x, y=y)
+            event(X.ButtonPress, 1)
+            event(X.ButtonRelease, 1)
+            wait()
+
+        def enter_text(value):
+            # getText starts its own modal event loop.
+            event(X.KeyPress, ctrl)
+            key('a')
+            event(X.KeyRelease, ctrl)
+            for letter in value:
+                key(letter)
+            key('Return')
+
+        click(editor.tool_buttons['Text'])
+        QTimer.singleShot(200, lambda: enter_text('old'))
+        point_click(255, 270)
+        old_text = editor.rendered_image()
+        click(editor.tool_buttons['Edit marks'])
+        point_click(260, 266)
+        assert editor.selected_mark == 1  # Text over the filled redaction.
+        QTimer.singleShot(200, lambda: key('Escape'))
+        key('F2')
+        wait()
+        assert editor.isVisible() and editor.rendered_image() == old_text
+        QTimer.singleShot(200, lambda: enter_text('new'))
+        key('F2')
+        wait()
+        edited = editor.rendered_image()
+        assert editor.strokes[1][2] == 'new' and edited != old_text
+        click(editor.actions['Undo'])
+        assert editor.rendered_image() == old_text
+        click(editor.actions['Redo'])
+        assert editor.rendered_image() == edited
+        point_click(313, 300)
+        assert editor.selected_mark is None
+        drag((254, 275), (264, 285))
+        key('Escape')
+        wait()
+        assert editor.selected_image() is None and not editor.isVisible()
+        assert app.clipboard().text() == 'editing sentinel'
+        helper = Path(__file__).resolve().parents[1]/'runtime/menu_capture.py'
+        transfer_png(overlay.selected_image(), [sys.executable, str(helper), '--clipboard-owner'], b'OWNED\n')
+        assert app.clipboard().image().convertToFormat(marked.format()) == marked
+        app.clipboard().setText('replacement')
+        wait()
+        print('PASS real X11 crop resize/move, redaction, Undo/Redo, text editing, save-dialog cancel/save, exact edited PNG and clipboard pixels, full-desktop Enter and Escape preservation',flush=True)
     finally:
         overlay.close(); wm.terminate(); wm.wait(timeout=5); server.close()
 

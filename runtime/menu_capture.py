@@ -95,7 +95,9 @@ class FrozenCapture(QDialog):
         self.drag = ''
         self.lens_pixel = None
         self.strokes = []
+        self.undo_stack = []
         self.redo_stack = []
+        self.selected_mark = None
         self.active_tool = 'Select'
         self.colors = {'ink': QColor('#f04761'), 'highlight': QColor('#ffda00')}
         self.widths = {'ink': 3, 'highlight': 15}
@@ -129,14 +131,16 @@ class FrozenCapture(QDialog):
         icons = [('Select','transform-move','↔'),('Pen','draw-freehand','✎'),
                  ('Highlight','draw-highlight','▰'),('Rectangle','draw-rectangle','□'),
                  ('Ellipse','draw-ellipse','○'),('Arrow','draw-arrow-forward','↗'),
-                 ('Text','draw-text','T'),('Redact','edit-redact','■')]
+                 ('Text','draw-text','T'),('Redact','edit-redact','■'),
+                 ('Edit marks','','Edit marks')]
         for i,(name,theme,fallback) in enumerate(icons):
             button = QToolButton()
             button.setCheckable(True)
-            button.setToolTip(name)
+            button.setToolTip('Select and drag a mark. Delete removes it. F2 edits text.'
+                              if name == 'Edit marks' else name)
             button.setAccessibleName(name)
             icon=QIcon.fromTheme(theme)
-            if icon.isNull():
+            if not theme or icon.isNull():
                 button.setText(fallback)
             else:
                 button.setIcon(icon)
@@ -155,8 +159,8 @@ class FrozenCapture(QDialog):
         self.stroke_width.setSuffix(' px')
         self.stroke_width.valueChanged.connect(self.set_width)
         narrow=self.viewport.width()<530
-        tools.addWidget(self.color_button,int(narrow),0 if narrow else 8,1,4 if narrow else 1)
-        tools.addWidget(self.stroke_width,int(narrow),4 if narrow else 9,1,4 if narrow else 1)
+        tools.addWidget(self.color_button,int(narrow),0 if narrow else len(icons),1,4 if narrow else 1)
+        tools.addWidget(self.stroke_width,int(narrow),4 if narrow else len(icons)+1,1,4 if narrow else 1)
 
         actions = QGridLayout(self.controls)
         actions.setContentsMargins(5,4,5,4)
@@ -206,6 +210,8 @@ class FrozenCapture(QDialog):
 
     def set_tool(self, name):
         self.lens_pixel = None
+        self.selected_mark = None
+        self.setCursor(Qt.CursorShape.ArrowCursor if name == 'Edit marks' else Qt.CursorShape.CrossCursor)
         self.active_tool=name
         self.hover_window = QRect()
         self.actions['Window'].setChecked(name == 'Window')
@@ -216,8 +222,8 @@ class FrozenCapture(QDialog):
             button.setChecked(tool==name)
         group=self.ink_group()
         self.stroke_width.setValue(self.widths[group])
-        self.stroke_width.setEnabled(name not in ('Select','Window','Redact','Text'))
-        self.color_button.setEnabled(name not in ('Select','Window','Redact'))
+        self.stroke_width.setEnabled(name not in ('Select','Edit marks','Window','Redact','Text'))
+        self.color_button.setEnabled(name not in ('Select','Edit marks','Window','Redact'))
         color=self.colors[group]
         self.color_button.setStyleSheet('border-bottom: 3px solid '+color.name())
         self.color_button.setAccessibleName('Annotation color '+color.name())
@@ -261,7 +267,7 @@ class FrozenCapture(QDialog):
     def updated(self):
         size = self.pixel_rect().size()
         self.help.setText('Click a window' if self.active_tool == 'Window' else f'{size.width()} × {size.height()}')
-        self.actions['Undo'].setEnabled(bool(self.strokes))
+        self.actions['Undo'].setEnabled(bool(self.undo_stack))
         self.actions['Redo'].setEnabled(bool(self.redo_stack))
         target=self.selection.intersected(self.viewport)
         center=target.center().x() if not target.isEmpty() else self.viewport.center().x()
@@ -288,29 +294,60 @@ class FrozenCapture(QDialog):
 
     def draw_strokes(self, painter):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        for tool, points, text, color, width in self.strokes:
-            pen=QPen(color,width,Qt.PenStyle.SolidLine,Qt.PenCapStyle.RoundCap,Qt.PenJoinStyle.RoundJoin)
-            pen.setCosmetic(True)
-            painter.setPen(pen)
-            box = QRect(points[0],points[-1]).normalized()
-            if tool=='Rectangle':
-                painter.drawRect(box)
-            elif tool=='Ellipse':
-                painter.drawEllipse(box)
-            elif tool=='Redact':
-                painter.fillRect(box,Qt.GlobalColor.black)
-            elif tool=='Text':
-                painter.drawText(points[0],text)
-            elif tool=='Arrow':
-                start, end = points[0], points[-1]
-                angle = math.atan2(start.y()-end.y(),start.x()-end.x())
-                painter.drawLine(start,end)
-                for offset in (-.5,.5):
-                    painter.drawLine(end,end+QPoint(round(14*math.cos(angle+offset)),round(14*math.sin(angle+offset))))
-            elif len(points)==1:
-                painter.drawPoint(points[0])
-            else:
-                painter.drawPolyline(QPolygon(points))
+        for stroke in self.strokes:
+            self.draw_mark(painter, stroke)
+
+    def draw_mark(self, painter, stroke):
+        tool, points, text, color, width = stroke
+        pen=QPen(color,width,Qt.PenStyle.SolidLine,Qt.PenCapStyle.RoundCap,Qt.PenJoinStyle.RoundJoin)
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+        box = QRect(points[0],points[-1]).normalized()
+        if tool=='Rectangle':
+            painter.drawRect(box)
+        elif tool=='Ellipse':
+            painter.drawEllipse(box)
+        elif tool=='Redact':
+            painter.fillRect(box,Qt.GlobalColor.black)
+        elif tool=='Text':
+            painter.drawText(points[0],text)
+        elif tool=='Arrow':
+            start, end = points[0], points[-1]
+            angle = math.atan2(start.y()-end.y(),start.x()-end.x())
+            painter.drawLine(start,end)
+            for offset in (-.5,.5):
+                painter.drawLine(end,end+QPoint(round(14*math.cos(angle+offset)),round(14*math.sin(angle+offset))))
+        elif len(points)==1:
+            painter.drawPoint(points[0])
+        else:
+            painter.drawPolyline(QPolygon(points))
+
+    def mark_bounds(self, stroke):
+        tool, points, text, color, width = stroke
+        if tool == 'Text':
+            return self.fontMetrics().boundingRect(text).translated(points[0])
+        margin = math.ceil(width / 2) + (14 if tool == 'Arrow' else 0)
+        return QPolygon(points).boundingRect().adjusted(-margin, -margin, margin, margin)
+
+    def mark_at(self, point):
+        # Render the same primitive into a small transparent hit target. Hollow
+        # shapes pass through to lower marks when the pointer misses their ink.
+        area = QRect(point - QPoint(3, 3), QSize(7, 7))
+        tile = QImage(area.size(), QImage.Format.Format_ARGB32_Premultiplied)
+        for index in reversed(range(len(self.strokes))):
+            mark = self.strokes[index]
+            if not self.mark_bounds(mark).intersects(area):
+                continue
+            if mark[0] == 'Text':
+                return index
+            tile.fill(Qt.GlobalColor.transparent)
+            with QPainter(tile) as painter:
+                painter.translate(-area.topLeft())
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                self.draw_mark(painter, mark)
+            if any(tile.pixel(x, y) for y in range(tile.height()) for x in range(tile.width())):
+                return index
+        return None
 
     def lens_rect(self):
         if self.lens_pixel is None or self.active_tool != 'Select':
@@ -370,11 +407,19 @@ class FrozenCapture(QDialog):
                 painter.setPen(Qt.GlobalColor.white)
                 painter.drawText(hint,Qt.AlignmentFlag.AlignCenter,text)
             if not target.isEmpty():
+                painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.setPen(QPen(QColor('#80cfff'),2))
                 painter.drawRect(target.adjusted(0,0,-1,-1))
                 painter.setBrush(QColor('white'))
-                for point in (() if picking else self.handles().values()):
+                for point in (() if picking or self.active_tool == 'Edit marks' else self.handles().values()):
                     painter.drawEllipse(point,4,4)
+            if self.selected_mark is not None:
+                bounds = self.mark_bounds(self.strokes[self.selected_mark]).adjusted(-2, -2, 2, 2)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.setPen(QPen(Qt.GlobalColor.black, 1))
+                painter.drawRect(bounds)
+                painter.setPen(QPen(Qt.GlobalColor.white, 1, Qt.PenStyle.DashLine))
+                painter.drawRect(bounds)
             self.paint_lens(painter)
 
     def mousePressEvent(self, event):
@@ -392,7 +437,15 @@ class FrozenCapture(QDialog):
         self.original = QRect(self.selection)
         self.raw_original = QRect(self.raw_selection)
         self.raw_origin = self.raw_point(event.position())
-        if self.active_tool != 'Select':
+        if self.active_tool == 'Edit marks':
+            self.setFocus()
+            self.selected_mark = self.mark_at(p)
+            if self.selected_mark is None:
+                self.origin = None
+            else:
+                self.drag = 'mark'
+                self.original_mark = self.strokes[self.selected_mark]
+        elif self.active_tool != 'Select':
             self.drag='draw'
             tool = self.active_tool
             text = ''
@@ -402,12 +455,13 @@ class FrozenCapture(QDialog):
                 self.drag = ''
                 if not ok or not text:
                     return
-            self.redo_stack.clear()
             group=self.ink_group()
             color=QColor(self.colors[group])
             if tool=='Highlight':
                 color.setAlpha(115)
             self.strokes.append((tool,[p],text,color,self.widths[group]))
+            if tool == 'Text':
+                self.record(len(self.strokes)-1, None, self.strokes[-1])
         else:
             self.lens_pixel = self.raw_origin
             self.drag=self.handle_at(p) or ('move' if self.selection.contains(p) else 'new')
@@ -423,6 +477,12 @@ class FrozenCapture(QDialog):
                                      max(0, min(raw.y(), self.image.height()-1)))
         if self.drag=='draw':
             self.strokes[-1][1].append(p)
+        elif self.drag == 'mark':
+            # Keep the grabbed point on the frozen desktop. The crop clips export.
+            delta = QPoint(max(0, min(self.width()-1, p.x())),
+                           max(0, min(self.height()-1, p.y()))) - self.origin
+            tool, points, text, color, width = self.original_mark
+            self.strokes[self.selected_mark] = (tool, [v + delta for v in points], text, color, width)
         elif self.drag=='new':
             self.selection=QRect(self.origin,p).normalized().intersected(self.rect())
             self.raw_selection=QRect(self.raw_origin,raw).normalized().intersected(self.image.rect())
@@ -462,21 +522,71 @@ class FrozenCapture(QDialog):
     def mouseReleaseEvent(self,event):
         if event.button()==Qt.MouseButton.LeftButton and self.origin is not None:
             self.drag_to(event.position())
-            if self.selection.width()<2 or self.selection.height()<2:
+            if self.drag == 'mark':
+                self.record(self.selected_mark, self.original_mark, self.strokes[self.selected_mark])
+                self.original_mark = None
+            elif self.drag == 'draw':
+                self.record(len(self.strokes)-1, None, self.strokes[-1])
+            elif self.selection.width()<2 or self.selection.height()<2:
                 self.selection=QRect()
             self.lens_pixel = None
             self.origin=None
             self.drag=''
             self.updated()
 
+    def record(self, index, before, after):
+        if before != after:
+            self.undo_stack.append((index, before, after))
+            self.redo_stack.clear()
+
+    def replace_mark(self, index, before, after):
+        if before is None:
+            self.strokes.insert(index, after)
+        elif after is None:
+            del self.strokes[index]
+        else:
+            self.strokes[index] = after
+
+    def change_selected(self, replacement):
+        index = self.selected_mark
+        before = self.strokes[index]
+        self.replace_mark(index, before, replacement)
+        self.record(index, before, replacement)
+        if replacement is None:
+            self.selected_mark = None
+        self.updated()
+
+    def edit_text(self):
+        if self.selected_mark is None:
+            return
+        tool, points, text, color, width = self.strokes[self.selected_mark]
+        if tool == 'Text':
+            new_text, ok = QInputDialog.getText(self, 'Edit annotation', 'Text', text=text)
+            if ok and new_text:
+                self.change_selected((tool, points, new_text, color, width))
+
+    def mouseDoubleClickEvent(self, event):
+        if self.active_tool == 'Edit marks' and event.button() == Qt.MouseButton.LeftButton:
+            self.selected_mark = self.mark_at(event.position().toPoint())
+            self.edit_text()
+            self.updated()
+        else:
+            super().mouseDoubleClickEvent(event)
+
     def undo(self):
-        if self.strokes:
-            self.redo_stack.append(self.strokes.pop())
+        if self.undo_stack and self.origin is None:
+            index, before, after = change = self.undo_stack.pop()
+            self.replace_mark(index, after, before)
+            self.redo_stack.append(change)
+            self.selected_mark = None
             self.updated()
 
     def redo(self):
-        if self.redo_stack:
-            self.strokes.append(self.redo_stack.pop())
+        if self.redo_stack and self.origin is None:
+            index, before, after = change = self.redo_stack.pop()
+            self.replace_mark(index, before, after)
+            self.undo_stack.append(change)
+            self.selected_mark = None
             self.updated()
 
     def adjust_crop(self, event):
@@ -536,7 +646,12 @@ class FrozenCapture(QDialog):
             self.accept()
         elif event.key()==Qt.Key.Key_Escape:
             self.reject()
-        elif event.key()==Qt.Key.Key_W and not event.modifiers():
+        elif (self.active_tool == 'Edit marks' and self.selected_mark is not None
+              and self.origin is None and not event.modifiers() and event.key() == Qt.Key.Key_Delete):
+            self.change_selected(None)
+        elif self.active_tool == 'Edit marks' and self.origin is None and event.key() == Qt.Key.Key_F2:
+            self.edit_text()
+        elif event.key()==Qt.Key.Key_W and self.origin is None and not event.modifiers():
             self.pick_window()
         elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key()==Qt.Key.Key_Z:
             if event.modifiers() & Qt.KeyboardModifier.ShiftModifier: self.redo()
