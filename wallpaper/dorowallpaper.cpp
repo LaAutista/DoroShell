@@ -216,7 +216,7 @@ void DoroWallpaper::tick() {
     }
     playing_ = play;
     if (worker_) {
-        const QByteArray command = QJsonDocument(QJsonObject{{QStringLiteral("play"),play},{QStringLiteral("muted"),cfg.value(QStringLiteral("muted")).toBool(true)},{QStringLiteral("fps"),fps_}}).toJson(QJsonDocument::Compact)+'\n';
+        const QByteArray command = QJsonDocument(QJsonObject{{QStringLiteral("play"),play},{QStringLiteral("muted"),cfg.value(QStringLiteral("muted")).toBool(true)},{QStringLiteral("fps"),fps_},{QStringLiteral("volume"),qBound(0,cfg.value(QStringLiteral("volume")).toInt(100),100)}}).toJson(QJsonDocument::Compact)+'\n';
         if (command != command_) { command_ = command; worker_->write(command); }
     }
     if (screen) {

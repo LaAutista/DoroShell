@@ -1,25 +1,91 @@
-# DoroShell complete source candidate v5 (licensed) — 2026-11-10
+# Combined screenshot and native Background source candidate
 
-Complete combined source; no prior unpublished commit or temporary patch is required. Includes all v3 features and transaction hardening, plus mode-only edit refusal for menu and shared optional installation/recovery. Source provenance and exact hashes are in SOURCE-MANIFEST.json. V4 is preserved unchanged. The owner approved GPL-2.0-or-later for original DoroShell source, preserving component licenses; see LICENSING.md. This successor changes notices/documentation only, plus non-executable SPDX comments in display source/patch.
+Prepared locally on 2026-11-10; publication is pending parent verification. This
+is a complete source candidate based on published main
+`1f687d2ab01a09774baf8baf6bf1ec538221e745`, incorporating committed screenshot
+release `9a6c5d1ab01ee47c1ca2307eeeab0e9ba76ce0f9` and the approved native
+wallpaper preferences implementation. Neither component requires an external
+unpublished patch. The screenshot commit was imported without modification to
+its originating checkout. There were no implementation conflicts.
 
-Verification: **210 tests passed in 11.624 seconds** on this licensed source candidate. Display patch syntax was parsed successfully. No fresh native build or private UI checks were rerun for these notice-only changes. Parent independent results are not claimed.
+## Changes
 
-## Release-readiness matrix (inherited v4 packaging-time snapshot)
+- Screenshot annotations gain selection/editing, text font/color controls,
+  snapped lines, numbered stamps, Blur/Pixelate, and cancellable delayed full
+  desktop or monitor recapture with optional pointer inclusion.
+- PCManFM-Qt Background retains its static wallpaper groups and adds the approved
+  Animated Wallpaper group: type, local file Browse, fullscreen pause, mute,
+  repaint FPS, volume slider, and silent Preview/Stop. Existing fit and monitor
+  selections are preserved. Apply/OK saves atomically with backup and conflict
+  refusal; Cancel retains only previously applied changes.
+- The existing Advanced display implementation and helper are unchanged.
+  The standard wallpaper builder includes Background controls and retains
+  Advanced when invoked with `--display-controls`.
 
-The matrix below preserves v4 evidence and is not a current live-deployment inspection. The parent separately reported a subsequent five-file toolkit upgrade; no live deployment was performed in this licensing task.
+## Verification for this combined source
 
-| Area | Implemented | Private verification | Live installed evidence | Staged status | Still unverified |
-|---|---|---|---|---|---|
-| Ranked local app search | Name/executable/keyword ranking, keyboard results, empty states | Unit and prior isolated keyboard/catalog tests | Runtime/toolkit search upgrade previously installed; inspected toolkit hashes match candidate | Complete v4 source packaged; no activation this task | Fresh OS/login, broader app catalogs; no new on-screen live check |
-| Folder cascades | Bounded lazy folder menus | Prior private folder/keyboard/integration tests | Existing toolkit helper matches candidate; retained by search upgrade | Complete v4 source packaged | Broader filesystem/desktop environments and clean login |
-| Portable Start preferences | Path-free export, preview/import and conflict-checked restore | Prior portable and combined toolkit tests | Existing installed portable helper matches candidate; no personal import performed | Complete v4 source packaged | Broader cross-machine acceptance |
-| Display controls | Guarded session RandR test and NVIDIA future-client OpenGL control | Prior fake-driver/native private UI and paired integrity tests | No display-control live activation performed by this work | Private native candidate previously built; live display-enabled staging is not established here | Physical changes/recovery, Intel/AMD hardware, multi-monitor/rotation/scaling, normal login |
-| Installer hardening | Actionable expected errors, read-only previews, transaction preflight and mode-conflict refusal | 210-test worker suite; malformed/interrupted writes, chmod, symlinks and legacy schema checks | Live installed installer/setup/module helpers remain older; five program payloads need a future narrow upgrade | V4 source/evidence only; deployment plan is read-only and unexecuted | Persistent I/O/power-loss durability, hostile manifests, editor races; actual deployment not performed |
+`python -m unittest discover -s tests -v`: **230 passed** (11.799 seconds).
+These are local/offscreen/mocked and temporary-home tests, not clean OS tests.
+The standard native builder completed against the pinned PCManFM-Qt revision,
+producing the desktop executable, decoder helper, display helper and format-3
+integrity record in an isolated build directory.
 
-Ordinary rollback restores the first-install baseline. Optional failure compensation restores the immediately preceding installed version. Menu interrupted writes retain a recovery manifest. Content/mode conflicts refuse instead of adopting user edits. Legacy modes use conservative known payload/baseline states; an edit indistinguishable from an allowed recovery state cannot be detected. General race-free or power-loss guarantees are not claimed. Special permission bits are outside the ordinary-file chmod tests.
+Private X11 integration checks rerun from this combined checkout:
 
-Build/setup: read README.md, docs/clean-environment-simulation.md and component READMEs. Preview selected modules first; never treat menu installation as permission to apply desktop modules. Native builders require documented development dependencies and fetch pinned upstream sources. Display builds use wallpaper/build.py --display-controls with a new permanent work directory; keep executable, video helper, display helper and format-3 record together. No binaries/toolchain/media/configuration are included.
+- `check_overlay_editing_x11.py`: real input, crop/annotation edits,
+  text formatting, undo/redo, save cancellation, exact PNG/clipboard pixels.
+- `check_recapture_x11.py`: cancellation, delayed fresh captures, pointer hotspot,
+  exact PNG/clipboard output at scale factors 1 and 1.5.
+- `check_native_wallpaper_buttons.py`: ten native scenarios covering unchanged
+  Apply, Static, preview failure, Cancel, Apply, OK, invalid file, conflict,
+  preview Stop and preview cancellation.
+- `check_native_display_buttons.py`: ten existing Advanced Apply/OK, Keep/Revert,
+  timeout, error, external-change and close scenarios using fake display drivers.
 
-The original-source licensing decision is resolved. Publication still requires the intended destination/authorization and preservation of component notices. Clean OS/login and physical hardware acceptance are required before making stable hardware claims. A separately approved future toolkit-only deployment may use the private outer-directory plan; it was not executed while the user slept. No live changes, session/power actions, package operations, network, Git configuration or push occurred in packaging.
+All use temporary homes, authenticated private displays and synthetic content.
+No personal desktop, clipboard, audio or settings are changed by this packaging
+verification. No second live activation was performed.
 
-Verify extracted source: `sha256sum -c SHA256SUMS`. Outer files provide archive hash, test log, scoped patch and private read-only deployment plan. The deployment inventory is deliberately outside the source archive.
+## Earlier component evidence and limits
+
+Before this integration, the identical wallpaper implementation passed null-only
+synthetic audio tests: 25% volume produced approximately one quarter of the
+full-volume waveform; 0%, mute, pause and Off were silent. It was also built with
+the standard builder, staged with exact pre-upgrade managed-file backups, and
+activated through a guarded desktop-only refresh. Current animation and native
+preference bytes were preserved; the live Background dialog was inspected and
+cancelled without applying or previewing. Those are earlier component checks,
+not new deployment or login tests for this combined commit.
+
+The screenshot release has additional component-level checks described in
+[its verification notes](docs/screenshot-verification.md). Other inherited areas,
+including Start search, folder cascades, portable preferences, panel grouping and
+installer recovery, retain their prior evidence; this integration does not claim
+new live or hardware acceptance for them.
+
+Normal-login acceptance of this exact combined build, clean installation,
+physical mixed-DPI/multi-monitor behavior, real audio-device routing, display
+hardware recovery, Wayland and long-session performance remain unverified.
+Blur and Pixelate obscure appearance; use solid Redact to cover sensitive output.
+The editor retains the frozen original until it closes.
+
+## Build, packaging and rollback
+
+Read README.md and component READMEs. Native builds require the documented
+existing development dependencies and fetch pinned upstream sources. Build the
+paired desktop with `python wallpaper/build.py --work /permanent/empty/directory
+--display-controls`; keep both executables, display helper and build record
+together. Preview selected installer modules before applying. Building source
+never enables wallpaper, audio, display changes or desktop integration.
+
+Ordinary installer rollback restores the first-install baseline. The earlier
+controlled upgrade also used a private exact pre-upgrade backup/undo, which is
+not distributed with source and does not replace the ordinary installer policy.
+Content/mode conflicts are refused. General race-free or power-loss guarantees
+are not claimed.
+
+Original DoroShell source is GPL-2.0-or-later; all component notices are retained.
+See LICENSING.md. No binaries, media, personal paths/configuration, real desktop
+screenshots, private backups, toolchains or caches are included. SOURCE-MANIFEST.json
+records source provenance and payload hashes. SHA256SUMS covers all source files
+and the manifest, excluding itself. Verify with `sha256sum -c SHA256SUMS`.

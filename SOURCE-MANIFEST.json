@@ -1,12 +1,16 @@
 {
-  "format": 6,
-  "candidate": "doroshell-source-20261111-screenshot",
+  "format": 7,
+  "candidate": "doroshell-source-20261110-screenshot-native-background",
   "published_ancestor": "1f687d2ab01a09774baf8baf6bf1ec538221e745",
+  "source_provenance": {
+    "screenshot_commit": "9a6c5d1ab01ee47c1ca2307eeeab0e9ba76ce0f9",
+    "wallpaper": "Approved native Background implementation; standard builder and private/live component checks described in RELEASE-CANDIDATE.md"
+  },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 229,
-    "command": "python -m unittest discover -s tests -q",
-    "note": "Independent temporary-home unit suite passed. Private X11 editing and delayed recapture checks passed; synthetic screenshot pixels only. Physical mixed-DPI, compositor animations, Wayland, real login and clean install remain unverified. See docs/screenshot-verification.md."
+    "passed": 230,
+    "command": "python -m unittest discover -s tests -v",
+    "note": "Combined local/offscreen/mocked suite passed. Standard native build and private X11 screenshot editing, recapture at scales 1 and 1.5, native wallpaper and fake-driver Advanced checks passed. Earlier component live/audio evidence is separate; no live changes during release integration. See RELEASE-CANDIDATE.md."
   },
   "source_payloads": [
     {
@@ -35,14 +39,14 @@
     },
     {
       "path": "README.md",
-      "sha256": "0b121abc450ea1c0204a0e31f015ae45a81a9c0f82a7ebbc85439b109ba83314",
-      "size": 46355,
+      "sha256": "184918463d44b957633db16336daf14fa9f462034ce76337fff58d3ef2fb5c2b",
+      "size": 46606,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "f7ab79e17d412126319b53952c76f5a6061e227c9a7dd26ea7177db2d447a228",
-      "size": 4871,
+      "sha256": "10d29172a22f0285a0fba31d45c97daf33264325ab4b71f61b2efc4287314695",
+      "size": 5330,
       "mode": "0o644"
     },
     {
@@ -520,6 +524,12 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/check_native_wallpaper_buttons.py",
+      "sha256": "ac953e2e4443ff673f45a65e56417c289ea139c112f6c06b1250706debd425a0",
+      "size": 2567,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/check_opaque_themes_x11.py",
       "sha256": "e7efa5ea102099dd43d78f8c217a1bd623938bcb28f6809aae358f3fdfe0f45a",
       "size": 8235,
@@ -641,8 +651,8 @@
     },
     {
       "path": "tests/check_wallpaper_audio_x11.py",
-      "sha256": "ca88ec4b374e993460c6ec382c7bde3275f448e0c3e751848236a528fd0cbfab",
-      "size": 7874,
+      "sha256": "4632eb04d4a2ab0b39b3ccff4edd57e4c7e050c46ac402289f27efdc1a92b2c7",
+      "size": 8081,
       "mode": "0o644"
     },
     {
@@ -721,6 +731,12 @@
       "path": "tests/native_display_buttons.cpp",
       "sha256": "bceda82c46f2615ac07813db6e3fb6ebe5091c3b8157eb1fc8108c98deea43ea",
       "size": 7292,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/native_wallpaper_buttons.cpp",
+      "sha256": "8524ad0f1269e6459c4f82c2a7ab0cfc7da94522fd9336f0232e24dae2236128",
+      "size": 6380,
       "mode": "0o644"
     },
     {
@@ -863,8 +879,8 @@
     },
     {
       "path": "tests/test_wallpaper.py",
-      "sha256": "2c0004a76faf6e60079aeedf3b474949bb850891126723f35eee5ee0884b7068",
-      "size": 6897,
+      "sha256": "6c9814380151f73517c418734cd14a8e2ccd869a79bf7c1447d3448f01f9b60a",
+      "size": 7237,
       "mode": "0o644"
     },
     {
@@ -893,20 +909,20 @@
     },
     {
       "path": "wallpaper/README.md",
-      "sha256": "7de6be5b1b37a3ea7ba0850c2c69b43f5fb328bdf41380fedaea188eb8d96806",
-      "size": 8496,
+      "sha256": "8fcd2c65528517164a68e70c44b897aa37d0bcaf3e3a3461980d69da48a9f7af",
+      "size": 12443,
       "mode": "0o644"
     },
     {
       "path": "wallpaper/build.py",
-      "sha256": "fb5719da33f0fdc23ed837a8541de336091fd3fd00a351b30f6040916c736d4d",
-      "size": 2873,
+      "sha256": "ab7055fd85c71cd9d7d7b9bb1a13bd7659d19d9472c54de0e95375421986f5d3",
+      "size": 3030,
       "mode": "0o644"
     },
     {
       "path": "wallpaper/control.py",
-      "sha256": "32b29a8766e3ee3b0aa0420ddcbd0d5dfae97ecd0d7490d937328ab4df5b3ca7",
-      "size": 8159,
+      "sha256": "2de0bfdecb6b168ba3e7363a6c5edb99aac4bf4dd9f7fa40c99b4b06b76e7fa9",
+      "size": 8317,
       "mode": "0o644"
     },
     {
@@ -923,14 +939,14 @@
     },
     {
       "path": "wallpaper/dorovideoworker.cpp",
-      "sha256": "84796b9020f3f013955c8bc1c33cc10e3cb9e76c6c68ef0a18cf41cea061be65",
-      "size": 3906,
+      "sha256": "31cccf535233e11d057815f9d57f6946084be9da7512fde730816cbf684b8779",
+      "size": 4006,
       "mode": "0o644"
     },
     {
       "path": "wallpaper/dorowallpaper.cpp",
-      "sha256": "0bb27c040fb1632375f934edcfacec302fb12812431ececbed58cc7e4ed32840",
-      "size": 12693,
+      "sha256": "c71ab88328735cef52ee162e344d264b2d3678dfcdefa1ca387ed3991f045d84",
+      "size": 12781,
       "mode": "0o644"
     },
     {
@@ -940,9 +956,21 @@
       "mode": "0o644"
     },
     {
+      "path": "wallpaper/dorowallpapercontrols.h",
+      "sha256": "fccf6eec08c84ab1c61da5362f9edf6148cd55e69f9dfc5739bba264159b5dbe",
+      "size": 9063,
+      "mode": "0o644"
+    },
+    {
       "path": "wallpaper/install.py",
       "sha256": "8d9eddd41e337111679ef59bb6531d2176aae3fb225d318308811197b42252b2",
       "size": 5297,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/preferences.py",
+      "sha256": "eee22bf306462a230c8c826c2bbabe97fa63668149e52544226efe66206c78a2",
+      "size": 2396,
       "mode": "0o644"
     }
   ]

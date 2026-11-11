@@ -60,3 +60,68 @@ The standard source build now produces both executables. Authenticated private-X
 The earlier in-process optional archive and personal staged renderer are unchanged. This checkout is a newer, unpublished isolation candidate. Short Xvfb/llvmpipe measurements showed Off at about 70 MiB with no decoder process versus roughly 425 MiB retained previously. Playing CPU was similar, not faster; summed process RSS includes shared pages more than once. These are not hardware-acceleration or input-latency measurements. Pause intentionally retains decoder memory for resume; Off releases it. Physical/audio-device, normal-login, clean-system and long-session checks remain separate gates.
 
 Private null-only audio acceptance also passed (`tests/check_wallpaper_audio_x11.py`): default mute, pause, remute and Off produced silent captured samples; unmute/resume produced the synthetic tone; Off removed the helper and audio stream. No physical audio device or user audio session was used. This does not test real-device routing or perceived latency. See [integration evidence](../docs/wallpaper-isolation-verification.md).
+
+## Native Background preferences candidate
+
+New builds include Type (Static/Animated), local media Browse, fullscreen
+pause, mute, repaint FPS limit and volume directly in **Desktop Preferences →
+Background**. The widgets inherit the desktop's Qt palette and style. The approved layout keeps
+static color/image/EXIF/per-monitor controls above the Animated Wallpaper group; the
+page scrolls on smaller displays. Advanced display controls are unchanged.
+Build with `--display-controls` to retain the verified Advanced integration.
+
+**Preview** requires optional mpv, opens only on a deliberate
+click, disables audio, and never writes settings or changes desktop playback.
+Stop preview, Cancel, Apply and OK terminate that preview. Invalid media or a
+failed player leaves the prior desktop settings intact. Preview displays the
+media only; it does not simulate monitor layout or desktop fit.
+
+Apply saves animation settings and leaves Preferences open. OK saves and closes.
+Cancel discards only unapplied edits, retaining any earlier Apply. Selecting Static
+and applying disables animation, revealing the native static background again.
+Manual pause, fit and monitor selection from the existing controller are preserved.
+The approved mockup omits a separate fit row. Volume uses a horizontal slider,
+disabled while muted; Stop is enabled only while a preview process exists.
+Example media names and settings from the mockup are never installed.
+Volume is 0–100%; existing configurations default to 100% volume **with mute still
+on by default**. Repaint limits do not change decoder frame rate.
+
+The first edit backs up existing `wallpaper.json` bytes beside it as
+`wallpaper.json.before-native-prefs` (owner-only). Writes are atomic; a changed,
+unreadable or symlinked current file is refused. Reopen Preferences after an
+external edit. The installer still uses its existing verified build records and
+rollback. No personal deployment or autostart change is performed by building.
+
+Private candidate validation: 216 unit tests; actual native Apply, OK, Cancel,
+Cancel-after-Apply, unchanged Apply, Static, invalid file and conflicting-edit
+checks; real silent mpv preview, Stop, Cancel and failure; all ten existing native
+Advanced button scenarios with fake drivers. Null-only audio captured 25% volume
+at approximately one quarter of the full-volume waveform, zero volume as silence,
+and restored volume, mute, pause and Off correctly. Run:
+
+```sh
+python -m unittest discover -s tests -v
+python tests/check_native_wallpaper_buttons.py --run --xvfb /path/to/Xvfb --binary /path/to/private/pcmanfm-qt
+python tests/check_native_display_buttons.py --run --xvfb /path/to/Xvfb --binary /path/to/private/pcmanfm-qt
+python tests/check_wallpaper_audio_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/private/pcmanfm-qt
+```
+
+These use temporary homes, authenticated private X11 and generated media. Native
+Preferences testing does not imply personal-session, normal-login, physical audio,
+hardware-decoder, multiple-monitor or clean-install acceptance. Earlier
+login verification applies to the prior renderer, not this new preferences build.
+
+
+### Controlled deployment follow-up
+
+The approved layout was subsequently built through the standard builder with
+`--display-controls` into a new permanent directory. The display helper and native
+display controls matched the published version. A temporary-home check verified
+exact pre-upgrade staging undo and refusal of conflicting edits; this is separate
+from the installer's first-install rollback.
+
+An idle-session, desktop-only graceful refresh then activated the paired build.
+The existing animation resumed muted, and wallpaper/native preference bytes were
+unchanged. The live Background dialog was inspected without Apply, OK or Preview
+and dismissed through its Cancel/reject path. Previous binaries were retained.
+This confirms that controlled refresh, not a new login or clean installation.

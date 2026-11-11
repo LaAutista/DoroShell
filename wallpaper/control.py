@@ -9,7 +9,7 @@ import time
 import base64
 
 DEFAULT = dict(enabled=False, file='', fit='crop', monitor='all', fps=30,
-               muted=True, paused=False, pause_fullscreen=True, generation=0)
+               muted=True, volume=100, paused=False, pause_fullscreen=True, generation=0)
 
 
 def config_path():
@@ -20,6 +20,8 @@ def validate(values):
     result = dict(DEFAULT, **values)
     if result['fit'] not in ('fit', 'crop', 'stretch') or result['fps'] not in (15, 30, 60):
         raise ValueError('Choose fit/crop/stretch and 15, 30 or 60 repaint fps')
+    if type(result['volume']) is not int or not 0 <= result['volume'] <= 100:
+        raise ValueError('Volume must be an integer from 0 to 100')
     if not isinstance(result['monitor'], str) or not isinstance(result['generation'], int):
         raise ValueError('Invalid monitor or generation')
     for key in ('enabled', 'muted', 'paused', 'pause_fullscreen'):

@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
         while(input.contains('\n')){
             const auto end=input.indexOf('\n'); const auto cfg=QJsonDocument::fromJson(input.left(end)).object(); input.remove(0,end+1);
             fps=qBound(1,cfg.value(QStringLiteral("fps")).toInt(30),60); audio.setMuted(cfg.value(QStringLiteral("muted")).toBool(true));
+            audio.setVolume(qBound(0, cfg.value(QStringLiteral("volume")).toInt(100), 100)/100.0f);
             play=cfg.value(QStringLiteral("play")).toBool(); if(play) player.play(); else player.pause();
         }
     });

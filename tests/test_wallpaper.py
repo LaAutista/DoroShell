@@ -10,6 +10,14 @@ import modules
 
 
 class WallpaperTests(unittest.TestCase):
+    def test_volume_bounds(self):
+        self.assertEqual(validate({})['volume'], 100)
+        for value in (0, 25, 100):
+            self.assertEqual(validate({'volume': value})['volume'], value)
+        for value in (-1, 101, True, '25', 1.5):
+            with self.assertRaises(ValueError):
+                validate({'volume': value})
+
     def test_options_and_local_file_validation(self):
         self.assertFalse(validate({})['enabled'])
         self.assertTrue(validate({})['muted'])

@@ -4,7 +4,7 @@
 
 The first module is a two-column Qt Start menu: application search, categories, pinning, personal-folder links, LXQt settings, and confirmed split session/power controls. A dedicated LXQt Quick Launch button and Alt+F1 open it. Alt+F1 again closes it. Escape clears a search, returns from a category to Home, then closes the menu. The All Programs button changes to Back while browsing or searching. The original Fancy Menu preferences are retained for rollback.
 
-The combined source candidate includes ranked local installed-app search, folder cascades, path-free portable Start preferences and optional guarded display controls. See [current release evidence](RELEASE-CANDIDATE.md) and [display scope](display/README.md); historical checkpoints below do not replace current acceptance limits.
+The combined source candidate includes ranked local installed-app search, folder cascades, path-free portable Start preferences, guarded display controls, editable screenshot annotations with delayed recapture, and native Background controls for animated wallpaper. The combined unit suite passes 230 tests; current private checks and inherited live evidence are distinguished in the release notes. See [current release evidence](RELEASE-CANDIDATE.md) and [display scope](display/README.md); historical checkpoints below do not replace current acceptance limits.
 
 ## Status and support
 
@@ -14,7 +14,7 @@ Two acceptance checks remain open: a user-chosen normal login with the final bui
 
 Integration currently expects `panel1`, the Fancy Menu plugin, and the standard `Alt+F1.1` Fancy Menu shortcut. It rejects custom shortcut mappings and unsupported layouts rather than replacing them silently. Other LXQt layouts need inspection and adaptation. Multi-monitor/panel-edge positioning and long-session behavior need more testing. Folder links respect the existing default file manager; this module does not install or select Dolphin.
 
-## Current optional source candidate — 2026-11-10
+## Historical optional archive checkpoint — 2026-11-10
 
 The local `DoroShell-optional-desktop-candidate.zip` extends the published core with four coordinated palettes, direct portrait selection, live application-catalog refresh, taskbar Pin/Unpin menus and Start drag-to-pin, desktop shortcut drops, clearer tray icons, corrected Printers launching and optional animated wallpaper. It is **not published on GitHub**. All **102 automated tests pass from the extracted optional archive**; the 84-test result above belongs to the published core.
 
@@ -22,9 +22,9 @@ On the development installation, the updated menu/helpers and drag/contrast pane
 
 Normal-login and clean CachyOS acceptance remain pending, as do physical multi-monitor/mixed-DPI wallpaper checks, physical DPMS, broader locker compatibility and long-session performance. No lock-screen animation is implemented. Private X11 and mock-lock tests do not establish those outcomes.
 
-## Newer source candidate
+## Historical decoder-isolation checkpoint
 
-The current checkout and `DoroShell-source-candidate.zip` additionally build animated-video decoding in a separate helper, so Off releases its backend memory while PCManFM keeps static wallpaper and icons. Standard build, paired-executable integrity checks and private staged-launch/fallback/rollback tests pass. The verified isolated renderer is now staged for the next normal desktop startup; animation remains disabled/muted and the running desktop was not replaced. The newer source also adds a configurable primary session button under Menu options, with persistent selection and unchanged confirmations. All 111 automated tests pass; a private UI check canceled the real dialog with dispatch mocked. Portrait selection also has a drag/zoom crop preview with safe cancellation and metadata-only saving; the original image is preserved. These menu additions are not installed live. The isolated renderer is not activated on the personal desktop and is not included in the earlier optional ZIP described above. See [wallpaper build and acceptance](wallpaper/README.md). Physical hardware, normal-login, clean-system and long-session acceptance remain open.
+At this earlier checkpoint, `DoroShell-source-candidate.zip` added animated-video decoding in a separate helper, so Off releases its backend memory while PCManFM keeps static wallpaper and icons. Standard build, paired-executable integrity checks and private staged-launch/fallback/rollback tests pass. The verified isolated renderer is now staged for the next normal desktop startup; animation remains disabled/muted and the running desktop was not replaced. The newer source also adds a configurable primary session button under Menu options, with persistent selection and unchanged confirmations. All 111 automated tests pass; a private UI check canceled the real dialog with dispatch mocked. Portrait selection also has a drag/zoom crop preview with safe cancellation and metadata-only saving; the original image is preserved. These menu additions are not installed live. The isolated renderer is not activated on the personal desktop and is not included in the earlier optional ZIP described above. See [wallpaper build and acceptance](wallpaper/README.md). Physical hardware, normal-login, clean-system and long-session acceptance remain open.
 
 ## Core installation on CachyOS LXQt
 
@@ -128,7 +128,7 @@ The menu-specific commands above change only the Start menu and its panel integr
 
 Original DoroShell source is GPL-2.0-or-later, with existing component licenses preserved. See [license scope and third-party notices](LICENSING.md) and [GPL text](LICENSE). Artwork and non-code material are not relicensed by this source-code decision.
 
-## Current development checkpoint
+## Historical development checkpoints
 
 Start opens on labeled, editable pins. On a fresh configuration it looks for a terminal, Firefox, Dolphin, Kate, VLC and LXQt Configuration Center. GIO resolves installed alternatives for missing handlers. Existing pin order, removed pins and intentionally empty lists survive upgrades. Recent programs has its own view. All Programs and search stay at the bottom. The right column groups folders, Games and Computer, and available desktop settings. The default menu measures 508 × 634 logical pixels and scrolls on smaller displays.
 
@@ -136,7 +136,7 @@ Start opens on labeled, editable pins. On a fresh configuration it looks for a t
 
 The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The [roadmap](docs/roadmap.md) separates implemented features from remaining design and acceptance work.
 
-Current optional validation: **99 automated tests pass from the extracted archive**, using offscreen Qt, mocks and temporary homes. The published core passed 84 tests. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
+Historical optional validation: **99 automated tests pass from the extracted archive**, using offscreen Qt, mocks and temporary homes. The published core passed 84 tests. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
 
 Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
 

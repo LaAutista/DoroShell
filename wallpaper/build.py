@@ -41,6 +41,10 @@ def build(work, display_controls=False):
         sys.path.insert(0, str(ROOT.parent))
         from display.build_candidate import prepare
         prepare(source, work/'build/pcmanfm')
+    import sys
+    sys.path.insert(0, str(ROOT.parent))
+    from wallpaper.preferences import prepare as prepare_preferences
+    prepare_preferences(source)
     subprocess.run(['cmake','-S',source,'-B',work/'build','-G','Ninja','-DCMAKE_INSTALL_PREFIX=/usr'],check=True)
     subprocess.run(['cmake','--build',work/'build','--target','pcmanfm-qt','-j4'],check=True)
     binary=work/'build/pcmanfm/pcmanfm-qt'

@@ -82,7 +82,10 @@ try:
   assert len(values)>4800,(label,'no captured samples',len(values))
   value=math.sqrt(sum(v*v for v in values)/len(values));print('RMS',label,value,'samples',len(values),flush=True);return value
  assert rms('default-muted')<1e-6
- cfg['muted']=False;save();assert rms('unmuted')>.01
+ cfg['muted']=False;save();full=rms('unmuted');assert full>.01
+ cfg['volume']=25;save();quarter=rms('volume-25');assert .15 < quarter/full < .35
+ cfg['volume']=0;save();assert rms('volume-zero')<1e-6
+ cfg['volume']=100;save();assert rms('volume-restored')>.01
  cfg['paused']=True;save();assert rms('paused')<1e-6
  cfg['paused']=False;save();assert rms('resumed')>.01
  cfg['muted']=True;save();assert rms('remuted')<1e-6
