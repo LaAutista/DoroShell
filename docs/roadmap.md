@@ -30,6 +30,8 @@ covers focus, attention, auto-hide, Escape/outside/disconnect and keyboard menus
 desktops, create/close, repeated toggle, drag-hover and live orientation changes
 inside a disposable Openbox session. [Density](panel-density.md) covers long labels,
 an enlarged font, 12 tasks and 60 hidden icons at 150%/200% on one narrow Xvfb screen.
+[Synthetic XEmbed/SNI coexistence](xembed-tray.md) now covers docking, pixels,
+input and client restart; real-client variants remain unverified.
 These latter source upgrades remain staged; those checks are not a live deployment
 or physical mixed-DPI test. Current build/package verification is in the
 [release record](../RELEASE-CANDIDATE.md).
@@ -45,7 +47,7 @@ local; source ships neutral assets. No exact visual parity is claimed.
 
 1. Later, explicitly chosen activation and representative real-app/notifier checks
    for the staged panel. Preserve clients, settings and rollback paths.
-2. Broader notifier/app diversity, legacy XEmbed, long-session behavior and a
+2. Broader notifier/app diversity, real-client XEmbed variants, long-session behavior and a
    keyboard-only entry path to tray overflow. Grouped previews and supported
    progress/overlay data are broader feature work, not claimed complete.
 3. Physical multi-monitor/mixed-DPI, other WMs and Wayland; additional fonts and

@@ -17,6 +17,10 @@ publishing source is not activation. [Release verification](../RELEASE-CANDIDATE
 | Display controls | Guarded optional native Advanced controls and helper | Private fake-driver Keep/Revert/error/conflict tests | No new hardware/display-setting changes or recovery acceptance in this pass. |
 | Setup and recovery | Explicit preview/apply/rollback, original backups and conflict refusal | Temporary-home install/repeat/rollback tests and recorded controlled upgrades | No clean-install or fresh-login acceptance for the current source. |
 
+The later [XEmbed/SNI checkpoint](xembed-tray.md) adds a private synthetic docking,
+pixel, input and restart check and a ninth registration-popup patch. It is staged,
+not live; no independent rerun is inferred.
+
 ## What independent evidence establishes
 
 Independent controlled native/live acceptance is recorded for launcher identity
@@ -46,7 +50,7 @@ remain available; building this source does not invoke them.
 
 - A controlled panel-only activation of the staged fixes, if explicitly chosen,
   followed by real-notifier/app checks and verification that clients/settings survive.
-- Broader real-application/notifier diversity, legacy XEmbed, long-session use,
+- Broader real-application/notifier diversity, real-client XEmbed variants, long-session use,
   other fonts/layouts and keyboard-only entry to tray overflow.
 - Physical multi-monitor/mixed-DPI, Wayland, physical audio/DPMS and display recovery
   remain unverified. Private Xvfb or fake-driver tests do not establish them.

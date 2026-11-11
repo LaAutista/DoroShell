@@ -1,7 +1,7 @@
 {
   "format": 8,
-  "candidate": "doroshell-source-20261111-release-consistency",
-  "published_ancestor": "5749fa16eb73421420f61323728f8375557b98ec",
+  "candidate": "doroshell-source-20261111-xembed-coexistence",
+  "published_ancestor": "1e029cc934aec326ada2f29f21c34c47f13ad09a",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -9,7 +9,8 @@
     "tray_lifecycle": "a5de6d0",
     "tray_keyboard": "5017780",
     "show_desktop": "3262715",
-    "panel_density": "5749fa1"
+    "panel_density": "5749fa1",
+    "release_consistency": "1e029cc"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -48,14 +49,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "f484f008f5c1bda1376f51277a9ffd80a91eeeef397fc3965979d6a04d084806",
-      "size": 5518,
+      "sha256": "69f73a98fe05788f33deaa2a1dc3ab56b97cda38ed32a2d48ce7567104d2492b",
+      "size": 5972,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "5d4739c9e0c4999f28c55d01984d269b07a9f0ca4eb861bc74e5705733f66c25",
-      "size": 6394,
+      "sha256": "67a040494b8d5bdfac4da6686e5fc650841d78a311c0d46e4c969153037221c5",
+      "size": 6515,
       "mode": "0o644"
     },
     {
@@ -150,8 +151,8 @@
     },
     {
       "path": "docs/final-acceptance.md",
-      "sha256": "f008f95bb2d32b986afc16f802fc7ced890b5311544ce74cc4a2e8e68701f495",
-      "size": 5933,
+      "sha256": "7690d6451dee556b5d971283fa9ffc92f3a045a001dc1efe714f1bae2a4856f8",
+      "size": 6159,
       "mode": "0o644"
     },
     {
@@ -198,8 +199,8 @@
     },
     {
       "path": "docs/roadmap.md",
-      "sha256": "ac3be51a295bae4782bf125574a761ffbc36489e1a8563bf4a7f48e06a7315a5",
-      "size": 4166,
+      "sha256": "5636e0af2f0864b5f021e460be413859d5a7b162ad3eeac68a2da425c13a7cc3",
+      "size": 4325,
       "mode": "0o644"
     },
     {
@@ -269,6 +270,12 @@
       "mode": "0o644"
     },
     {
+      "path": "docs/xembed-tray.md",
+      "sha256": "d9ee40d4d5ab3e898be92166d543d31ba43bed23940ada5eb9d5f968bd6e7afb",
+      "size": 3230,
+      "mode": "0o644"
+    },
+    {
       "path": "install.py",
       "sha256": "5dd44601e7dc78d4fee24bfc40ea5596904d7550fb1dd01c070011bbdfc4a530",
       "size": 17076,
@@ -324,14 +331,14 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "11afdaaf3d68ecb7f71b52b8d2ebd55898bc9af59a844c75c78d64cdf5f88690",
-      "size": 12503,
+      "sha256": "228ab0524bef52a71f6649f42c4a0d0c307307d20151ceb4ecfa528fcfae0bc5",
+      "size": 12868,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "52e0fc8deb1685534742c8fb6ca64aba352e251e2e336a702b2fef27d8f71bae",
-      "size": 3458,
+      "sha256": "c07f96db85f40cbdf28c2137011896b830fe0270d1b1ddada055266e079988f0",
+      "size": 3495,
       "mode": "0o644"
     },
     {
@@ -410,6 +417,12 @@
       "path": "panel/patches/0008-panel-density.patch",
       "sha256": "23dcc6f5d6fe6086e33dc14ee7ed0c4c165e7b666eae751ee2dbea5929ee154b",
       "size": 4869,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0009-tray-registration-popup.patch",
+      "sha256": "dbd4a3739b9dbeccf18c349044859d5e65f97af2063c9730d5c014a9267302ad",
+      "size": 730,
       "mode": "0o644"
     },
     {
@@ -794,6 +807,12 @@
       "path": "tests/check_window_capture_x11.py",
       "sha256": "4b902cb2a3cc6fe918eabd6af7b79f295b4ea51099488e42c9aff1a598a60027",
       "size": 4646,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/check_xembed_tray_x11.py",
+      "sha256": "ae096dfd53bdc11b45346d9b34a38d353271ac9784f2e6263745f65fc8030092",
+      "size": 9702,
       "mode": "0o644"
     },
     {

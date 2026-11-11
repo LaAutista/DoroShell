@@ -81,7 +81,7 @@ real application, fresh login, physical monitor/DPI behavior or Wayland.
 
 Pins are configured by `doroshellPinned` under the taskbar group as a list of absolute desktop-entry paths. The candidate profile writes this list; dragging changes its order. Right-click the taskbar, open its configuration, then choose **Pinned applications…** to add desktop entries, remove pins or move them up/down. Save applies the list; Cancel leaves it unchanged. Missing entries, ambiguous identities and edits made while the dialog was open are refused. The containing LXQt configuration dialog’s Reset remains available; saving pins does not replace its saved reset state. Grouping must remain enabled for unified pins. Existing LXQt Meta+number task shortcuts dispatch pinned launches too, with private X11 activation coverage documented in the filtered-pin checks below; broader shortcut environments remain separate acceptance.
 
-Remaining: broader real-application/DBusMenu and legacy XEmbed coverage,
+Remaining: broader real-application/DBusMenu and real-client XEmbed variant coverage,
 keyboard-only entry to overflow, physical multi-monitor/mixed-DPI, Wayland and
 sustained use. Fresh-login and clean-install checks are user-deferred. Patches
 0005–0008 remain staged rather than live on the recorded installation. Building
@@ -135,3 +135,10 @@ hovers; clicks retain their normal toggle behavior.
 `0008-panel-density.patch` bounds large hidden-icon popups with keyboard-accessible
 scrolling and preserves wrapped long task-label tooltips. See [density and scaling
 checks](../docs/panel-density.md) for the synthetic scope and remaining limits.
+
+## Legacy tray registration
+
+`0009-tray-registration-popup.patch` invalidates an open overflow snapshot when
+a new item registers. The synthetic XEmbed/SNI docking, pixel, input and restart
+check and precise plugin/profile limits are in [legacy tray acceptance](../docs/xembed-tray.md).
+This patch remains staged; no live panel refresh was performed.

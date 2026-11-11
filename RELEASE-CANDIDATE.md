@@ -8,6 +8,14 @@ unpublished optional source candidate. The existing 2026-11-09 core release ZIP 
 a separate historical artifact; no new GitHub release or binary deployment is
 created by this pass.
 
+## Subsequent XEmbed checkpoint
+
+The [synthetic legacy tray acceptance](docs/xembed-tray.md) follows `1e029cc`.
+It adds patch 0009 for newly registered items leaving stale overflow snapshots.
+The nine-patch standard build, full 237-test unit suite, private coexistence and
+related tray/density regressions are checked for this increment. Earlier eight-patch
+build/archive evidence below remains historical. No live activation was retried.
+
 ## Source, tests and live installation are different claims
 
 The [acceptance matrix](docs/final-acceptance.md) records the distinction. Read-only
@@ -85,7 +93,7 @@ private backups, caches and toolchains. Neutral project SVGs remain included.
 - Review staged-versus-installed provenance and prepare a later activation/rollback
   plan without changing the session; activation itself needs the user's chosen time.
 - Broaden real notifier/app and long-session acceptance; keyboard-only overflow
-  entry and legacy XEmbed remain unverified.
+  entry and real-client XEmbed variants remain unverified.
 - Physical mixed-DPI/multi-monitor, Wayland, real audio/DPMS and display recovery
   remain outside private Xvfb/fake-driver evidence.
 - Fresh-login and clean-system acceptance remain explicitly user-deferred.

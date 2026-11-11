@@ -10,7 +10,7 @@ import subprocess
 PANEL_REV = 'cffb0cd29c6ce0360356006ce727a9b01347e062'
 TOOLS_REV = '0f56cd400d2afcb6f16d4ca88538ed716439c2c2'
 ROOT = Path(__file__).resolve().parent
-PATCHES = ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch')
+PATCHES = ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch','0009-tray-registration-popup.patch')
 
 
 def patch_paths():
