@@ -1,16 +1,19 @@
 {
-  "format": 7,
-  "candidate": "doroshell-source-20261110-screenshot-native-background",
-  "published_ancestor": "1f687d2ab01a09774baf8baf6bf1ec538221e745",
+  "format": 8,
+  "candidate": "doroshell-source-20261111-release-consistency",
+  "published_ancestor": "5749fa16eb73421420f61323728f8375557b98ec",
   "source_provenance": {
-    "screenshot_commit": "9a6c5d1ab01ee47c1ca2307eeeab0e9ba76ce0f9",
-    "wallpaper": "Approved native Background implementation; standard builder and private/live component checks described in RELEASE-CANDIDATE.md"
+    "native_background_integration": "a0f82f9",
+    "start_rendering": "983ac44",
+    "filtered_pins": "18d462a",
+    "tray_lifecycle": "a5de6d0",
+    "tray_keyboard": "5017780",
+    "show_desktop": "3262715",
+    "panel_density": "5749fa1"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 230,
-    "command": "python -m unittest discover -s tests -v",
-    "note": "Combined local/offscreen/mocked suite passed. Standard native build and private X11 screenshot editing, recapture at scales 1 and 1.5, native wallpaper and fake-driver Advanced checks passed. Earlier component live/audio evidence is separate; no live changes during release integration. See RELEASE-CANDIDATE.md."
+    "scope": "Current build/package checks and inherited component evidence are separated in RELEASE-CANDIDATE.md; no live activation in this consistency pass."
   },
   "source_payloads": [
     {
@@ -39,20 +42,20 @@
     },
     {
       "path": "README.md",
-      "sha256": "184918463d44b957633db16336daf14fa9f462034ce76337fff58d3ef2fb5c2b",
-      "size": 46606,
+      "sha256": "1643820ce4ee820e6f7d97a88d36f7bd697955af7b770cf34ba05058bc3e0b7c",
+      "size": 41559,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "10d29172a22f0285a0fba31d45c97daf33264325ab4b71f61b2efc4287314695",
-      "size": 5330,
+      "sha256": "f484f008f5c1bda1376f51277a9ffd80a91eeeef397fc3965979d6a04d084806",
+      "size": 5518,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "66c454063cf8c8d1b4199027dbb4404e660e5dda09b980adc1b7407d09b7d34f",
-      "size": 5449,
+      "sha256": "5d4739c9e0c4999f28c55d01984d269b07a9f0ca4eb861bc74e5705733f66c25",
+      "size": 6394,
       "mode": "0o644"
     },
     {
@@ -147,8 +150,8 @@
     },
     {
       "path": "docs/final-acceptance.md",
-      "sha256": "8fdab95213de7b112f6d15cbea73f463e642df0a79f224d01c754552a4d13b82",
-      "size": 9707,
+      "sha256": "f008f95bb2d32b986afc16f802fc7ced890b5311544ce74cc4a2e8e68701f495",
+      "size": 5933,
       "mode": "0o644"
     },
     {
@@ -177,8 +180,14 @@
     },
     {
       "path": "docs/optional-installation.md",
-      "sha256": "d7ed74a5cb3d3a458af6b49a308c6e26baf9236d6328096bc0d100bcd960f5e6",
-      "size": 5938,
+      "sha256": "c02e0a3f7923804f16965c344c20e4568d2ffb46d4f791f3ffdc9924376683c1",
+      "size": 6037,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/panel-density.md",
+      "sha256": "2e483045248bfb8999db63994b4df69217bcc0f03e6b0215deb9013ef10e4248",
+      "size": 2600,
       "mode": "0o644"
     },
     {
@@ -189,14 +198,26 @@
     },
     {
       "path": "docs/roadmap.md",
-      "sha256": "8a8bb4bdb647b77d2affa2ff202aa6ac49e8731f9c7908a70351632f040d46d3",
-      "size": 10571,
+      "sha256": "ac3be51a295bae4782bf125574a761ffbc36489e1a8563bf4a7f48e06a7315a5",
+      "size": 4166,
       "mode": "0o644"
     },
     {
       "path": "docs/screenshot-verification.md",
       "sha256": "988d7cc89003acb6ed96ba3b2cbb0f866c3767e84479a8fcf21ae8b5d38613a2",
       "size": 12555,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/show-desktop.md",
+      "sha256": "21e17b2133245bd2fdc13ed35b1dcf1aa26ecb0931ef1d322bbeb8ced8ffbee9",
+      "size": 3042,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/taskbar-filters.md",
+      "sha256": "e7e0dea98881123663f185d24d5dffe2e92e9b6c40761d029e3be18ae1c82a90",
+      "size": 2365,
       "mode": "0o644"
     },
     {
@@ -212,6 +233,12 @@
       "mode": "0o644"
     },
     {
+      "path": "docs/tray-lifecycle.md",
+      "sha256": "9d86751a3349e7108b68a35ae40008ae7b266703c3cc444d870a358f7571a412",
+      "size": 3435,
+      "mode": "0o644"
+    },
+    {
       "path": "docs/verification.md",
       "sha256": "61149139a262fc72763276b5b4190d7f55cd4bcd62aab0f54cf6fe1ff5be2b9d",
       "size": 27842,
@@ -219,8 +246,8 @@
     },
     {
       "path": "docs/wallpaper-glass.md",
-      "sha256": "7d91781b425d353e02d36c1c0d5dc63e80c797483dc2bb74ae6fcd1439aed22d",
-      "size": 7210,
+      "sha256": "3804fd0294bde273b829f4e149b18fa26638fd752c41853105c63d5cb6e32dc9",
+      "size": 7655,
       "mode": "0o644"
     },
     {
@@ -279,14 +306,14 @@
     },
     {
       "path": "menu/start_menu.py",
-      "sha256": "ba1bb815c18d1b22e77ae691defb5f64b9cd256c159be37d94c1d91be92039ee",
-      "size": 64751,
+      "sha256": "bcc8cb8ff113a4092a977ddddf295da41384d4776e9aa4f8b89448497092fb5b",
+      "size": 64900,
       "mode": "0o644"
     },
     {
       "path": "menu/wallpaper_glass.py",
-      "sha256": "0267572ef84c68d7517aa083db1e7b2252cd1d10067325fb02eebddc551c63e7",
-      "size": 18119,
+      "sha256": "72b4d96c90f66395dea4b5820d3f78e76fd0aeda96a90dbc960eb1b1a587e995",
+      "size": 15723,
       "mode": "0o644"
     },
     {
@@ -297,14 +324,14 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "372934867e3f6207fa438a78b1e31ff2c279066795c2cc2e30c33984a22f2647",
-      "size": 11563,
+      "sha256": "11afdaaf3d68ecb7f71b52b8d2ebd55898bc9af59a844c75c78d64cdf5f88690",
+      "size": 12503,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "e16bbf7b9264967e13a2b0e86b1c0c273a5870f482032da27c3c5e9859bb36d5",
-      "size": 2971,
+      "sha256": "52e0fc8deb1685534742c8fb6ca64aba352e251e2e336a702b2fef27d8f71bae",
+      "size": 3458,
       "mode": "0o644"
     },
     {
@@ -353,6 +380,36 @@
       "path": "panel/patches/0003-launcher-identity.patch",
       "sha256": "30d6311beebed37807f8e72cef5e613e9859af521e4cdee584c66f9a6973f45f",
       "size": 14866,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0004-filtered-pins.patch",
+      "sha256": "8a8c46a444c784962ea7311ef67bb02b669c94e6708f016bd8d895e4185eac08",
+      "size": 4124,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0005-tray-attention-popup.patch",
+      "sha256": "8139691b2fd4b8f9ddde8a9d930e3d23b0d11b3e7b03efe2979a86de547db123",
+      "size": 1220,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0006-tray-keyboard-context.patch",
+      "sha256": "bc87e6b8ffd0dc27e5248f1d1e4c9ea14cb4436384687eaae0543434f80a3648",
+      "size": 4406,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0007-show-desktop-drag.patch",
+      "sha256": "6bee38afb7c0e120847c73b7f16556ae1b36ac93082d42b1c588df7b89ece231",
+      "size": 1222,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0008-panel-density.patch",
+      "sha256": "23dcc6f5d6fe6086e33dc14ee7ed0c4c165e7b666eae751ee2dbea5929ee154b",
+      "size": 4869,
       "mode": "0o644"
     },
     {
@@ -425,6 +482,12 @@
       "path": "setup.py",
       "sha256": "fe5b5028d7309b91663c19f96a8370bd13d6872a978b39fe905268bf37999149",
       "size": 7155,
+      "mode": "0o644"
+    },
+    {
+      "path": "source_release.py",
+      "sha256": "d04f61745a2425a6c48363eb965c1588fa3a21af4184e481e80edc4eb8c947bb",
+      "size": 3822,
       "mode": "0o644"
     },
     {
@@ -501,8 +564,8 @@
     },
     {
       "path": "tests/check_glass_edges_x11.py",
-      "sha256": "f0936157f8b0cfeccf3b294c34fde572c9fb684baf356aa68467e4d8ddca04b8",
-      "size": 4340,
+      "sha256": "b9a0c3225409ed52b68cccd728703cb235e5dd3d61e55ea22f30e36fb45078be",
+      "size": 6369,
       "mode": "0o644"
     },
     {
@@ -545,6 +608,12 @@
       "path": "tests/check_overlay_multimonitor_x11.py",
       "sha256": "29dbd559affe06beabe2f3eea12201bc9d130188739cdb103323ec393ab45be6",
       "size": 5199,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/check_panel_density_x11.py",
+      "sha256": "6db20c2287ec0ef987c8d9818d35ab9d4e93588468328dd4f4ffa9d6eedc2226",
+      "size": 12847,
       "mode": "0o644"
     },
     {
@@ -609,8 +678,8 @@
     },
     {
       "path": "tests/check_show_desktop_x11.py",
-      "sha256": "12e71638716d7ffdcba5794aa063e6d6b1b9d12a0f40036f78fd5ed666493aef",
-      "size": 5580,
+      "sha256": "542be3d25d859aec8102ba77d847b773754f63f0f2269f455c7514e08c515184",
+      "size": 14650,
       "mode": "0o644"
     },
     {
@@ -632,6 +701,12 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/check_taskbar_filters_x11.py",
+      "sha256": "77e700fc494a4b63763c78aa72b9aa18ae76213e6174fb8bf2db1220d91e5c7b",
+      "size": 10216,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/check_taskbar_identity_x11.py",
       "sha256": "c9d05ee378dc6a7c606aed84d80718752a5c4b270240eff4fcd2747e3ca16e75",
       "size": 10344,
@@ -641,6 +716,12 @@
       "path": "tests/check_taskbar_pin_menu_x11.py",
       "sha256": "bf4bb909ecb7326ea5c5a4c99c3f6813797fb34cb4c222bfdbed8a6621d6ae65",
       "size": 7408,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/check_tray_lifecycle_x11.py",
+      "sha256": "939fd3da0d6850eaf37b95550126217481651d6e5762de1bc6a4cacaf814c42d",
+      "size": 12465,
       "mode": "0o644"
     },
     {
@@ -789,8 +870,8 @@
     },
     {
       "path": "tests/test_glass_edges.py",
-      "sha256": "a241800716dd76a00114d04c4159515cbdea9fa145b93870bcdf01d8716b4f7c",
-      "size": 2407,
+      "sha256": "c4048773589bea307fddabb3de15ec6ef39e2fdad011b32197ffc089ab797dcc",
+      "size": 4749,
       "mode": "0o644"
     },
     {
@@ -821,6 +902,12 @@
       "path": "tests/test_native_panel.py",
       "sha256": "894a9d21d8468d9a92f083995f392c8ee03ac14a5607d7f4397e4794994f398a",
       "size": 10166,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_panel_build.py",
+      "sha256": "06f3b6d2678054e48cac4f744c86d75707d8e0a498c8ef86ba8a5bee033dd31f",
+      "size": 2811,
       "mode": "0o644"
     },
     {
@@ -860,6 +947,12 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/test_source_release.py",
+      "sha256": "fdf0edd88e104a092df90720b4b21593127b110539198d624b87b961fba783e6",
+      "size": 1841,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/test_taskbar_drag.py",
       "sha256": "75f1ba17920bb6048331d1960618968d774e6c91a46c0d9dd6a08a86941047a9",
       "size": 2941,
@@ -891,8 +984,8 @@
     },
     {
       "path": "tests/x11_isolation.py",
-      "sha256": "00d7a8ee2e7f82e61b0b078851ba5fc90fef703657c11c7f4eda5fee257afb23",
-      "size": 2036,
+      "sha256": "fd7370f9fc295e35b5ffbdf74bddf2923b5fca09b7d05c1622c803d565e20f6e",
+      "size": 2055,
       "mode": "0o644"
     },
     {

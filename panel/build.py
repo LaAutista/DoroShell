@@ -10,6 +10,17 @@ import subprocess
 PANEL_REV = 'cffb0cd29c6ce0360356006ce727a9b01347e062'
 TOOLS_REV = '0f56cd400d2afcb6f16d4ca88538ed716439c2c2'
 ROOT = Path(__file__).resolve().parent
+PATCHES = ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch')
+
+
+def patch_paths():
+    declared = set(PATCHES)
+    present = {p.name for p in (ROOT/'patches').glob('*.patch')}
+    if len(declared) != len(PATCHES) or declared != present:
+        raise RuntimeError('Panel patch inventory mismatch: missing=' + str(sorted(declared-present))
+                           + ', unlisted=' + str(sorted(present-declared)))
+    return tuple(ROOT/'patches'/name for name in PATCHES)
+
 
 
 def run(args, **kwargs):
@@ -17,6 +28,7 @@ def run(args, **kwargs):
 
 
 def build(work, jobs):
+    patches = patch_paths()
     work = work.resolve()
     if work.exists() and any(work.iterdir()):
         raise RuntimeError('Choose an empty build directory; existing files are preserved')
@@ -27,9 +39,9 @@ def build(work, jobs):
         actual = subprocess.check_output(['git','rev-parse','HEAD'], cwd=target, text=True).strip()
         if actual != revision:
             raise RuntimeError('Upstream tag changed; refusing unreviewed source')
-    for patch in ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch'):
-        run(['git','apply','--check',ROOT/'patches'/patch], cwd=work/'source')
-        run(['git','apply',ROOT/'patches'/patch], cwd=work/'source')
+    for patch in patches:
+        run(['git','apply','--check',patch], cwd=work/'source')
+        run(['git','apply',patch], cwd=work/'source')
     deps, prefix = work/'deps', work/'runtime'
     run(['cmake','-S',work/'tools','-B',work/'tools-build','-G','Ninja','-DCMAKE_INSTALL_PREFIX='+str(deps)])
     run(['cmake','--build',work/'tools-build','-j',jobs])
@@ -42,8 +54,8 @@ def build(work, jobs):
     shutil.copytree(stage/str(prefix).lstrip('/'),prefix,dirs_exist_ok=True)
     notices=prefix/'share/doroshell-panel';notices.mkdir(parents=True,exist_ok=True)
     shutil.copytree(ROOT/'licenses',notices/'licenses',dirs_exist_ok=True)
-    for patch in ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch'):
-        shutil.copy2(ROOT/'patches'/patch,notices/patch)
+    for patch in patches:
+        shutil.copy2(patch,notices/patch.name)
     print('Built:',prefix/'bin/lxqt-panel')
     print('Keep this directory: runtime plugin paths are tied to its prefix. Nothing is enabled.')
 

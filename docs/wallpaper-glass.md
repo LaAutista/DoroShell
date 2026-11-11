@@ -48,7 +48,7 @@ python tests/check_wallpaper_glass_x11.py --run --xvfb /path/to/Xvfb \
   --binary /path/to/runtime/bin/lxqt-panel --output /path/to/private-evidence
 ```
 
-A clean CachyOS installation, normal user login, physical multi-monitor/mixed-DPI and longer-running performance acceptance remain open. The implementation was not activated in the personal session during this work.
+A clean CachyOS installation, normal user login, physical multi-monitor/mixed-DPI and longer-running performance acceptance remain open. That initial verification did not activate the personal session. Later deployment evidence is separated in the [current acceptance record](final-acceptance.md).
 
 Setup explicitly rejects custom `XDG_CONFIG_HOME`; standard `~/.config` is required. Oversized source configurations are rejected before parsing. Surface rendering errors restore the opaque theme.
 

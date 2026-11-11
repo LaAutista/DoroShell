@@ -4,27 +4,31 @@
 
 The first module is a two-column Qt Start menu: application search, categories, pinning, personal-folder links, LXQt settings, and confirmed split session/power controls. A dedicated LXQt Quick Launch button and Alt+F1 open it. Alt+F1 again closes it. Escape clears a search, returns from a category to Home, then closes the menu. The All Programs button changes to Back while browsing or searching. The original Fancy Menu preferences are retained for rollback.
 
-The combined source candidate includes ranked local installed-app search, folder cascades, path-free portable Start preferences, guarded display controls, editable screenshot annotations with delayed recapture, and native Background controls for animated wallpaper. The combined unit suite passes 230 tests; current private checks and inherited live evidence are distinguished in the release notes. See [current release evidence](RELEASE-CANDIDATE.md) and [display scope](display/README.md); historical checkpoints below do not replace current acceptance limits.
+Published main includes ranked local app search, folder cascades, portable Start
+preferences, editable screenshots and delayed recapture, native animated-wallpaper
+controls, launcher/filter fixes, and the newer tray, Show Desktop and density
+improvements. See [current release evidence](RELEASE-CANDIDATE.md) and the
+[source/test/activation matrix](docs/final-acceptance.md).
 
-## Status and support
+## Current status and scope
 
-The core release candidate at `182c1e5` targets CachyOS LXQt 2.4 on X11 with Openbox and Python 3.14. It includes Start, the native taskbar with notification overflow and calendar, window snapping, full-desktop/window/area screenshots with annotation, and setup with backup and rollback. All 84 automated tests passed from the extracted source ZIP. The corrected panel was verified running on the development desktop after a panel-only refresh. Private LXQt testing covered autostart, and private Openbox testing verified window captures pixel for pixel at 100% and 150% scale.
+Source publication, private testing and live activation are separate. Recorded
+independent live acceptance covers launcher identity and filtered pins. A read-only
+process-path check confirmed the filtered-pin panel and native wallpaper-preferences
+renderer. The user reported animation working. The newer tray lifecycle/keyboard,
+Show Desktop drag and density fixes are privately tested and staged, **not activated**
+by this release pass. Installed Start/screenshot revisions were not re-audited.
 
-Two acceptance checks remain open: a user-chosen normal login with the final build on the development machine, and the clean-system checklist below. The [core release candidate is published on GitHub](https://github.com/LaAutista/DoroShell/releases/tag/core-candidate-2026-11-09), including the source ZIP and its SHA-256 checksum. This historical core release predates the ranked local app search and portable settings now included in the combined source candidate. Broader Windows and Spectacle parity remains incomplete. [Roadmap](docs/roadmap.md).
+Lightweight wallpaper-derived glass is the accepted direction; true moving-window
+Aero/compositor work was dropped. Fresh-login and clean-system acceptance are
+user-deferred. Physical mixed-DPI/multi-monitor, Wayland, real hardware recovery and
+long-session behavior remain unverified. [Remaining scope](docs/roadmap.md).
 
-Integration currently expects `panel1`, the Fancy Menu plugin, and the standard `Alt+F1.1` Fancy Menu shortcut. It rejects custom shortcut mappings and unsupported layouts rather than replacing them silently. Other LXQt layouts need inspection and adaptation. Multi-monitor/panel-edge positioning and long-session behavior need more testing. Folder links respect the existing default file manager; this module does not install or select Dolphin.
-
-## Historical optional archive checkpoint — 2026-11-10
-
-The local `DoroShell-optional-desktop-candidate.zip` extends the published core with four coordinated palettes, direct portrait selection, live application-catalog refresh, taskbar Pin/Unpin menus and Start drag-to-pin, desktop shortcut drops, clearer tray icons, corrected Printers launching and optional animated wallpaper. It is **not published on GitHub**. All **102 automated tests pass from the extracted optional archive**; the 84-test result above belongs to the published core.
-
-On the development installation, the updated menu/helpers and drag/contrast panel are active. An older native wallpaper renderer is running with animation disabled and muted; the resource-corrected renderer is staged for its next normal startup. No desktop handoff was performed. Installing helpers does not apply a palette or enable animation. [Optional installation, dependencies and restore](docs/optional-installation.md). [Acceptance matrix](docs/final-acceptance.md).
-
-Normal-login and clean CachyOS acceptance remain pending, as do physical multi-monitor/mixed-DPI wallpaper checks, physical DPMS, broader locker compatibility and long-session performance. No lock-screen animation is implemented. Private X11 and mock-lock tests do not establish those outcomes.
-
-## Historical decoder-isolation checkpoint
-
-At this earlier checkpoint, `DoroShell-source-candidate.zip` added animated-video decoding in a separate helper, so Off releases its backend memory while PCManFM keeps static wallpaper and icons. Standard build, paired-executable integrity checks and private staged-launch/fallback/rollback tests pass. The verified isolated renderer is now staged for the next normal desktop startup; animation remains disabled/muted and the running desktop was not replaced. The newer source also adds a configurable primary session button under Menu options, with persistent selection and unchanged confirmations. All 111 automated tests pass; a private UI check canceled the real dialog with dispatch mocked. Portrait selection also has a drag/zoom crop preview with safe cancellation and metadata-only saving; the original image is preserved. These menu additions are not installed live. The isolated renderer is not activated on the personal desktop and is not included in the earlier optional ZIP described above. See [wallpaper build and acceptance](wallpaper/README.md). Physical hardware, normal-login, clean-system and long-session acceptance remain open.
+The [2026-11-09 core release](https://github.com/LaAutista/DoroShell/releases/tag/core-candidate-2026-11-09)
+and earlier optional ZIPs are historical artifacts with their own evidence. Their
+84/102/111-test snapshots and old deployment notes do not describe current main.
+Integration still expects the supported single-panel LXQt/Openbox layout and
+refuses conflicting mappings. Folder links respect installed default handlers.
 
 ## Core installation on CachyOS LXQt
 
@@ -57,12 +61,12 @@ To switch back, run `python setup.py native-panel --rollback --keep-panel-edits`
 
 ## Clean CachyOS LXQt acceptance checklist
 
-**Pending.** Use a clean CachyOS LXQt installation with X11 and Openbox. A fresh user account on the existing development machine cannot verify clean-machine dependencies. Keep its configuration baseline and test logs outside the installation targets. Record the CachyOS and LXQt versions, source revision and package versions.
+**User-deferred.** Retained for a separately chosen future test; do not disrupt the personal session to complete it. Use a clean CachyOS LXQt installation with X11 and Openbox. A fresh user account on the existing development machine cannot verify clean-machine dependencies. Keep its configuration baseline and test logs outside the installation targets. Record the CachyOS and LXQt versions, source revision and package versions.
 
 1. **Baseline and dependencies.** Record the stock panel, Print shortcut, Openbox configuration and autostart entries, including file contents, modes and absent files. Add a recognizable personal pin or folder preference for the upgrade check. Run `python setup.py menu snapping screenshots native-panel --packages`, review the proposed dependencies and record any extra build packages needed on the clean system.
 2. **Install and repeat.** Follow the core installation commands above. Save the previews before applying. Prepare the panel profile once, stage it, then repeat the same module applies and panel staging. Check that the backup still represents the original settings and that pins, shortcuts and autostart entries have no duplicates.
 3. **Normal login and use.** At the tester’s next normal login, confirm one DoroShell panel, its two-line clock, calendar and tray popup. Open Start, launch a pin, snap and restore a disposable window, and try desktop, window and area capture. Verify that Escape preserves a test clipboard item. If the native ScreenGrab importer is installed, annotate a crop and open it there.
-4. **Upgrade.** In a second clean test account or a restored baseline, install the previous candidate (`5145e93`), customize a pin and record the original backup. Preview and apply `182c1e5` over it. Check that the pin and baseline survive, the new Window capture control works, and repeat apply makes no further changes. These two revisions share the same native panel build.
+4. **Upgrade.** In a second clean test account or a restored baseline, install a recorded previous source revision, customize a pin and record the original backup. Preview and apply the exact candidate revision being evaluated over it. Check that the pin and baseline survive, the new Window capture control works, and repeat apply makes no further changes. Record both source revisions and their native runtime provenance.
 5. **Rollback.** Use the rollback commands above on both the clean install and upgraded install. Compare managed files, modes and originally absent paths with the baseline. Check that personal pins and unrelated edits survive. At a tester-chosen normal login, confirm the stock panel returns. Record any conflict refusal or mismatch before marking acceptance complete.
 
 ## Dependencies
@@ -116,7 +120,7 @@ Tests use Qt's offscreen platform, mocks for external actions, and temporary ins
 
 ## Roadmap
 
-- Verify this menu/setup on a clean CachyOS LXQt VM and after login.
+- Fresh-login and clean-system checks remain user-deferred.
 - Validate the persistent single-desktop module after login; see [scope](docs/roadmap.md).
 - Broaden screenshot validation across monitors and clipboard managers.
 - Validate taskbar behavior on more LXQt layouts.
@@ -124,21 +128,16 @@ Tests use Qt's offscreen platform, mocks for external actions, and temporary ins
 - Broaden optional Kate/Dolphin associations beyond plain text and folders.
 - Broader desktop compatibility and complete installer orchestration.
 
-The menu-specific commands above change only the Start menu and its panel integration. The working tree also contains experimental optional modules and a `setup.py` dispatcher, described below; they are not yet a clean-install-tested release.
+The menu-specific commands above change only the Start menu and its panel integration. The source also contains optional modules and a `setup.py` dispatcher, described below; they are not yet a clean-install-tested release.
 
 Original DoroShell source is GPL-2.0-or-later, with existing component licenses preserved. See [license scope and third-party notices](LICENSING.md) and [GPL text](LICENSE). Artwork and non-code material are not relicensed by this source-code decision.
 
-## Historical development checkpoints
+## Historical verification
 
-Start opens on labeled, editable pins. On a fresh configuration it looks for a terminal, Firefox, Dolphin, Kate, VLC and LXQt Configuration Center. GIO resolves installed alternatives for missing handlers. Existing pin order, removed pins and intentionally empty lists survive upgrades. Recent programs has its own view. All Programs and search stay at the bottom. The right column groups folders, Games and Computer, and available desktop settings. The default menu measures 508 × 634 logical pixels and scrolls on smaller displays.
-
-`setup.py` selects menu, panel, snapping, screenshots, Kate/Dolphin associations and per-app dark themes, single-desktop, taskbar and optional cursor modules. The default selection is only the menu; all desktop/default-app changes require explicit selection. With no action flag it previews changes. `--packages` only prints an Arch/CachyOS package command; it does not execute it. Do not apply the all-module preset as a substitute for reviewing each component. Existing desktop settings and artwork must be preserved when upgrading a personal installation.
-
-The additional modules remain experimental. Geometry/helper tests and temporary-home apply/repeat/rollback checks are not fresh-install, post-login, multi-monitor, or real screenshot-paste validation. No desktop session is restarted by tests. The [roadmap](docs/roadmap.md) separates implemented features from remaining design and acceptance work.
-
-Historical optional validation: **99 automated tests pass from the extracted archive**, using offscreen Qt, mocks and temporary homes. The published core passed 84 tests. Real X11 checks also exercised the menu search, the Qt folder picker, settings apply/restore, left/right mouse-drag snapping and geometry restoration on a test window, and click-to-restore on an isolated native LXQt icon taskbar. ScreenGrab capture → cancel → capture produced the expected 120×90 image; isolated LibreOffice Writer and Draw instances both pasted it with matching dimensions and pixels. The early sandbox-only X11 startup failure was resolved by running the authorized desktop tests outside the sandbox, without changing display permissions. [Detailed test scope and remaining gaps](docs/verification.md).
-
-Kate/Dolphin opt-in defaults resolved correctly through both xdg-mime and GIO in a temporary home; separate test instances visibly used dark colors. Personal defaults were not changed. Fresh-login, clean-install, Wayland and multi-monitor validation remain outstanding. No desktop session was restarted.
+Earlier core/optional checkpoints and their test counts remain in
+[verification history](docs/verification.md). They are not current deployment
+assertions. The [current acceptance record](docs/final-acceptance.md) supersedes
+old “not implemented”, “disabled” and “staged” statements for present source scope.
 
 ## DoroShell settings
 
@@ -303,7 +302,7 @@ A separately built native LXQt Panel prototype now provides a hidden-tray arrow 
 
 Start opens on **Pinned** in saved order. **Recent programs** opens a separate list when history has available apps. **All Programs** and search stay at the bottom.
 
-Drag a pinned app before or after another pin in **Home** or **Pinned**. Escape cancels the drag. Search results and recent-only entries cannot be dragged. The right-click **Move pin up/down** commands remain available with keyboard menu navigation. Saved order survives reopening Start; existing favorites are backed up and concurrent edits are refused.
+Drag a pinned app before or after another pin in **Home** or **Pinned**. Escape cancels the drag. Only pins can be reordered internally; application entries, including search results, can export copy-only launchers to supported external targets. The right-click **Move pin up/down** commands remain available with keyboard menu navigation. Saved order survives reopening Start; existing favorites are backed up and concurrent edits are refused.
 
 The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` check uses synthetic desktop entries and a temporary favorites file. It moves the real pointer, then restores it. It verifies reorder, Escape cancellation, keyboard movement, persistence, All Programs/Back navigation, search focus, click-away dismissal, and no accidental app launch.
 

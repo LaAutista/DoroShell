@@ -1,6 +1,6 @@
 # DoroShell Panel prototype
 
-A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden-tray popup. This is the replacement taskbar for the CachyOS LXQt core release candidate. It runs separately from the installed panel. Do not replace a running panel or DockBarX applet: applications may inherit their output pipes.
+A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden-tray popup. Current source includes the ordered patch series described below. Building it does not replace the installed panel. Do not replace a running panel or DockBarX applet: applications may inherit their output pipes.
 
 ## Built behavior
 
@@ -16,7 +16,7 @@ A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden
 
 ## Build separately
 
-The builder clones pinned upstream revisions, applies the small patch, and stages installation into a private directory. It never runs pacman, sudo or a system installation. Existing installed build dependencies are required: C/C++ toolchain, Git, CMake/Ninja, Qt 6 development tools, GIO Unix development headers (`gio-unix-2.0`) and the LXQt panel development dependencies. Missing dependencies stop the build. The pinned LXQt build-tools helper is built locally as well.
+The builder clones pinned upstream revisions, validates and applies the complete ordered patch series, and stages installation into a private directory. It never runs pacman, sudo or a system installation. Existing installed build dependencies are required: C/C++ toolchain, Git, CMake/Ninja, Qt 6 development tools, GIO Unix development headers (`gio-unix-2.0`) and the LXQt panel development dependencies. Missing dependencies stop the build. The pinned LXQt build-tools helper is built locally as well. One `PATCHES` list drives both application and runtime notice copying; missing, unlisted or duplicate entries fail before building. Run `python source_release.py` first to verify the source inventory.
 
 ```sh
 python panel/build.py --work /absolute/empty/build-directory
@@ -54,26 +54,38 @@ python panel/profile.py restore-next-login
 
 Rollback refuses changed managed files. LXQt itself can update the candidate profile during ordinary use. Pass `--keep-panel-edits` to save a private copy of that profile before restoring. Changes to the launcher or autostart entry still cause rollback to refuse. It restores the prior autostart entry and target files, leaving the original LXQt panel configuration intact. If a new panel is already running, restoration takes effect at the next user-chosen login; it never kills that process. Keep the runtime directory until the switch has been restored and the custom panel is no longer in use.
 
-This next-login path is tested with temporary homes, not an actual logout/login. No switch has been enabled on the personal desktop during development.
+This next-login path is tested with temporary homes, not an actual logout/login. Earlier controlled live upgrades are recorded separately in the [acceptance matrix](../docs/final-acceptance.md); they do not establish fresh-login acceptance.
 
 ## Verification
 
 ```sh
 python -m unittest discover -s tests -v
-dbus-run-session -- python panel/check_x11.py --run --binary /absolute/path/to/lxqt-panel
-dbus-run-session -- python panel/check_pins_editor.py --run --source /absolute/patched/source
-python tests/check_show_desktop_x11.py --run --xvfb /path/to/Xvfb --binary /absolute/path/to/lxqt-panel
+python tests/check_tray_lifecycle_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/lxqt-panel --evidence /private/output --case popup
+python tests/check_show_desktop_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/lxqt-panel
+python tests/check_panel_density_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/lxqt-panel --evidence /private/output --scale 2
 ```
 
-The Show Desktop check additionally requires Xvfb, xauth and Openbox; it creates an authenticated private display and session bus and starts only disposable panels/windows. It covers horizontal and vertical startup profiles, not live orientation changes or fresh login.
+These opt-in checks require Xvfb, xauth, Openbox and their Python dependencies.
+They start authenticated disposable displays and private session buses, use
+synthetic fixtures and leave personal windows/settings/clipboard alone. The legacy
+`panel/check_x11.py` also requires a separate private X11 display: a private
+`dbus-run-session` alone does not isolate pointer input or windows.
 
-The tray/taskbar X11 check refuses an already-owned notifier bus, uses private settings and synthetic tray/window fixtures, briefly moves the mouse, and restores its position. It does not instantiate the legacy XEmbed tray, reserve screen space, rearrange personal tasks, or close personal applications. A separate private D-Bus session isolates notification services; it is not a virtual display.
+Current recorded native scope includes identity and filtered pins, tray attention,
+focus/auto-hide and keyboard menus, Show Desktop state preservation and live panel
+orientation changes in a private session, and 60-icon overflow with long task
+labels at 150%/200%. Four palette contrast checks pass. See the linked feature
+notes below and [current release verification](../RELEASE-CANDIDATE.md) for exact
+scope; old 58-test/core checkpoints are historical. This does not establish every
+real application, fresh login, physical monitor/DPI behavior or Wayland.
 
-Verified development build: compiled against the installed Qt 6.12 / LXQt libraries; 58 automated tests passed. Real X11 checks exercised arrow opening, mouse/keyboard activation, imported DBusMenu selection and fallback context dispatch, Escape, service-disconnect cleanup, native task restore, unified pin launch/reopen without duplicate icons, context-menu keyboard activation, closed-pin input, and pin drag ordering across an isolated panel restart. The themed bar, clock text, tiny popup and arrow were visually inspected. A disposable X11 panel also verified the narrow Show Desktop target at the far right while `_NET_SHOWING_DESKTOP` remained unchanged. A later authenticated private-X11/Openbox test exercised actual mouse clicks: horizontal and vertical targets each hid and restored two disposable windows, and both measured 12 pixels along the panel edge. No personal windows were involved. The pin editor passed separate Qt mouse/keyboard checks offscreen and on X11, with temporary desktop entries. The Start menu and settings appearance were also inspected in offscreen renders. This verifies synthetic applications, not every real tray app.
+Pins are configured by `doroshellPinned` under the taskbar group as a list of absolute desktop-entry paths. The candidate profile writes this list; dragging changes its order. Right-click the taskbar, open its configuration, then choose **Pinned applications…** to add desktop entries, remove pins or move them up/down. Save applies the list; Cancel leaves it unchanged. Missing entries, ambiguous identities and edits made while the dialog was open are refused. The containing LXQt configuration dialog’s Reset remains available; saving pins does not replace its saved reset state. Grouping must remain enabled for unified pins. Existing LXQt Meta+number task shortcuts dispatch pinned launches too, with private X11 activation coverage documented in the filtered-pin checks below; broader shortcut environments remain separate acceptance.
 
-Pins are configured by `doroshellPinned` under the taskbar group as a list of absolute desktop-entry paths. The candidate profile writes this list; dragging changes its order. Right-click the taskbar, open its configuration, then choose **Pinned applications…** to add desktop entries, remove pins or move them up/down. Save applies the list; Cancel leaves it unchanged. Missing entries, ambiguous identities and edits made while the dialog was open are refused. The containing LXQt configuration dialog’s Reset remains available; saving pins does not replace its saved reset state. Grouping must remain enabled for unified pins. Existing LXQt Meta+number task shortcuts dispatch pinned launches too, but global shortcut dispatch has not been exercised in the private-bus test.
-
-Still required: broader real-application identity matching and DBusMenu coverage, attention/passive/auto-hide transitions, large icon counts, keyboard focus restoration, multi-monitor/DPI and panel edges, legacy XEmbed behavior, Wayland, sustained use, fresh login and clean installation. No production switch is implied by these checks.
+Remaining: broader real-application/DBusMenu and legacy XEmbed coverage,
+keyboard-only entry to overflow, physical multi-monitor/mixed-DPI, Wayland and
+sustained use. Fresh-login and clean-install checks are user-deferred. Patches
+0005–0008 remain staged rather than live on the recorded installation. Building
+or publishing this source does not activate it.
 
 ## Upstream attribution
 
@@ -83,7 +95,7 @@ The panel changes and scripts in this directory are LGPL-2.1-or-later. Upstream 
 
 ### Pin and unpin from the task button
 
-The optional updated panel adds **Unpin from taskbar** to closed-launcher, single-window and grouped-window context menus. Unpin changes only the saved launcher list; open windows retain their task buttons until they close naturally. **Pin to taskbar** appears for running apps with one unambiguous visible desktop entry matching their window class. With grouping disabled, existing pins can be removed but adding a unified pin is disabled. Use taskbar settings to enable grouping. Ambiguous app identities omit the Pin action rather than selecting an arbitrary launcher.
+The source panel provides **Unpin from taskbar** to closed-launcher, single-window and grouped-window context menus. Unpin changes only the saved launcher list; open windows retain their task buttons until they close naturally. **Pin to taskbar** appears for running apps with one unambiguous visible desktop entry matching their resolved launcher identity. With grouping disabled, existing pins can be removed but adding a unified pin is disabled. Use taskbar settings to enable grouping. Ambiguous app identities omit the Pin action rather than selecting an arbitrary launcher.
 
 `python tests/check_taskbar_pin_menu_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/lxqt-panel` checks real private-X11 menus, pin order and persistence, surviving disposable windows, unchanged desktop entries and grouped/ungrouped paths. It never removes an app or signals a personal window. A staged build takes effect only at the next normal panel/session startup.
 
