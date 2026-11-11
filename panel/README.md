@@ -113,3 +113,9 @@ and private checks](../docs/tray-lifecycle.md).
 
 `0006-tray-keyboard-context.patch` supports Menu/Shift+F10 on overflow icons and
 prevents a menu-selection key release from also activating the application.
+
+Show Desktop's expanded [private X11 acceptance](../docs/show-desktop.md) covers
+mixed minimized/sticky/workspace state, window creation/closure, repeated toggle
+and orientation changes in the same running panel.
+`0007-show-desktop-drag.patch` keeps the desktop exposed during repeated drag
+hovers; clicks retain their normal toggle behavior.

@@ -1,0 +1,28 @@
+diff --git a/plugin-showdesktop/showdesktop.cpp b/plugin-showdesktop/showdesktop.cpp
+index c4ab2fb..39d1b38 100644
+--- a/plugin-showdesktop/showdesktop.cpp
++++ b/plugin-showdesktop/showdesktop.cpp
+@@ -26,6 +26,7 @@
+  * END_COMMON_COPYRIGHT_HEADER */
+ 
+ #include <QAction>
++#include <QCursor>
+ #include <QStyle>
+ #include <QDragEnterEvent>
+ #include <QDragLeaveEvent>
+@@ -55,7 +56,14 @@ ShowDesktop::ShowDesktop(const ILXQtPanelPluginStartupInfo &startupInfo) :
+     connect(act, &QAction::triggered, this, &ShowDesktop::toggleShowingDesktop);
+ 
+     mDNDTimer.setSingleShot(true);
+-    connect(&mDNDTimer, &QTimer::timeout, this, &ShowDesktop::toggleShowingDesktop, Qt::QueuedConnection);
++    connect(&mDNDTimer, &QTimer::timeout, this, [this] {
++        // A rejected drag need not deliver DragLeave or Drop to this button.
++        if (!mButton.rect().contains(mButton.mapFromGlobal(QCursor::pos()))
++            || QApplication::mouseButtons() == Qt::NoButton)
++            return;
++        auto *application = reinterpret_cast<LXQtPanelApplication *>(qApp);
++        application->getWMBackend()->showDesktop(true);
++    }, Qt::QueuedConnection);
+     mDNDTimer.setInterval(700);
+ 
+     mButton.setDefaultAction(act);
