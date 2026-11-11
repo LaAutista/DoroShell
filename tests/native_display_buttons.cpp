@@ -50,13 +50,30 @@ static void run(QDialog *dialog) {
             require(dialog->isVisible(),"Preferences must stay open while guard starts");
             auto confirm=dialog->findChild<QDialog*>("displayConfirmation");require(confirm && confirm->isVisible(),"visible confirmation despite Advanced scrolling");
             auto keep=confirm->findChild<QPushButton*>("confirmDisplayKeep");auto revert=confirm->findChild<QPushButton*>("confirmDisplayRevert");
-            if(scenario=="error" || scenario=="external") {
+            if(scenario=="error" || scenario.endsWith("external") || scenario=="abnormal" || scenario=="log-error") {
                 require(waitFor([&]{return reload->isEnabled();}),"failed transaction finishes");
-                require(dialog->isVisible() && mode()==(scenario=="external"?"0x12":"0x11"),"failed OK preserves original and stays open");
-                require(dialog->findChild<QLabel*>("displayStatus")->text().contains(scenario=="external"?"brightness":"Synthetic"),"error reported");
+                require(dialog->isVisible() && mode()==((scenario.endsWith("external") || scenario=="abnormal")?"0x12":"0x11"),"failed OK preserves original and stays open");
+                require(dialog->findChild<QLabel*>("displayStatus")->text().contains(scenario.endsWith("external")?"brightness":(scenario=="abnormal"?"Recovery is unverified":"Synthetic")),"error reported");
                 require(rate->count()==2 && rate->currentData().toString()==mode(),"error refresh repopulates actual mode");
+                auto failure=dialog->findChild<QDialog*>("displayFailure");require(failure && failure->isVisible(),"terminal failure remains prominent");
+                auto failureText=failure->findChild<QLabel*>("displayFailureText");require(failureText && failureText->text().contains("Recovery is unverified"),"honest recovery wording");
+                auto failureButtons=failure->findChild<QDialogButtonBox*>("displayFailureButtons");
+                require(failureButtons && failureButtons->standardButtons()==QDialogButtonBox::Close,"failure offers only Close, never Keep");
+                QFile record(qEnvironmentVariable("XDG_STATE_HOME")+"/doroshell-display-errors/last-failure.json");
+                if(scenario=="log-error") require(!record.exists() && failureText->text().contains("could not be saved"),"log failure does not hide dialog");
+                else {
+                    require(record.open(QIODevice::ReadOnly),"private failure record");auto bytes=record.readAll();
+                    require(bytes.size()<=2048 && !bytes.contains("Synthetic") && !bytes.contains("DP-0"),"record redacted and bounded");
+                    auto data=QJsonDocument::fromJson(bytes).object();
+                    require(data["reason"].toString()==(scenario=="abnormal"?"abnormal_exit":"guard_error"),"structured failure reason");
+                    require(data["recovery"].toString()=="unverified","record does not claim restoration");
+                }
+                QTest::qWait(400);require(failure->isVisible(),"error remains until dismissed");
+                if(!qEnvironmentVariable("DORO_NATIVE_SCREENSHOTS").isEmpty()) failure->grab().save(qEnvironmentVariable("DORO_NATIVE_SCREENSHOTS")+"/"+scenario+"-failure.png");
+                QTest::mouseClick(failureButtons->button(QDialogButtonBox::Close),Qt::LeftButton);
+                require(dialog->isVisible(),"dismissing failure keeps Preferences open");
                 const auto count=fixture()["calls"].toArray().size();
-                require(count==(scenario=="external"?1:0),"no forced recovery write");
+                require(count==((scenario.endsWith("external") || scenario=="abnormal")?1:0),"no forced recovery write");
                 QTest::qWait(600);
                 require(fixture()["calls"].toArray().size()==count,"read-only refresh never retries writes");
             } else {

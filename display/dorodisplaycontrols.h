@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Native PCManFM Advanced-tab controls; the helper owns the confirmation deadline.
 #pragma once
+#include <QDir>
+#include <QFileInfo>
+#include <QSaveFile>
+#include <QDialogButtonBox>
+#include <unistd.h>
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -22,6 +27,49 @@
 #include <QVBoxLayout>
 #include <functional>
 #include <utility>
+
+// One fixed-schema, owner-only record, atomically replaced; never append raw errors.
+namespace DoroDisplayFailure {
+inline bool record(QString reason, const QJsonArray &differences) {
+    const QStringList reasons{QStringLiteral("guard_error"), QStringLiteral("abnormal_exit"), QStringLiteral("guard_start_failed")};
+    if (!reasons.contains(reason)) reason = QStringLiteral("guard_error");
+    const QStringList allowed{QStringLiteral("framebuffer geometry"), QStringLiteral("output disappeared"),
+        QStringLiteral("output added"), QStringLiteral("output enumeration changed"), QStringLiteral("connection status changed"),
+        QStringLiteral("current mode mismatch"), QStringLiteral("CRTC assignment"), QStringLiteral("advertised mode timings/flags"),
+        QStringLiteral("NVIDIA OpenGL VSync"), QStringLiteral("connection/geometry/rotation"), QStringLiteral("mode timings/flags"),
+        QStringLiteral("gamma"), QStringLiteral("brightness"), QStringLiteral("transform"), QStringLiteral("border"),
+        QStringLiteral("screen index"), QStringLiteral("color transform"), QStringLiteral("color matrix"),
+        QStringLiteral("other protected properties"), QStringLiteral("protected layout fingerprint"), QStringLiteral("screen geometry")};
+    QJsonArray fields;
+    for (const auto &entry : differences) {
+        const auto field = entry.toObject().value(QStringLiteral("field")).toString();
+        if (allowed.contains(field) && !fields.contains(field)) fields.append(field);
+        if (fields.size() == 16) break;
+    }
+    QString state = qEnvironmentVariable("XDG_STATE_HOME");
+    if (!QDir::isAbsolutePath(state)) state = QDir::homePath() + QStringLiteral("/.local/state");
+    const QString directory = QDir::cleanPath(state + QStringLiteral("/doroshell-display-errors"));
+    for (QString path = directory;; path = QFileInfo(path).path()) {
+        if (QFileInfo(path).isSymLink()) return false;
+        if (path == QStringLiteral("/")) break;
+    }
+    if (!QDir().mkpath(QFileInfo(directory).path())) return false;
+    if (!QFileInfo::exists(directory)) {
+        if (!QDir().mkdir(directory) || !QFile::setPermissions(directory, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner)) return false;
+    }
+    const QFileInfo info(directory);
+    const auto privateBits = QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner | QFile::ReadUser | QFile::WriteUser | QFile::ExeUser;
+    if (!info.isDir() || info.ownerId() != geteuid() || (info.permissions() & ~privateBits)) return false;
+    const QString path = directory + QStringLiteral("/last-failure.json");
+    if (QFileInfo(path).isSymLink()) return false;
+    const auto bytes = QJsonDocument(QJsonObject{{QStringLiteral("schema"), 1}, {QStringLiteral("reason"), reason},
+        {QStringLiteral("recovery"), QStringLiteral("unverified")}, {QStringLiteral("fields"), fields}}).toJson(QJsonDocument::Compact);
+    if (bytes.size() > 2048) return false;
+    QSaveFile file(path); file.setDirectWriteFallback(false);
+    if (!file.open(QIODevice::WriteOnly) || !file.setPermissions(QFile::ReadOwner | QFile::WriteOwner)) return false;
+    return file.write(bytes) == bytes.size() && file.commit();
+}
+}
 
 class DoroDisplayControls : public QGroupBox {
 public:
@@ -102,6 +150,7 @@ private:
     QPointer<QProcess> guard_;
     QPointer<QProcess> queryProcess_;
     QPointer<QDialog> confirmation_;
+    QPointer<QDialog> failure_;
     QPointer<QLabel> confirmationStatus_;
     QPointer<QPushButton> confirmationKeep_, confirmationRevert_;
     std::function<void()> onKept_;
@@ -128,6 +177,26 @@ private:
         connect(confirmationRevert_, &QPushButton::clicked, this, [this] { answer("revert\n"); });
         connect(dialog, &QDialog::rejected, this, [this] { answer("revert\n"); });
         dialog->show(); confirmationRevert_->setFocus();
+    }
+    void showFailure(const QString &reason, const QJsonArray &differences = {}) {
+        closeConfirmation();
+        if (failure_) { failure_->hide(); failure_->deleteLater(); }
+        const bool saved = DoroDisplayFailure::record(reason, differences);
+        auto dialog = new QDialog(this); failure_ = dialog;
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        dialog->setObjectName("displayFailure"); dialog->setWindowTitle(tr("Display change failed — inspect settings"));
+        dialog->setWindowModality(Qt::WindowModal);
+        auto layout = new QVBoxLayout(dialog);
+        auto label = new QLabel(tr("Display verification or recovery failed. Recovery is unverified. "
+            "Inspect the actual refresh rate and restore it manually if needed. No automatic retry will be made.")
+            + QStringLiteral("\n\n") + status_->text()
+            + (saved ? tr("\n\nA redacted last-failure record was saved locally.") : tr("\n\nThe diagnostic record could not be saved.")), dialog);
+        label->setObjectName("displayFailureText"); label->setTextFormat(Qt::PlainText); label->setWordWrap(true);
+        layout->addWidget(label);
+        auto buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
+        buttons->setObjectName("displayFailureButtons"); layout->addWidget(buttons);
+        connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+        dialog->resize(500, 300); dialog->show(); buttons->button(QDialogButtonBox::Close)->setFocus();
     }
     void closeConfirmation() {
         if (confirmation_) { confirmation_->disconnect(this); confirmation_->hide(); confirmation_->deleteLater(); }
@@ -235,6 +304,7 @@ private:
         connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError e) {
             if (e == QProcess::FailedToStart) {
                 guard_ = nullptr; closeConfirmation(); onKept_ = {}; setBusy(false); setStatus(tr("Cannot start display guard. No changes applied."));
+                showFailure(QStringLiteral("guard_start_failed")); query(status_->text());
                 process->deleteLater();
             }
         });
@@ -249,7 +319,10 @@ private:
                 }
                 if (message.contains(QStringLiteral("error")) || message[QStringLiteral("done")].toBool())
                     process->setProperty("displayTerminalMessage", true);
-                if (message.contains(QStringLiteral("error"))) process->setProperty("displayError", true);
+                if (message.contains(QStringLiteral("error"))) {
+                    process->setProperty("displayError", true);
+                    process->setProperty("displayDifferences", message[QStringLiteral("differences")].toArray());
+                }
                 if (message[QStringLiteral("done")].toBool()) process->setProperty("displayKept", message[QStringLiteral("kept")].toBool());
                 if (message.contains(QStringLiteral("error"))) setStatus(message[QStringLiteral("error")].toString());
                 if (message[QStringLiteral("done")].toBool()) setStatus(message[QStringLiteral("kept")].toBool()
@@ -265,6 +338,9 @@ private:
                 guard_ = nullptr;
                 state_ = {}; output_->clear(); rate_->clear(); vsync_->setTristate(true); vsync_->setCheckState(Qt::PartiallyChecked); setBusy(false);
                 if (exitStatus == QProcess::CrashExit || !process->property("displayTerminalMessage").toBool()) setStatus(tr("Display guard stopped unexpectedly. Recovery is unverified; reload and inspect your display settings."));
+                if (code != 0 || exitStatus != QProcess::NormalExit || process->property("displayError").toBool() || !process->property("displayTerminalMessage").toBool())
+                    showFailure(process->property("displayError").toBool() ? QStringLiteral("guard_error") : QStringLiteral("abnormal_exit"),
+                                process->property("displayDifferences").value<QJsonArray>());
                 if (kept && callback) QTimer::singleShot(0, this, std::move(callback));
                 else query(status_->text());
             });

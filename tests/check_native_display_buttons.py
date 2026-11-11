@@ -11,7 +11,11 @@ if Path(sys.argv[0]).name=='xrandr':
  if args==['--current','--verbose']:
   if d.get('slow_query'):
    import time;time.sleep(1)
-  mode=d['mode'];print('Screen 0: minimum 8 x 8, current 2560 x 1440, maximum 32767 x 32767')
+  mode=d['mode']
+  if d.get('crash') and mode=='0x12' and not d.get('crashed'):
+   import signal
+   d['crashed']=True;p.write_text(json.dumps(d));os.kill(os.getppid(),signal.SIGKILL)
+  print('Screen 0: minimum 8 x 8, current 2560 x 1440, maximum 32767 x 32767')
   print(f'DP-0 connected primary 2560x1440+0+0 ({mode}) normal (normal left inverted right x axis y axis) 500mm x 300mm\\n\\tCRTC: 0')
   print('\\tBrightness: '+('0.8' if d.get('external') and mode=='0x12' else '1.0'))
   for ident,rate in [('0x11','479.99'),('0x12','59.95')]:
@@ -33,9 +37,13 @@ def worker(binary,hook):
  for name in ('xrandr','nvidia-settings'):
   p=bin/name;p.write_text(DRIVER);p.chmod(0o755)
  fixture=home/'fixture.json';result=home/'result'
- for scenario in os.environ.get('DORO_NATIVE_SCENARIOS','unchanged,apply-revert,apply-keep,ok-revert,ok-keep,timeout,error,external,close,query-close').split(','):
+ for scenario in os.environ.get('DORO_NATIVE_SCENARIOS','unchanged,apply-revert,apply-keep,ok-revert,ok-keep,timeout,error,external,apply-external,abnormal,log-error,close,query-close').split(','):
   shutil.rmtree(home/'.config/pcmanfm-qt',ignore_errors=True)
-  fixture.write_text(json.dumps({'mode':'0x11','calls':[],'fail':scenario=='error','external':scenario=='external','slow_query':scenario=='query-close'}));result.unlink(missing_ok=True)
+  fixture.write_text(json.dumps({'mode':'0x11','calls':[],'fail':scenario in ('error','log-error'),'crash':scenario=='abnormal','external':scenario.endswith('external'),'slow_query':scenario=='query-close'}));result.unlink(missing_ok=True)
+  logdir=Path(os.environ['XDG_STATE_HOME'])/'doroshell-display-errors'
+  if logdir.is_dir():shutil.rmtree(logdir)
+  elif logdir.exists():logdir.unlink()
+  if scenario=='log-error':logdir.parent.mkdir(parents=True,exist_ok=True);logdir.write_text('blocked fixture')
   env=dict(os.environ,PATH=str(bin)+':'+os.environ['PATH'],LD_PRELOAD=str(hook),DORO_NATIVE_FIXTURE=str(fixture),DORO_NATIVE_SCENARIO=scenario,DORO_NATIVE_RESULT=str(result))
   proc=subprocess.run([str(binary),'--desktop-pref','--profile='+scenario],env=env,capture_output=True,text=True,timeout=30)
   if proc.returncode:raise AssertionError(scenario+f' exit={proc.returncode}: '+proc.stderr)
@@ -50,7 +58,7 @@ def worker(binary,hook):
   settings=list((home/'.config/pcmanfm-qt').rglob('settings.conf'))
   assert len(settings)==1, 'one isolated settings profile'
   config=configparser.ConfigParser();config.read(settings[0])
-  assert config.getboolean('Desktop','NoItemTooltip') == (scenario in ('unchanged','apply-revert','apply-keep','ok-keep')), 'ordinary preference Apply/OK/Cancel semantics'
+  assert config.getboolean('Desktop','NoItemTooltip') == (scenario in ('unchanged','apply-revert','apply-keep','ok-keep','apply-external')), 'ordinary preference Apply/OK/Cancel semantics'
   print('PASS actual native dialog:',scenario,flush=True)
 if __name__=='__main__':
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--run',action='store_true');p.add_argument('--worker',action='store_true');p.add_argument('--xvfb',type=Path);p.add_argument('--binary',type=Path,required=True);p.add_argument('--hook',type=Path);a=p.parse_args()

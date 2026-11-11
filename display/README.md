@@ -119,6 +119,20 @@ This runs the actual candidate executable with a test-only Qt preload driver on 
 
 ## Post-transition verification diagnostics
 
-The parser canonicalizes whitespace left by the RandR `*current` annotation on a preferred mode. Strict layout and external-edit comparisons are retained. Failed verification/recovery reports bounded structured field labels (mode, connection, geometry/rotation, CRTC, gamma, brightness, transforms and other protected properties). Raw property values, EDID, serials and fingerprint hashes are not emitted. Both the initial verification failure and any recovery failure are retained; there is no persistent diagnostic log or automatic write retry.
+The parser canonicalizes whitespace left by the RandR `*current` annotation on a preferred mode. Strict layout and external-edit comparisons are retained. Failed verification/recovery reports bounded structured field labels (mode, connection, geometry/rotation, CRTC, gamma, brightness, transforms and other protected properties). Raw property values, EDID, serials and fingerprint hashes are not emitted. Both the initial verification failure and any recovery failure are retained; the UI retains one bounded, redacted last-failure record as described below. There is no automatic write retry.
 
 Private regressions cover a successful preferred 59.95 Hz switch, refused recovery after a synthetic external property change with the new mode still active, and read-only repopulation with the error preserved. The original user-reported false-layout cause remains unknown without the post-switch snapshot. The user reported successfully switching and manually restoring the original rate; this does not establish automatic hardware rollback reliability.
+
+## Visible failures and local diagnostic record
+
+A guard error, missing terminal result or abnormal exit leaves a window-modal **Display change failed** dialog visible until Close/dismissal. It never offers Keep for an unverified state. The dialog explains that recovery is unverified and actual settings may need manual restoration. Preferences remains open, rereads actual state, and retains its error. Successful Keep/Revert behavior and external-edit/disconnection checks are unchanged. This improves failure visibility and evidence; it does not resolve the unknown physical NVIDIA state mismatch or establish hardware rollback reliability.
+
+While the UI is alive, a terminal failure best-effort replaces `$XDG_STATE_HOME/doroshell-display-errors/last-failure.json` (default `~/.local/state/doroshell-display-errors/last-failure.json`). The new directory is owner-only (0700), the atomic record is owner-only (0600), and symlink/non-private destinations are refused. One record, at most 2 KiB, contains a schema number, fixed reason (`guard_error`, `abnormal_exit`, `guard_start_failed`), `recovery: unverified`, and at most 16 unique allowlisted field labels. No raw error/driver output, EDID, serials, monitor/output identifiers, timestamps or arbitrary helper properties are recorded. The last failure remains after subsequent success; it is historical evidence, not current status. Unwritable storage does not block the dialog, actual-state query or guard recovery. No retention history, telemetry or background logging service is introduced. App exit or abrupt process loss can prevent this UI-owned record; it is not a crash-recovery journal.
+
+Privacy/storage tests compile the real native writer:
+
+```sh
+python -m unittest discover -s tests -p test_display_failure_record.py -v
+```
+
+The native test command above additionally covers Apply with early verification/recovery failure, abnormal guard exit, Close-only failure presentation and dismissal, failed diagnostic storage, and preserved actual-state refresh without retrying writes. Tests use fake drivers and disposable state homes only.

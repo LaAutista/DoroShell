@@ -120,3 +120,11 @@ private backups, caches and toolchains. Neutral project SVGs remain included.
 
 This is a source/build/package checkpoint, not full desktop parity or a claim that
 the current installation runs every source improvement. No CI service was added.
+
+## Persistent display failure visibility
+
+This increment follows main `abc9dac`. Terminal display guard failures now remain visible in a Close-only dialog; they never offer Keep for an unverified state. Actual-state refresh continues. One owner-only, bounded last-failure record stores fixed reason/field labels rather than raw driver output or monitor identifiers; [scope and privacy](display/README.md#visible-failures-and-local-diagnostic-record). The earlier statement that no diagnostic log exists has been corrected.
+
+The reconciled full suite passed **251 tests**. Thirteen private native-X11 scenarios passed on the Background-enabled paired build, including successful Keep/Revert, early verification/recovery refusal, abnormal guard exit, failed diagnostic storage, and dismissal. The synthetic failure dialog was visually checked at 150% scale. These tests use fake drivers and disposable state homes. A separate parent rerun passed the earlier 236-test base suite and five relevant native cases before reconciliation with newer main.
+
+The paired executable was staged with exact previous-upgrade backup/undo and unchanged first-install baseline. The existing volume-aware wallpaper controller was explicitly retained because the installed toolkit carried older controller data. All checked wallpaper/preferences remained unchanged. Desktop activation was deferred due to recent input; the previously active Background-enabled build remains running. No physical mode/VSync test or assignment was performed. The underlying hardware mismatch remains unknown, and the user's manual restoration is not evidence of automatic rollback. No new live/login/clean-install acceptance is claimed. Private runtime backups, diagnostic records and local paths are excluded from this source snapshot.
