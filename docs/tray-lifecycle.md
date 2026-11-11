@@ -38,3 +38,21 @@ production timers. No personal tray services, applications or clipboard are
 used. Real application diversity, physical monitor placement, Wayland, login and
 long-session coverage remain separate acceptance work. This source change does
 not activate or replace a live panel.
+
+## Keyboard context menus
+
+`0006-tray-keyboard-context.patch` enables the Menu key and Shift+F10 for a
+focused overflow icon. Both use the existing imported D-Bus menu when available,
+or the notifier's `ContextMenu` method otherwise. Keyboard menus anchor to the
+focused icon; mouse menus retain their pointer position and release behavior.
+Previously the button discarded keyboard context events. An icon also now
+requires its own matching key press before acting on Return/Space release; a
+Return used to choose a menu action must not additionally activate the app.
+Losing focus clears that pending activation. Shift+F10 has an
+explicit overflow-key handler because this Qt path does not generate that event.
+
+The `context` and `context-fallback` cases of the same private-X11 test check both
+shortcuts, exactly one dispatch per shortcut, reopening and typing focus after
+Escape. Use the command above with either value for `--case`. The fallback test
+checks protocol dispatch; it cannot establish the behavior of menus drawn by an
+external real application.

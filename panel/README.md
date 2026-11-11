@@ -110,3 +110,6 @@ See [behavior and private regression checks](../docs/taskbar-filters.md).
 attention timer moves it into or out of the panel, and holds an auto-hiding panel
 visible while overflow is open. See [focus, status transitions
 and private checks](../docs/tray-lifecycle.md).
+
+`0006-tray-keyboard-context.patch` supports Menu/Shift+F10 on overflow icons and
+prevents a menu-selection key release from also activating the application.

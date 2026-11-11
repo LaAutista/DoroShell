@@ -34,6 +34,7 @@ def worker(binary,evidence,case):
             pixels=bytes([255,237,1,201])*24*24
             pix=dbus.Array([dbus.Struct((dbus.Int32(24),dbus.Int32(24),dbus.ByteArray(pixels)),signature='iiay')],signature='(iiay)')
             values={'Category':'ApplicationStatus','Id':'Lifecycle','Title':'LifecycleFixture','Status':self.status,'WindowId':dbus.Int32(0),'ItemIsMenu':False,'IconName':'','IconThemePath':'','OverlayIconName':'','AttentionIconName':'','AttentionMovieName':'','IconPixmap':pix,'OverlayIconPixmap':dbus.Array([],signature='(iiay)'),'AttentionIconPixmap':pix,'ToolTip':dbus.Struct(('',pix,'LifecycleFixture','Disposable item'),signature='sa(iiay)ss')}
+            if key=='Menu' and case=='context':return dbus.ObjectPath('/Menu')
             if key not in values:raise dbus.exceptions.DBusException('Unavailable',name='org.freedesktop.DBus.Error.UnknownProperty')
             return values[key]
         @dbus.service.signal('org.kde.StatusNotifierItem',signature='s')
@@ -42,6 +43,20 @@ def worker(binary,evidence,case):
         def Activate(self,x,y):calls.append('activate')
         @dbus.service.method('org.kde.StatusNotifierItem',in_signature='ii',out_signature='')
         def ContextMenu(self,x,y):calls.append('context')
+    class TestMenu(dbus.service.Object):
+        def __init__(self):super().__init__(bus,'/Menu')
+        @dbus.service.method('com.canonical.dbusmenu',in_signature='iias',out_signature='u(ia{sv}av)')
+        def GetLayout(self,parent,depth,names):
+            child=dbus.Struct((dbus.Int32(1),dbus.Dictionary({'label':'Synthetic menu action','enabled':True,'visible':True},signature='sv'),dbus.Array([],signature='v')),signature='ia{sv}av')
+            root=dbus.Struct((dbus.Int32(0),dbus.Dictionary({'children-display':'submenu'},signature='sv'),dbus.Array([child],signature='v')),signature='ia{sv}av')
+            return dbus.UInt32(1),root
+        @dbus.service.method('com.canonical.dbusmenu',in_signature='i',out_signature='b')
+        def AboutToShow(self,item):return False
+        @dbus.service.method('com.canonical.dbusmenu',in_signature='isvu',out_signature='')
+        def Event(self,item,event,data,timestamp):
+            if event=='clicked':calls.append('menu-clicked')
+        @dbus.service.method('org.freedesktop.DBus.Properties',in_signature='ss',out_signature='v')
+        def Get(self,interface,key):return {'Version':dbus.UInt32(3),'TextDirection':'ltr','Status':'normal','IconThemePath':dbus.Array([],signature='s')}[key]
     app=QApplication([]);app.setQuitOnLastWindowClosed(False)
     d=display.Display();root=d.screen().root
     evidence.mkdir(parents=True,exist_ok=True)
@@ -68,7 +83,7 @@ def worker(binary,evidence,case):
     cfg=QSettings(str(conf),QSettings.Format.IniFormat)
     cfg.setValue('statusnotifier/'+('autoHideList' if case=='attention' else 'hideList'),['LifecycleFixture']);cfg.sync();del cfg
     log=open(evidence/'panel.log','w');wm=subprocess.Popen(['openbox','--sm-disable'],stdout=log,stderr=log)
-    panel=None;item=None;fields=[]
+    panel=None;item=None;menu=None;fields=[]
     def panel_window():return next(w for w in windows(panel.pid) if w.get_geometry().width>200)
     def panel_visible_height():
         panel_rect=panel_window();pos=root.translate_coords(panel_rect,0,0)
@@ -88,12 +103,28 @@ def worker(binary,evidence,case):
         return any(im.pixelColor(x,y)==QColor('#ed01c9') for x in range(im.width()) for y in range(im.height()))
     try:
         wait();panel=subprocess.Popen([str(binary),'--config',str(conf)],stdout=log,stderr=log);wait(1.4)
-        item=Item();watcher=dbus.Interface(bus.get_object('org.kde.StatusNotifierWatcher','/StatusNotifierWatcher'),'org.kde.StatusNotifierWatcher');watcher.RegisterStatusNotifierItem('org.kde.StatusNotifierItem.Lifecycle');wait(1.5)
+        item=Item()
+        if case=='context':menu=TestMenu()
+        watcher=dbus.Interface(bus.get_object('org.kde.StatusNotifierWatcher','/StatusNotifierWatcher'),'org.kde.StatusNotifierWatcher');watcher.RegisterStatusNotifierItem('org.kde.StatusNotifierItem.Lifecycle');wait(1.5)
         for i in range(2):
             field=QLineEdit();field.setWindowTitle('Disposable focus '+str(i));field.setGeometry(150+i*350,200,240,70);field.show();fields.append(field)
         app.sync();wait();click(200,230);key('a');assert fields[0].text()=='a'
         popup=open_popup()
-        if case=='attention':
+        if case in ('context','context-fallback'):
+            key('Menu');wait(.5)
+            app.primaryScreen().grabWindow(0).save(str(evidence/'keyboard-menu.png'))
+            if case=='context':key('Down');key('Return')
+            expected='menu-clicked' if case=='context' else 'context'
+            assert calls==[expected],('Menu key did not dispatch tray context action',calls)
+            key('Escape');key('b');assert fields[0].text()=='ab','keyboard context close lost typing focus'
+            open_popup()
+            shift=d.keysym_to_keycode(XK.string_to_keysym('Shift_L'));xtest.fake_input(d,X.KeyPress,shift);d.sync()
+            key('F10');xtest.fake_input(d,X.KeyRelease,shift);d.sync();wait()
+            if case=='context':key('Down');key('Return')
+            assert calls==[expected,expected],'Shift+F10 did not dispatch exactly once'
+            key('Escape');key('c');assert fields[0].text()=='abc'
+            print('PASS Menu and Shift+F10 '+case+', repeated reopen and typing focus',flush=True)
+        elif case=='attention':
             assert not panel_has_icon(),'passive auto-hidden icon visible in panel'
             item.status='NeedsAttention';item.NewStatus(item.status);wait(.8)
             app.primaryScreen().grabWindow(0).save(str(evidence/'attention.png'))
@@ -131,6 +162,7 @@ def worker(binary,evidence,case):
         assert panel.poll() is None
     finally:
         for f in fields:f.close()
+        if menu:menu.remove_from_connection()
         if item:item.remove_from_connection()
         for process in (panel,wm):
             if process and process.poll() is None:process.terminate();process.wait(timeout=5)
@@ -138,7 +170,7 @@ def worker(binary,evidence,case):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--binary',type=Path,required=True);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--case',choices=['popup','attention'],default='popup');p.add_argument('--xvfb',type=Path);p.add_argument('--run',action='store_true');p.add_argument('--worker',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--binary',type=Path,required=True);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--case',choices=['popup','attention','context-fallback','context'],default='popup');p.add_argument('--xvfb',type=Path);p.add_argument('--run',action='store_true');p.add_argument('--worker',action='store_true');a=p.parse_args()
     if a.worker:worker(a.binary.resolve(),a.evidence.resolve(),a.case)
     elif a.run and a.xvfb:isolated(a.xvfb.resolve(),[sys.executable,str(Path(__file__).resolve()),'--worker','--binary',str(a.binary.resolve()),'--evidence',str(a.evidence.resolve()),'--case',a.case])
     else:p.error('Opt in with --run --xvfb PATH')
