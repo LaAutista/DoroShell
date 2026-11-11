@@ -12,7 +12,7 @@ A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden
 - A small upward arrow opens a separate grid of hidden notification icons. The popup uses LXQt's native StatusNotifierItem buttons, supports mouse activation, Enter/Space and Escape, and closes if a represented service disconnects.
 - The generated profile places a two-line local clock just before Show Desktop. Click it to open the calendar. With a stock tray configuration, new notification icons go behind the up arrow. Choose Always show in the notification area settings to keep an icon on the bar. Existing Hide/Auto-hide lists retain their selection. The arrow appears only when there are hidden icons. Right-click the notification area and use its Configure dialog to choose icons; `profile.py prepare --hide TITLE` can explicitly supply hidden titles instead.
 
-**Pinned order persists across panel restarts.** Matching uses `StartupWMClass`, falling back to the desktop filename without `.desktop`; unmatched windows retain normal task buttons. Ambiguous identities are refused during preparation. Unpinned running-task order, thumbnail/peek polish and further glass-like visual polish remain development work. This does not claim all Open-Shell functionality or an exact Windows 7 reproduction.
+**Pinned order persists across panel restarts.** Matching prefers explicit application/desktop-file IDs, then `StartupWMClass` (class or instance), then desktop-basename/class matches. A unique explicit pin breaks equal-strength ties; multiple matching pins remain ambiguous. Unmatched windows retain normal task buttons. Ambiguous identities are refused during preparation. Unpinned running-task order, thumbnail/peek polish and further glass-like visual polish remain development work. This does not claim all Open-Shell functionality or an exact Windows 7 reproduction.
 
 ## Build separately
 
@@ -73,7 +73,7 @@ Verified development build: compiled against the installed Qt 6.12 / LXQt librar
 
 Pins are configured by `doroshellPinned` under the taskbar group as a list of absolute desktop-entry paths. The candidate profile writes this list; dragging changes its order. Right-click the taskbar, open its configuration, then choose **Pinned applications…** to add desktop entries, remove pins or move them up/down. Save applies the list; Cancel leaves it unchanged. Missing entries, ambiguous identities and edits made while the dialog was open are refused. The containing LXQt configuration dialog’s Reset remains available; saving pins does not replace its saved reset state. Grouping must remain enabled for unified pins. Existing LXQt Meta+number task shortcuts dispatch pinned launches too, but global shortcut dispatch has not been exercised in the private-bus test.
 
-Still required: real-application identity matching and DBusMenu breadth, attention/passive/auto-hide transitions, large icon counts, keyboard focus restoration, multi-monitor/DPI and panel edges, legacy XEmbed behavior, Wayland, sustained use, fresh login and clean installation. No production switch is implied by these checks.
+Still required: broader real-application identity matching and DBusMenu coverage, attention/passive/auto-hide transitions, large icon counts, keyboard focus restoration, multi-monitor/DPI and panel edges, legacy XEmbed behavior, Wayland, sustained use, fresh login and clean installation. No production switch is implied by these checks.
 
 ## Upstream attribution
 

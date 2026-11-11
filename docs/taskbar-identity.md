@@ -41,5 +41,14 @@ icon; the test always resumes that process in a finally block. Existing
 `check_taskbar_pin_menu_x11.py` and `check_start_export_x11.py` cover pin actions
 and drag-to-pin integration. Run these from the repository root.
 
-Physical-session activation, Wayland runtime behavior and normal-login acceptance
-remain separate checks.
+## Verified acceptance
+
+An independent repeat of the expanded private-X11 regression passed. A controlled
+panel-only activation of the successor was then verified with already-open
+Fluorine and Discord windows: each reused its proper pinned button, and taskbar
+pixels showed no duplicate entry. All existing application windows survived;
+the panel configuration remained byte-for-byte unchanged.
+
+This establishes those two real-application cases in that X11 session. It does
+not establish broader application coverage, Wayland runtime behavior, normal
+login or clean-install acceptance. Those remain separate checks.
