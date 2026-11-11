@@ -147,6 +147,7 @@
     "tests/test_clipboard.py",
     "tests/test_cursor.py",
     "tests/test_display.py",
+    "tests/test_display_diagnostics.py",
     "tests/test_display_failure_record.py",
     "tests/test_display_install.py",
     "tests/test_folder_cascade.py",
@@ -186,8 +187,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 185,
-  "source_payload_count": 183,
+  "file_count": 186,
+  "source_payload_count": 184,
   "checks": [
     "Tracked regular UTF-8 source files; no NUL binaries or symlinks",
     "Payload hashes and complete file inventory checked",

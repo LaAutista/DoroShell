@@ -23,11 +23,19 @@ int main(int argc,char **argv) {
  for(int i=0;i<10000;++i) fields.append(QJsonObject{{"field","EDID PRIVATE-SERIAL"},{"output","PRIVATE-MONITOR"},{"raw","PRIVATE-DRIVER-OUTPUT"}});
  fields.append(QJsonObject{{"field","brightness"},{"output","PRIVATE-MONITOR"}});
  fields.append(QJsonObject{{"field","brightness"}});
- if(QString::fromUtf8(argv[1])=="limit") {
+ if(QString::fromUtf8(argv[1])=="limit" || QString::fromUtf8(argv[1])=="events") {
   for(const auto &field:QStringList{"framebuffer geometry","output disappeared","output added","output enumeration changed","connection status changed","current mode mismatch","CRTC assignment","advertised mode timings/flags","NVIDIA OpenGL VSync","connection/geometry/rotation","mode timings/flags","gamma","transform","border","screen index","color transform","color matrix","other protected properties","protected layout fingerprint","screen geometry"})
    fields.append(QJsonObject{{"field",field}});
  }
- bool ok=DoroDisplayFailure::record(QString::fromUtf8(argv[1]),fields);
+ QJsonArray events;
+ if(QString::fromUtf8(argv[1])=="events") {
+  events.append(QJsonObject{{"phase","PRIVATE"},{"reason","SECRET"},{"fields",QJsonArray{"PRIVATE"}}});
+  for(int i=0;i<100;++i) events.append(QJsonObject{{"phase",i==0?"apply_verification":"recovery"},
+   {"reason",i==0?"state_mismatch":"command_timeout"},
+   {"fields",QJsonArray{"PRIVATE","BorderDimensions","link-status","Colorspace","Dithering","DitheringMode","DitheringDepth","gamma","brightness"}},
+   {"raw","PRIVATE DRIVER OUTPUT"},{"output","PRIVATE-MONITOR"}});
+ }
+ bool ok=DoroDisplayFailure::record(QString::fromUtf8(argv[1]),fields,events);
  return ok?0:3;
 }''')
         cls.binary=root/'record'
@@ -44,7 +52,7 @@ int main(int argc,char **argv) {
                 self.assertEqual(self.call(root,reason),0)
                 data=record.read_bytes();self.assertLessEqual(len(data),2048)
                 self.assertNotIn(b'PRIVATE',data)
-                self.assertEqual(json.loads(data),dict(schema=1,reason=reason if reason!='PRIVATE RAW ERROR' else 'guard_error',recovery='unverified',fields=['brightness']))
+                self.assertEqual(json.loads(data),dict(schema=2,diagnostics=[],reason=reason if reason!='PRIVATE RAW ERROR' else 'guard_error',recovery='unverified',fields=['brightness']))
                 self.assertEqual(record.stat().st_mode&0o777,0o600)
                 self.assertEqual(record.parent.stat().st_mode&0o777,0o700)
             self.assertEqual([p.name for p in record.parent.iterdir()],['last-failure.json'])
@@ -76,3 +84,25 @@ int main(int argc,char **argv) {
             (folder/'last-failure.json').symlink_to(target)
             self.assertEqual(self.call(root),3)
             self.assertEqual(target.read_text(),'personal fixture')
+
+    def test_phase_records_are_allowlisted_and_bounded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(self.call(Path(tmp),'events'),0)
+            data=(Path(tmp)/'doroshell-display-errors/last-failure.json').read_bytes()
+            self.assertLessEqual(len(data),2048);self.assertNotIn(b'PRIVATE',data);self.assertNotIn(b'SECRET',data)
+            record=json.loads(data);events=record['diagnostics']
+            self.assertEqual(len(events),3)
+            self.assertEqual([(e['phase'],e['reason']) for e in events[:2]],[('apply_verification','state_mismatch'),('recovery','command_timeout')])
+            for event in events:
+                self.assertEqual(set(event),{'phase','reason','fields'})
+                self.assertEqual(event['fields'],['BorderDimensions','link-status','Colorspace','Dithering','DitheringMode','DitheringDepth'])
+
+    def test_header_supports_native_cast_restrictions(self):
+        root=Path(self.build.name)
+        source=root/'native-casts.cpp'
+        source.write_text('#include "dorodisplaycontrols.h"\n')
+        flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','Qt6Widgets'],text=True))
+        subprocess.run(['c++','-std=c++20','-fPIC','-fsyntax-only',
+                        '-DQT_NO_CAST_FROM_ASCII','-DQT_NO_CAST_FROM_BYTEARRAY','-DQT_NO_CAST_TO_ASCII',
+                        '-DQT_NO_KEYWORDS','-DQT_USE_QSTRINGBUILDER',
+                        str(source),'-I'+str(ROOT/'display'),*flags],check=True)

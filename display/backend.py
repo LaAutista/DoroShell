@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Session-only X11 display transactions. No configuration files are written."""
 import copy
+from contextlib import contextmanager
 from contextvars import ContextVar
 import fcntl
 import hashlib
@@ -16,10 +17,47 @@ import time
 
 
 class DisplayError(RuntimeError):
-    def __init__(self, message, differences=None):
+    def __init__(self, message, differences=None, reason="operation_failed", diagnostics=None):
+        self.reason = reason
+        self.diagnostics = (diagnostics or [])[:3]
         self.differences = (differences or [])[:32]
         detail = ', '.join(f"{d['field']} (output {d['output']})" for d in self.differences)
         super().__init__(message + (': ' + detail if detail else ''))
+
+
+
+PHASES = {'preflight', 'apply', 'apply_verification', 'periodic_verification', 'keep_verification', 'recovery'}
+REASONS = {'operation_failed', 'state_mismatch', 'external_change', 'command_timeout', 'command_failed', 'command_unavailable', 'deadline'}
+FIELDS = {'framebuffer geometry', 'output disappeared', 'output added', 'output enumeration changed',
+          'connection status changed', 'current mode mismatch', 'CRTC assignment', 'advertised mode timings/flags',
+          'NVIDIA OpenGL VSync', 'connection/geometry/rotation', 'mode timings/flags', 'gamma', 'brightness',
+          'transform', 'border', 'screen index', 'color transform', 'color matrix', 'other protected properties',
+          'protected layout fingerprint', 'screen geometry', 'BorderDimensions', 'link-status', 'Colorspace',
+          'Dithering', 'dithering', 'DitheringMode', 'DitheringDepth', 'Broadcast RGB', 'max bpc', 'non-desktop'}
+PROPERTY_FIELDS = {k: k for k in ('BorderDimensions', 'link-status', 'Colorspace', 'Dithering', 'dithering',
+                                  'DitheringMode', 'DitheringDepth', 'Broadcast RGB', 'max bpc', 'non-desktop')}
+
+
+def diagnostic(phase, reason, changes=()):
+    fields = list(dict.fromkeys(d.get('field') for d in changes if d.get('field') in FIELDS))[:6]
+    return dict(phase=phase if phase in PHASES else 'preflight',
+                reason=reason if reason in REASONS else 'operation_failed', fields=fields)
+
+
+@contextmanager
+def diagnostic_phase(phase):
+    try:
+        yield
+    except DisplayError as error:
+        if not error.diagnostics:
+            error.diagnostics = [diagnostic(phase, error.reason, error.differences)]
+        raise
+
+
+class ParsedState(dict):
+    # Diagnostic metadata is deliberately outside the dictionary: equality,
+    # JSON tokens, layout hashes and accepted-state equivalence remain exact.
+    pass
 
 
 def differences(expected, actual):
@@ -47,7 +85,8 @@ def differences(expected, actual):
         add(-1, 'output enumeration changed')
     if expected.get('vsync') != actual.get('vsync'):
         add(-1, 'NVIDIA OpenGL VSync')
-    a, b = expected.get('layout_fields', {}), actual.get('layout_fields', {})
+    a = getattr(expected, 'diagnostic_fields', expected.get('layout_fields', {}))
+    b = getattr(actual, 'diagnostic_fields', actual.get('layout_fields', {}))
     for key in sorted(a.keys() | b.keys()):
         if a.get(key) != b.get(key):
             index, field = key.split(':', 1)
@@ -68,16 +107,16 @@ def run(args):
     deadline = command_deadline.get()
     timeout = min(4, deadline - time.monotonic()) if deadline is not None else 4
     if timeout <= 0:
-        raise DeadlineExpired('Confirmation deadline reached')
+        raise DeadlineExpired('Confirmation deadline reached', reason='deadline')
     try:
         result = subprocess.run(args, capture_output=True, text=True, timeout=timeout,
                                 env=dict(os.environ, LC_ALL='C'))
     except (OSError, subprocess.TimeoutExpired) as error:
         if deadline is not None and time.monotonic() >= deadline:
-            raise DeadlineExpired('Confirmation deadline reached') from error
-        raise DisplayError(f'{args[0]} unavailable or timed out') from error
+            raise DeadlineExpired('Confirmation deadline reached', reason='deadline') from error
+        raise DisplayError(f'{args[0]} unavailable or timed out', reason='command_timeout' if isinstance(error, subprocess.TimeoutExpired) else 'command_unavailable') from error
     if result.returncode or 'ERROR:' in result.stderr:
-        raise DisplayError(f'{args[0]}: {result.stderr.strip() or "operation failed"}')
+        raise DisplayError(f'{args[0]}: {result.stderr.strip() or "operation failed"}', reason="command_failed")
     return result.stdout
 
 
@@ -90,6 +129,8 @@ def parse(text):
     output = mode = None
     signature = []
     layout_fields = {}
+    diagnostic_fields = {}
+    detail_category = "screen geometry"
     category = "screen geometry"
     for line in text.splitlines():
         head = re.match(r'^(\S+) (connected|disconnected|unknown connection)(.*)$', line)
@@ -135,6 +176,11 @@ def parse(text):
                     'CTM': 'color transform', 'CscMatrix': 'color matrix'}.get(label, 'other protected properties')
                 if label in ('h', 'v'):
                     category = 'mode timings/flags'
+            if head or entry:
+                detail_category = category
+            elif ':' in line:
+                detail_category = PROPERTY_FIELDS.get(label, category)
+            diagnostic_fields.setdefault(f'{len(outputs)-1}:{detail_category}', []).append(normalized)
             key = f'{len(outputs)-1}:{category}'
             layout_fields.setdefault(key, []).append(normalized)
     for output in outputs:
@@ -143,9 +189,11 @@ def parse(text):
                 raise DisplayError('Incomplete RandR mode timings')
         if output['current'] and not any(m['id'] == output['current'] for m in output['modes']):
             raise DisplayError('Current RandR mode missing')
-    return dict(framebuffer='x'.join(framebuffer.groups()), outputs=outputs,
+    state = ParsedState(framebuffer='x'.join(framebuffer.groups()), outputs=outputs,
                 layout_fields={k: hashlib.sha256('\n'.join(v).encode()).hexdigest() for k, v in layout_fields.items()},
                 layout=hashlib.sha256('\n'.join(signature).encode()).hexdigest())
+    state.diagnostic_fields = {k: hashlib.sha256('\n'.join(v).encode()).hexdigest() for k, v in diagnostic_fields.items()}
+    return state
 
 
 def nv_query():
@@ -218,33 +266,37 @@ class Transaction:
 
     def apply(self):
         if self.query() != self.before:
-            raise DisplayError('Concurrent display edit; reload before applying')
+            raise DisplayError('Concurrent display edit; reload before applying', reason='external_change')
         if self.output and self.output['current'] != self.old_mode:
             self.mode_attempted = True
             self.execute(self.mode_command(self.output['current']))
         if self.new_vsync != self.before['vsync']:
             self.nv_attempted = True
             self.execute(['nvidia-settings', '-a', f'[screen:0]/SyncToVBlank={self.new_vsync}'])
-        actual = self.query()
-        if actual != self.expected:
-            raise DisplayError('Driver did not apply the requested state exactly', differences(self.expected, actual))
+        with diagnostic_phase('apply_verification'):
+            actual = self.query()
+            if actual != self.expected:
+                raise DisplayError('Driver did not apply the requested state exactly', differences(self.expected, actual), reason='state_mismatch')
 
     def verify(self):
         actual = self.query()
         if actual != self.expected:
-            raise DisplayError('Display state changed; refusing Keep', differences(self.expected, actual))
+            raise DisplayError('Display state changed; refusing Keep', differences(self.expected, actual), reason='state_mismatch')
 
     def revert(self):
         current = self.query()
         errors = []
+        evidence = []
         if self.nv_attempted and current['vsync'] != self.before['vsync']:
             if current['vsync'] == self.new_vsync:
                 try:
                     self.execute(['nvidia-settings', '-a', f"[screen:0]/SyncToVBlank={self.before['vsync']}"])
                 except DisplayError as error:
                     errors.append(str(error))
+                    evidence.extend(error.diagnostics or [diagnostic("recovery", error.reason, error.differences)])
             else:
                 errors.append('NVIDIA setting changed elsewhere; left untouched')
+                evidence.append(diagnostic('recovery', 'external_change', differences(self.before, current)))
         if self.mode_attempted:
             old_output = next((o for o in current['outputs'] if o['name'] == self.output['name']), None)
             if not old_output or old_output['current'] != self.old_mode:
@@ -254,12 +306,15 @@ class Transaction:
                         self.execute(self.mode_command(self.old_mode))
                     except DisplayError as error:
                         errors.append(str(error))
+                        evidence.extend(error.diagnostics or [diagnostic("recovery", error.reason, error.differences)])
                 else:
                     errors.append('Display disconnected or layout changed; no forced reconnect or overwrite')
-        if not errors and self.query() != self.before:
+                    evidence.append(diagnostic('recovery', 'external_change', differences(self.before, current)))
+        if not errors and (restored := self.query()) != self.before:
             errors.append('Original state not restored exactly; reload and inspect display settings')
+            evidence.append(diagnostic('recovery', 'state_mismatch', differences(self.before, restored)))
         if errors:
-            raise DisplayError('; '.join(errors), differences(self.before, current))
+            raise DisplayError('; '.join(errors), differences(self.before, current), diagnostics=evidence)
 
 
 def emit(**message):
@@ -274,8 +329,10 @@ def guard(transaction, stream=sys.stdin, timeout=15, cancelled=lambda: False):
     kept = False
     deadline_token = None
     failure = None
+    expired = None
     try:
-        transaction.apply()
+        with diagnostic_phase('apply'):
+            transaction.apply()
         emit(pending=True, seconds=timeout)
         deadline = time.monotonic() + timeout
         deadline_token = command_deadline.set(deadline)
@@ -285,12 +342,14 @@ def guard(transaction, stream=sys.stdin, timeout=15, cancelled=lambda: False):
                 # Read bytes, not readline(): an incomplete command cannot stall the deadline.
                 command = os.read(stream.fileno(), 64)
                 if command == b'keep\n' and time.monotonic() < deadline:
-                    transaction.verify()
+                    with diagnostic_phase('keep_verification'):
+                        transaction.verify()
                     kept = time.monotonic() < deadline and not cancelled()
                 break
-            transaction.verify()
-    except DeadlineExpired:
-        pass
+            with diagnostic_phase('periodic_verification'):
+                transaction.verify()
+    except DeadlineExpired as error:
+        expired = error
     except DisplayError as error:
         failure = error
     finally:
@@ -298,11 +357,14 @@ def guard(transaction, stream=sys.stdin, timeout=15, cancelled=lambda: False):
             command_deadline.reset(deadline_token)
         if not kept:
             try:
-                transaction.revert()
+                with diagnostic_phase('recovery'):
+                    transaction.revert()
             except DisplayError as error:
                 if failure:
                     raise DisplayError(f'{failure}; recovery failed: {error}',
-                                       failure.differences + error.differences) from error
+                                       failure.differences + error.differences, diagnostics=failure.diagnostics + error.diagnostics) from error
+                if expired:
+                    error.diagnostics = (expired.diagnostics + error.diagnostics)[:3]
                 raise
     if failure:
         raise failure
@@ -334,7 +396,8 @@ def main():
             signal.signal(signal.SIGINT, interrupted)
             guard(Transaction(json.loads(sys.argv[2])), cancelled=lambda: stopped)
     except (DisplayError, OSError, ValueError) as error:
-        emit(error=str(error), differences=getattr(error, 'differences', []))
+        emit(error=str(error), differences=getattr(error, 'differences', []),
+             diagnostics=getattr(error, 'diagnostics', []) or [diagnostic('preflight', getattr(error, 'reason', 'operation_failed'))])
         sys.exit(1)
 
 

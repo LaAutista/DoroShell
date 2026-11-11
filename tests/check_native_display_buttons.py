@@ -18,6 +18,7 @@ if Path(sys.argv[0]).name=='xrandr':
   print('Screen 0: minimum 8 x 8, current 2560 x 1440, maximum 32767 x 32767')
   print(f'DP-0 connected primary 2560x1440+0+0 ({mode}) normal (normal left inverted right x axis y axis) 500mm x 300mm\\n\\tCRTC: 0')
   print('\\tBrightness: '+('0.8' if d.get('external') and mode=='0x12' else '1.0'))
+  print('\\tColorspace: '+('BT2020_RGB' if d.get('external') and mode=='0x12' else 'Default'))
   for ident,rate in [('0x11','479.99'),('0x12','59.95')]:
    print(f'  2560x1440 ({ident}) 148.500MHz +HSync +VSync'+(' *current' if ident==mode else '')+(' +preferred' if ident=='0x12' else ''))
    print(f'        h: width 2560 start 2600 end 2700 total 2800 skew 0 clock 67.50KHz\\n        v: height 1440 start 1444 end 1449 total 1500 clock {rate}Hz')

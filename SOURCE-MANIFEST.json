@@ -1,7 +1,7 @@
 {
   "format": 8,
-  "candidate": "doroshell-source-20261111-window-capture",
-  "published_ancestor": "e284054f62d3dcca4f196038ad855beb6bbf94e6",
+  "candidate": "doroshell-source-20261111-display-diagnostic-phases",
+  "published_ancestor": "958248b6e1f158e95cabf0cba21cbda6e95134bd",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -13,13 +13,15 @@
     "release_consistency": "1e029cc",
     "xembed_coexistence": "f26f439",
     "keyboard_entry_probe": "d525ae4",
-    "display_failure_visibility": "Persistent Close-only failure UI and bounded redacted record; see display/README.md and RELEASE-CANDIDATE.md"
+    "display_failure_visibility": "Persistent Close-only failure UI and bounded redacted record; see display/README.md and RELEASE-CANDIDATE.md",
+    "screenshot_window_capture": "0e66e29179051a5eb7459afe003e5a2e9ca19958",
+    "display_diagnostic_phases": "Private schema-2 phase/property diagnostics; exact state equivalence retained; see RELEASE-CANDIDATE.md"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 253,
-    "command": "python -m unittest discover -s tests -q",
-    "note": "Independent temporary-home suite and private X11 frame/client crop checks passed. Physical mixed-DPI, Wayland, popup-parent and compositor-shadow capture remain unverified. See docs/screenshot-verification.md."
+    "passed": 262,
+    "command": "python -m unittest discover -s tests -v",
+    "note": "Full reconciled suite, standard paired Background/display build and 13 private native fake-driver cases passed, including actual UI-written schema-2 evidence. No staging/live deployment or physical retest; hardware cause remains unverified. Inherited screenshot evidence preserved separately."
   },
   "source_payloads": [
     {
@@ -54,14 +56,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "85c2700288d1e793b4ab9cd7cb02e043ef55d77985aded85e79b3461ab53a1ab",
-      "size": 9049,
+      "sha256": "1ab19dc02e226c136e84ca4456284a2e9a88259a9f75ff098ddb148d3c1c164c",
+      "size": 10952,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "5f1cc0ee154dd5b74e6e635e2f126a8f60547ff93dc80c0732d7759f6038af5f",
-      "size": 6710,
+      "sha256": "6f4187a3de2a4c1a9e7c59e5c71297778363dd7d0ec4e174538929475fe74237",
+      "size": 6751,
       "mode": "0o644"
     },
     {
@@ -102,14 +104,14 @@
     },
     {
       "path": "display/README.md",
-      "sha256": "55d8c605ca1c0ea047eef7166e99717c18309047fab068d72c96e28f54513cf7",
-      "size": 16263,
+      "sha256": "daa389463d8710c4084c7f3a8fb9f7f6f4a4b39a45fbf4c7b5cdb6f8f6966ca5",
+      "size": 17802,
       "mode": "0o644"
     },
     {
       "path": "display/backend.py",
-      "sha256": "6d3a86438884d116a31200085ad59d09ba81f83a26cb61966a46e6ea5a32ab88",
-      "size": 16100,
+      "sha256": "59f8b9b41dba251f04651e849728412c03a695c943b0884331d152f6a29d76e7",
+      "size": 20207,
       "mode": "0o644"
     },
     {
@@ -120,8 +122,8 @@
     },
     {
       "path": "display/dorodisplaycontrols.h",
-      "sha256": "191ae795db2680c732ceb0e29c507ff1ca5a9f7f79a6adec296ff262233a087d",
-      "size": 22398,
+      "sha256": "f010425dd704863caba5c12391030fb2ba155d17d273f25145549eb69830eb96",
+      "size": 24323,
       "mode": "0o644"
     },
     {
@@ -612,8 +614,8 @@
     },
     {
       "path": "tests/check_native_display_buttons.py",
-      "sha256": "867daf716a1d68fdb37096146895e618ca4613e855a3167711199c8dc72469ef",
-      "size": 5204,
+      "sha256": "7940edea8bb82c5544b2bd73bd74ba866e0a18411d120d0a58fe94b922cbcc24",
+      "size": 5299,
       "mode": "0o644"
     },
     {
@@ -852,8 +854,8 @@
     },
     {
       "path": "tests/native_display_buttons.cpp",
-      "sha256": "51dd85885c640a1ccafe6c7c39370b218a283673c41f4c55a8b722dd69cbff35",
-      "size": 9413,
+      "sha256": "a2b5594a18da2af8a177324d20946471c1b29d516b5db1f140b24ded13bb0921",
+      "size": 10744,
       "mode": "0o644"
     },
     {
@@ -893,9 +895,15 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/test_display_diagnostics.py",
+      "sha256": "809c5017cb8b4f76e6e5f47fe8114e2418ceecdcf4f54518ee376755122153ba",
+      "size": 6781,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/test_display_failure_record.py",
-      "sha256": "7bca5dca1db499abaf1d2499d4ba0b5feb6c6b4b2bd48b8b86c9b716e4192445",
-      "size": 4648,
+      "sha256": "2273ce6b798cf36269bb71bddcf962c620352efd42b3c816bd8c6a1e86ec6c80",
+      "size": 6763,
       "mode": "0o644"
     },
     {

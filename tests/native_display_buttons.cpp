@@ -67,6 +67,21 @@ static void run(QDialog *dialog) {
                     auto data=QJsonDocument::fromJson(bytes).object();
                     require(data["reason"].toString()==(scenario=="abnormal"?"abnormal_exit":"guard_error"),"structured failure reason");
                     require(data["recovery"].toString()=="unverified","record does not claim restoration");
+                    require(data["schema"].toInt()==2,"schema 2 reached actual native writer");
+                    require(!bytes.contains("BT2020_RGB"),"property value excluded from native record");
+                    auto events=data["diagnostics"].toArray();
+                    if(scenario.endsWith("external")) {
+                        require(events.size()==2,"initial verification and recovery both retained through UI");
+                        require(events[0].toObject()["phase"]=="apply_verification" && events[0].toObject()["reason"]=="state_mismatch","apply verification classification");
+                        require(events[1].toObject()["phase"]=="recovery" && events[1].toObject()["reason"]=="external_change","recovery refusal classification");
+                        for(const auto &event:events) {
+                            auto fields=event.toObject()["fields"].toArray();
+                            require(fields.contains("brightness") && fields.contains("Colorspace"),"exact property labels reach private record");
+                        }
+                    } else if(scenario=="error") {
+                        require(events.size()==1 && events[0].toObject()["phase"]=="apply" && events[0].toObject()["reason"]=="command_failed","driver failure retained through UI");
+                    }
+
                 }
                 QTest::qWait(400);require(failure->isVisible(),"error remains until dismissed");
                 if(!qEnvironmentVariable("DORO_NATIVE_SCREENSHOTS").isEmpty()) failure->grab().save(qEnvironmentVariable("DORO_NATIVE_SCREENSHOTS")+"/"+scenario+"-failure.png");

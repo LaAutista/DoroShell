@@ -136,3 +136,16 @@ python -m unittest discover -s tests -p test_display_failure_record.py -v
 ```
 
 The native test command above additionally covers Apply with early verification/recovery failure, abnormal guard exit, Close-only failure presentation and dismissal, failed diagnostic storage, and preserved actual-state refresh without retrying writes. Tests use fake drivers and disposable state homes only.
+
+### Diagnostic phases (schema 2)
+
+The bounded failure record additionally keeps at most three ordered diagnostic events, each with a fixed `phase`, fixed `reason`, and up to six unique allowlisted field labels. Phases distinguish preflight, applying commands, apply verification, periodic verification, Keep verification and recovery. Reasons distinguish state mismatch, external-change refusal, command timeout, command failure, unavailable command and deadline. An initial verification failure and a later recovery failure retain separate events; unknown phases/reasons/fields from helper messages are discarded by the native writer. The existing overall failure reason and up to 16 summary fields remain; the entire record still has the 2 KiB limit and owner-only atomic replacement.
+
+Exact labels now identify BorderDimensions, link-status, Colorspace, recognized dithering fields, Broadcast RGB, max bpc and non-desktop, without logging their values. Other properties remain grouped and redacted. Finer fingerprints live only in in-memory diagnostic metadata outside the state dictionary: layout fingerprints, equality checks, state tokens, driver calls, deadlines and external-edit refusal remain unchanged. This diagnoses a future independently authorized failure; it does not resolve the unknown hardware mismatch or establish automatic hardware rollback.
+
+Targeted checks:
+
+```sh
+python -m unittest discover -s tests -p test_display_diagnostics.py -v
+python -m unittest discover -s tests -p test_display_failure_record.py -v
+```
