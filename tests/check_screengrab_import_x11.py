@@ -40,6 +40,10 @@ def worker(binary):
         wait(.5)
         source=QImage(400,300,QImage.Format.Format_RGB32)
         source.fill(QColor('#d9c5ed'))
+        for y in range(180, 192):
+            for x in range(140, 164):
+                value = 40 + 120*(x % 2)
+                source.setPixelColor(x, y, QColor(value, value, value))
         overlay=FrozenCapture(source,QRect(0,0,400,300), [QRect(20,70,260,180)])
         overlay.show()
         wait(.15)
@@ -52,6 +56,13 @@ def worker(binary):
         overlay.stroke_width.setValue(7)
         drag((45,105),(200,170))
         expected=overlay.rendered_image()
+        for tool, x in (('Blur', 140), ('Pixelate', 152)):
+            overlay.set_tool(tool)
+            drag((x, 180), (x+7, 187))
+        for y in range(180, 188):
+            for x in (*range(140, 148), *range(152, 160)):
+                expected.setPixelColor(x-20, y-70, QColor(100, 100, 100))
+        assert overlay.rendered_image()==expected
         assert expected.size().toTuple()==(260,180)
         assert expected.pixelColor(25,35)!=source.pixelColor(45,105)
         app.clipboard().setText('native copy sentinel')
@@ -86,7 +97,7 @@ def worker(binary):
         wm.wait(timeout=5)
     subprocess.run(setup+['--rollback'],env=installer_env,check=True)
     assert not overlay.native_binary.exists()
-    print('PASS native ScreenGrab imported, displayed and copied every annotated pixel; rollback removed the private executable')
+    print('PASS native ScreenGrab imported, displayed and copied every annotated pixel including blur/pixelate regions; rollback removed the private executable')
 
 
 if __name__=='__main__':

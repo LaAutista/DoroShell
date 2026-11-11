@@ -387,3 +387,82 @@ class MenuCaptureTests(unittest.TestCase):
                 self.assertFalse(dialog.tools.geometry().intersects(dialog.controls.geometry()))
                 self.assertTrue(dialog.rect().contains(dialog.tools.geometry()))
                 self.assertTrue(dialog.rect().contains(dialog.controls.geometry()))
+
+    def test_region_effects_exact_scaled_edge_crop_and_history(self):
+        image = QImage(60, 45, QImage.Format.Format_RGB32)
+        for y in range(image.height()):
+            for x in range(image.width()):
+                v = 32 + 128*(x % 2)
+                image.setPixelColor(x, y, QColor(v, v, v))
+        image.setDevicePixelRatio(1.5)
+        for tool in ('Blur', 'Pixelate'):
+            with self.subTest(tool=tool):
+                dialog = FrozenCapture(image, QRect(-15, -10, 40, 30))
+                self.addCleanup(shiboken6.delete, dialog)
+                dialog.set_tool(tool)
+                left = Qt.MouseButton.LeftButton
+                def drag(a, b):
+                    QTest.mousePress(dialog, left, pos=a)
+                    QTest.mouseRelease(dialog, left, pos=b)
+                drag(QPoint(39, 29), QPoint(35, 25))
+                original = QRect(52, 37, 8, 8)
+                moved = QRect(0, 0, 8, 8)
+                def expected(rect):
+                    result = image.copy()
+                    result.setDevicePixelRatio(1)
+                    for y in range(rect.y(), rect.y()+rect.height()):
+                        for x in range(rect.x(), rect.x()+rect.width()):
+                            result.setPixelColor(x, y, QColor(96, 96, 96))
+                    return result
+                unchanged = expected(QRect())
+                self.assertEqual(dialog.rendered_image(), expected(original))
+                dialog.set_tool('Edit marks')
+                drag(QPoint(35, 25), QPoint(-8, -5))
+                self.assertEqual(dialog.mark_bounds(dialog.strokes[0]), QRect(0, 0, 5, 5))
+                self.assertEqual(dialog.rendered_image(), expected(moved))
+                dialog.raw_selection = QRect(3, 5, 24, 12)
+                dialog.selection = dialog.view_rect(dialog.raw_selection)
+                crop = dialog.pixel_rect()
+                self.assertEqual(dialog.rendered_image(), expected(moved).copy(crop))
+                QTest.keyClick(dialog, Qt.Key.Key_Delete)
+                self.assertEqual(dialog.rendered_image(), unchanged.copy(crop))
+                for action, rect in ((dialog.undo, moved), (dialog.undo, original),
+                                     (dialog.redo, moved), (dialog.redo, QRect())):
+                    action()
+                    self.assertEqual(dialog.rendered_image(), expected(rect).copy(crop))
+
+    def test_effect_interpolation_stacking_and_tiny_regions(self):
+        image = QImage(40, 20, QImage.Format.Format_RGB32)
+        image.fill(QColor('magenta'))
+        for y in range(12):
+            for x in range(24):
+                v = 40 if x < 12 else 200
+                image.setPixelColor(x, y, QColor(v, v, v))
+        dialog = FrozenCapture(image, image.rect())
+        self.addCleanup(shiboken6.delete, dialog)
+        def mark(tool, a, b):
+            dialog.set_tool(tool)
+            QTest.mousePress(dialog, Qt.MouseButton.LeftButton, pos=a)
+            QTest.mouseRelease(dialog, Qt.MouseButton.LeftButton, pos=b)
+        # One native pixel at the corner cannot draw in samples from outside it.
+        mark('Blur', QPoint(39, 19), QPoint(39, 19))
+        mark('Pixelate', QPoint(39, 19), QPoint(45, 25))
+        self.assertEqual(dialog.rendered_image(), image)
+        a, b = QPoint(2, 2), QPoint(23, 11)
+        mark('Redact', QPoint(4, 3), QPoint(7, 7))
+        mark('Blur', a, b)
+        blurred = dialog.rendered_image()
+        self.assertEqual(blurred.pixelColor(5, 5), QColor('black'))
+        self.assertEqual(dialog.mark_at(QPoint(5, 5)), 2)
+        self.assertTrue(40 < blurred.pixelColor(12, 5).red() < 200)
+        mark('Pixelate', a, b)
+        pixelated = dialog.rendered_image()
+        self.assertEqual(dialog.mark_at(QPoint(16, 5)), 4)
+        self.assertEqual(pixelated.pixelColor(13, 5), QColor(200, 200, 200))
+        self.assertEqual(pixelated.pixelColor(8, 5), pixelated.pixelColor(11, 5))
+        self.assertNotEqual(pixelated, blurred)
+        self.assertEqual(pixelated.pixelColor(24, 5), image.pixelColor(24, 5))
+        dialog.undo()
+        self.assertEqual(dialog.rendered_image(), blurred)
+        mark('Redact', QPoint(15, 5), QPoint(16, 6))
+        self.assertEqual(dialog.rendered_image().pixelColor(15, 5), QColor('black'))

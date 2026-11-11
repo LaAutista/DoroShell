@@ -14,6 +14,9 @@ from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QLabel, QPush
                                QWidget, QFileDialog, QMessageBox, QToolButton, QInputDialog, QColorDialog, QSpinBox)
 
 
+REGION_EFFECTS = ('Blur', 'Pixelate')
+
+
 def compose_screens(frames):
     bounds = QRect()
     scale = 1.
@@ -95,6 +98,7 @@ class FrozenCapture(QDialog):
         self.drag = ''
         self.lens_pixel = None
         self.strokes = []
+        self.effect_samples = {}
         self.undo_stack = []
         self.redo_stack = []
         self.selected_mark = None
@@ -132,13 +136,16 @@ class FrozenCapture(QDialog):
                  ('Highlight','draw-highlight','▰'),('Rectangle','draw-rectangle','□'),
                  ('Ellipse','draw-ellipse','○'),('Arrow','draw-arrow-forward','↗'),
                  ('Text','draw-text','T'),('Redact','edit-redact','■'),
-                 ('Line','draw-line','╱'),('Number','','①'),('Edit marks','','Edit marks')]
+                 ('Line','draw-line','╱'),('Number','','①'),
+                 ('Blur','','Blur'),('Pixelate','','Pixelate'),('Edit marks','','Edit marks')]
         columns = len(icons)+2
-        if self.viewport.width() < 600:
+        if self.viewport.width() < 760:
             columns = 4 if self.viewport.width() < 400 else 6
         tips = {'Edit marks': 'Select and drag a mark. Delete removes it. F2 edits text or a number.',
                 'Line': 'Draw a straight line. Hold Shift to snap to 45°.',
-                'Number': 'Place a numbered stamp.'}
+                'Number': 'Place a numbered stamp.',
+                'Blur': 'Soften a region. Use solid Redact for sensitive details.',
+                'Pixelate': 'Mosaic a region. Use solid Redact for sensitive details.'}
         for i,(name,theme,fallback) in enumerate(icons):
             button = QToolButton()
             button.setCheckable(True)
@@ -228,8 +235,8 @@ class FrozenCapture(QDialog):
             button.setChecked(tool==name)
         group=self.ink_group()
         self.stroke_width.setValue(self.widths[group])
-        self.stroke_width.setEnabled(name not in ('Select','Edit marks','Window','Redact','Text','Number'))
-        self.color_button.setEnabled(name not in ('Select','Edit marks','Window','Redact'))
+        self.stroke_width.setEnabled(name not in ('Select','Edit marks','Window','Redact','Text','Number', *REGION_EFFECTS))
+        self.color_button.setEnabled(name not in ('Select','Edit marks','Window','Redact', *REGION_EFFECTS))
         color=self.colors[group]
         self.color_button.setStyleSheet('border-bottom: 3px solid '+color.name())
         self.color_button.setAccessibleName('Annotation color '+color.name())
@@ -302,10 +309,46 @@ class FrozenCapture(QDialog):
     def handle_at(self, point):
         return next((name for name,pos in self.handles().items() if (pos-point).manhattanLength()<=9), '')
 
+    def paint_order(self):
+        # Effects sample the unmarked capture. Ink and solid redactions stay above them.
+        return sorted(range(len(self.strokes)), key=lambda i: self.strokes[i][0] not in REGION_EFFECTS)
+
+    def draw_effect(self, painter, tool, box, used_samples):
+        if box.isEmpty():
+            return
+        iw, ih = self.image.width(), self.image.height()
+        vw, vh = self.width(), self.height()
+        left, top = box.x()*iw//vw, box.y()*ih//vh
+        right = ((box.right()+1)*iw + vw-1)//vw
+        bottom = ((box.bottom()+1)*ih + vh-1)//vh
+        raw = QRect(left, top, right-left, bottom-top)
+        key = (tool, raw.getRect())
+        samples = self.effect_samples.get(key)
+        if samples is None:
+            pitch = 6 if tool == 'Blur' else 12
+            samples = self.image.copy(raw).scaled(
+                math.ceil(raw.width()/pitch), math.ceil(raw.height()/pitch),
+                Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            samples.setDevicePixelRatio(1)
+        used_samples[key] = samples
+        painter.save()
+        painter.scale(vw/iw, vh/ih)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, tool == 'Blur')
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        painter.drawImage(raw, samples, samples.rect())
+        painter.restore()
+
     def draw_strokes(self, painter):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        for stroke in self.strokes:
-            self.draw_mark(painter, stroke)
+        used_samples = {}
+        for index in self.paint_order():
+            stroke = self.strokes[index]
+            if stroke[0] in REGION_EFFECTS:
+                self.draw_effect(painter, stroke[0], self.mark_bounds(stroke), used_samples)
+            else:
+                self.draw_mark(painter, stroke)
+        self.effect_samples = used_samples
 
     def stamp_layout(self, center, label):
         font = QFont(self.font())
@@ -360,6 +403,8 @@ class FrozenCapture(QDialog):
 
     def mark_bounds(self, stroke):
         tool, points, text, color, width = stroke
+        if tool in REGION_EFFECTS:
+            return QPolygon([points[0], points[-1]]).boundingRect().intersected(self.rect())
         if tool == 'Number':
             return self.stamp_layout(points[0], text)[1]
         if tool == 'Text':
@@ -372,9 +417,13 @@ class FrozenCapture(QDialog):
         # shapes pass through to lower marks when the pointer misses their ink.
         area = QRect(point - QPoint(3, 3), QSize(7, 7))
         tile = QImage(area.size(), QImage.Format.Format_ARGB32_Premultiplied)
-        for index in reversed(range(len(self.strokes))):
+        for index in reversed(self.paint_order()):
             mark = self.strokes[index]
             if not self.mark_bounds(mark).intersects(area):
+                continue
+            if mark[0] in REGION_EFFECTS:
+                if self.mark_bounds(mark).contains(point):
+                    return index
                 continue
             if mark[0] == 'Text':
                 return index
@@ -545,7 +594,10 @@ class FrozenCapture(QDialog):
                                      max(0, min(raw.y(), self.image.height()-1)))
         if self.drag=='draw':
             points = self.strokes[-1][1]
-            if self.active_tool == 'Line':
+            if self.active_tool in REGION_EFFECTS:
+                points[1:] = [QPoint(max(0, min(self.width()-1, p.x())),
+                                    max(0, min(self.height()-1, p.y())))]
+            elif self.active_tool == 'Line':
                 points[1:] = [self.line_end(points[0], p, modifiers)]
             else:
                 points.append(p)
@@ -562,6 +614,10 @@ class FrozenCapture(QDialog):
             delta = QPoint(max(0, min(self.width()-1, p.x())),
                            max(0, min(self.height()-1, p.y()))) - self.origin
             tool, points, text, color, width = self.original_mark
+            if tool in REGION_EFFECTS:
+                box = self.mark_bounds(self.original_mark)
+                delta = QPoint(max(-box.left(), min(self.width()-1-box.right(), delta.x())),
+                               max(-box.top(), min(self.height()-1-box.bottom(), delta.y())))
             self.strokes[self.selected_mark] = (tool, [v + delta for v in points], text, color, width)
         elif self.drag=='new':
             self.selection=QRect(self.origin,p).normalized().intersected(self.rect())

@@ -48,6 +48,10 @@ def worker():
     for y in range(764, 768):
         for x in range(1020, 1024):
             image.setPixelColor(x, y, QColor(x-800, y-600, x+y-1700))
+    for y in range(420, 432):
+        for x in range(444, 492):
+            value = 40 + 120*(x % 2)
+            image.setPixelColor(x, y, QColor(value, value, value))
     overlay = FrozenCapture(image, QRect(0,0,1024,768))
     try:
         wait(.3); overlay.show(); wait(.4)
@@ -152,6 +156,18 @@ def worker():
             painter.drawEllipse(circle)
             painter.setPen(Qt.GlobalColor.black)
             painter.drawText(circle, Qt.AlignmentFlag.AlignCenter, '7')
+        assert overlay.rendered_image() == marked
+        for tool, x in (('Pixelate', 444), ('Blur', 468)):
+            click(overlay.tool_buttons[tool])
+            drag((x, 420), (x+7, 427))
+        click(overlay.tool_buttons['Edit marks'])
+        drag((449, 425), (461, 425))
+        key('Delete')
+        wait()
+        click(overlay.actions['Undo'])
+        for y in range(420, 428):
+            for x in (*range(456, 464), *range(468, 476)):
+                marked.setPixelColor(x-crop.x(), y-crop.y(), QColor(100, 100, 100))
         assert overlay.rendered_image() == marked
         seen = []
         def cancel_save():
@@ -259,6 +275,8 @@ def worker():
         drag((300, 300), (360, 320))
         click(editor.tool_buttons['Number'])
         point_click(360, 320)
+        click(editor.tool_buttons['Blur'])
+        drag((444, 420), (455, 431))
         key('Escape')
         wait()
         assert editor.selected_image() is None and not editor.isVisible()
@@ -268,7 +286,7 @@ def worker():
         assert app.clipboard().image().convertToFormat(marked.format()) == marked
         app.clipboard().setText('replacement')
         wait()
-        print('PASS real X11 crop resize/move, redaction, snapped line, numbered stamp, Undo/Redo, label editing, save-dialog cancel/save, exact edited PNG and clipboard pixels, full-desktop Enter and Escape preservation',flush=True)
+        print('PASS real X11 crop resize/move, redaction, snapped line, numbered stamp, blur/pixelate regions, Undo/Redo, label editing, save-dialog cancel/save, exact edited PNG and clipboard pixels, full-desktop Enter and Escape preservation',flush=True)
     finally:
         overlay.close(); wm.terminate(); wm.wait(timeout=5); server.close()
 

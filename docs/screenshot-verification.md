@@ -14,7 +14,7 @@ Releasing the drag or Shift hides the lens. Annotation tools and window picking 
 
 ## Editing existing annotations
 
-Choose **Edit marks** and click an annotation. A dashed outline identifies the selected mark. Where marks overlap, the most recently drawn mark under the pointer wins. Click the outline of a hollow rectangle or ellipse, the ink of a freehand stroke or arrow, the filled area of a redaction, or the text label. Click empty space to clear the selection.
+Choose **Edit marks** and click an annotation. A dashed outline identifies the selected mark. Where marks overlap, the uppermost mark under the pointer wins. Blur and Pixelate sit below the other marks. Click the outline of a hollow rectangle or ellipse, the ink of a freehand stroke or arrow, the filled area of a redaction, or the text label. Click empty space to clear the selection.
 
 Drag the selected mark to move it, press **Delete** to remove it, or double-click a text label (or select it and press **F2**) to edit its contents. Cancelling the text dialog or submitting an empty label retains the original text. Each completed move, deletion or text replacement takes one undo step. Undo restores the mark at its original stacking position. Redo reapplies the edit. A fresh edit clears redo history.
 
@@ -27,6 +27,14 @@ Choose **Line** and drag between two points. Hold **Shift** while dragging or re
 Choose **Number** and click to stamp a filled circle. Each new stamp uses the smallest unused positive integer, starting at 1. For example, deleting 2 from a set of 1, 2 and 3 leaves 1 and 3 in place, and the next stamp gets 2. Undo and redo restore the original labels. In **Edit marks**, double-click a stamp or select it and press **F2** to set its number. Manually assigned labels may repeat. Stamps use the current ink color, a contrasting label and a circle sized to fit its digits.
 
 In **Edit marks**, drag either mark to move it or press **Delete** to remove it. Click a line first to expose its endpoint handles. Drag a handle to reshape the line, optionally holding Shift. Dropping one endpoint exactly on the other restores the original line. Each completed change takes one undo step. Crop boundaries clip the exported artwork. The toolbars wrap on narrow screens. Layout checks cover widths of 320, 400 and 600 logical pixels at a height of 480 with the test font.
+
+## Blur, Pixelate and solid Redact
+
+Choose **Blur** or **Pixelate** and drag a rectangle in any direction. **These effects visually obscure detail. They do not securely remove information.** Use solid black **Redact** to cover sensitive pixels in the exported image. The frozen original remains available in the editor until the capture closes.
+
+Both effects sample only the covered region of the frozen image. Blur uses Qt’s smooth downsampling followed by bilinear enlargement. Pixelate enlarges its samples into flat blocks. The sample count on each axis is the covered size in frozen pixels divided by 6 for Blur or 12 for Pixelate, rounded up. A small region may become one averaged color. A single frozen pixel retains its original color. Effect strength is fixed.
+
+Effects paint first. Where two effects overlap, the most recently drawn effect supplies the pixels from its own frozen-source samples. Ink, stamps, text and black redactions paint above all effects in their original order. **Edit marks** picks the top visible mark. Drag an effect to resample the new location, or press Delete to remove it. Movement keeps the entire rectangle inside the desktop. Undo and redo restore its location and stacking order. Selection outlines stay in the editor. Cropping applies after annotation rendering.
 
 ## Checks
 
