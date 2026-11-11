@@ -1,7 +1,7 @@
 {
   "format": 8,
-  "candidate": "doroshell-source-20261111-display-failure-visibility",
-  "published_ancestor": "abc9dacfdeaae4b366e72f39f13fa85ef2fe3afb",
+  "candidate": "doroshell-source-20261111-window-capture",
+  "published_ancestor": "e284054f62d3dcca4f196038ad855beb6bbf94e6",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -17,9 +17,9 @@
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 251,
-    "command": "python -m unittest discover -s tests -v",
-    "scope": "Reconciled source suite and 13 private fake-driver native scenarios passed; paired build staged only, activation deferred for recent input. Hardware mismatch and automatic hardware rollback remain unverified. See RELEASE-CANDIDATE.md."
+    "passed": 253,
+    "command": "python -m unittest discover -s tests -q",
+    "note": "Independent temporary-home suite and private X11 frame/client crop checks passed. Physical mixed-DPI, Wayland, popup-parent and compositor-shadow capture remain unverified. See docs/screenshot-verification.md."
   },
   "source_payloads": [
     {
@@ -48,8 +48,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "1643820ce4ee820e6f7d97a88d36f7bd697955af7b770cf34ba05058bc3e0b7c",
-      "size": 41559,
+      "sha256": "ee115c978fba83ca500c3b6f2b06f29d9626d97e2dfe59bd4387974feaa6c740",
+      "size": 41629,
       "mode": "0o644"
     },
     {
@@ -210,8 +210,8 @@
     },
     {
       "path": "docs/screenshot-verification.md",
-      "sha256": "988d7cc89003acb6ed96ba3b2cbb0f866c3767e84479a8fcf21ae8b5d38613a2",
-      "size": 12555,
+      "sha256": "0a83eac1c6cef2ede05f35f8779fffa1ba99a2932d4d3d3f68f519c2f2208f76",
+      "size": 13541,
       "mode": "0o644"
     },
     {
@@ -462,8 +462,8 @@
     },
     {
       "path": "runtime/menu_capture.py",
-      "sha256": "edb548dedeb0714468c6eaa035a95e0da206c96cef3857dec586724dfb47e670",
-      "size": 56203,
+      "sha256": "ba317bf2fd02d8bcb8897463821824b4b3793955bc899d859fe544b74018bfd4",
+      "size": 57291,
       "mode": "0o644"
     },
     {
@@ -828,8 +828,8 @@
     },
     {
       "path": "tests/check_window_capture_x11.py",
-      "sha256": "4b902cb2a3cc6fe918eabd6af7b79f295b4ea51099488e42c9aff1a598a60027",
-      "size": 4646,
+      "sha256": "843e8180352001350b548af0b756466383926d29a446ed8b2071250087701261",
+      "size": 5679,
       "mode": "0o644"
     },
     {
@@ -930,8 +930,8 @@
     },
     {
       "path": "tests/test_menu_capture.py",
-      "sha256": "43f759d8b10b62e59edf9dd4b986617d3130f357c2a4a85c35083a5db16470b6",
-      "size": 29787,
+      "sha256": "28e91c1c4471a356f63221fe8e664bac3ce32349cd6f4da90109d2775a26901c",
+      "size": 31459,
       "mode": "0o644"
     },
     {
