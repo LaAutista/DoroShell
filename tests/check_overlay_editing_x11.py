@@ -45,6 +45,9 @@ def worker():
         event(X.ButtonRelease, 1); wait()
     image = QImage(1024,768,QImage.Format.Format_RGB32)
     image.fill(QColor('#c4d9e9'))
+    for y in range(764, 768):
+        for x in range(1020, 1024):
+            image.setPixelColor(x, y, QColor(x-800, y-600, x+y-1700))
     overlay = FrozenCapture(image, QRect(0,0,1024,768))
     try:
         wait(.3); overlay.show(); wait(.4)
@@ -70,6 +73,16 @@ def worker():
         event(X.KeyRelease, shift)
         wait()
         assert overlay.lens_rect().isEmpty()
+        crop = QRect(overlay.pixel_rect())
+        click(overlay.tool_buttons['Pen'])
+        spin = overlay.stroke_width
+        spin.setFocus()
+        assert spin.hasFocus()
+        width = spin.value()
+        key('Up')
+        wait()
+        assert spin.value() == width + 1 and overlay.pixel_rect() == crop
+
         click(overlay.tool_buttons['Redact'])
         drag((270,270),(330,320))
         marked = overlay.rendered_image()
@@ -105,8 +118,33 @@ def worker():
         cancelled = FrozenCapture(image, QRect(0, 0, 1024, 768))
         cancelled.show()
         wait()
-        drag((60, 80), (220, 240))
+        drag((1020, 764), (1022, 766))
+        crop = QRect(1020, 764, 3, 3)
+        assert cancelled.pixel_rect() == crop
+        button = cancelled.actions['Copy']
+        button.setFocus()
+        assert button.hasFocus()
+        ctrl = server.keysym_to_keycode(XK.string_to_keysym('Control_L'))
+        event(X.KeyPress, ctrl)
+        event(X.KeyPress, shift)
         key('Left')
+        wait()
+        assert cancelled.pixel_rect() == QRect(1020, 764, 2, 3)
+        for _ in range(4):
+            key('Left')
+            key('Up')
+        wait()
+        assert cancelled.pixel_rect() == QRect(1020, 764, 1, 1)
+        for _ in range(5):
+            key('Right')
+            key('Down')
+        wait()
+        expected = QRect(1020, 764, 4, 4)
+        assert cancelled.pixel_rect() == expected
+        assert not cancelled.lens_rect().isEmpty()
+        assert cancelled.rendered_image() == image.copy(expected)
+        event(X.KeyRelease, shift)
+        event(X.KeyRelease, ctrl)
         key('Escape')
         wait()
         assert not cancelled.isVisible() and cancelled.selected_image() is None

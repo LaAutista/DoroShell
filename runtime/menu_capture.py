@@ -181,8 +181,8 @@ class FrozenCapture(QDialog):
         native.setToolTip('Open these pixels in the native window' if native.isEnabled()
                           else 'Install the ScreenGrab PNG importer to open this image.')
         self.set_tool('Select')
-        for child in self.findChildren(QWidget):
-            child.installEventFilter(self)
+        for button in (*self.tool_buttons.values(), *self.actions.values(), self.color_button):
+            button.installEventFilter(self)
 
     def pick_window(self):
         if self.windows:
@@ -485,7 +485,9 @@ class FrozenCapture(QDialog):
         direction = directions.get(event.key())
         modifiers = event.modifiers()
         shift, alt = Qt.KeyboardModifier.ShiftModifier, Qt.KeyboardModifier.AltModifier
-        if (direction is None or modifiers & ~(shift | alt) or self.active_tool != 'Select'
+        alternate_resize = modifiers == (Qt.KeyboardModifier.ControlModifier | shift)
+        if (direction is None or self.active_tool != 'Select'
+                or (not alternate_resize and modifiers & ~(shift | alt))
                 or self.selection.isEmpty() or self.origin is not None):
             return False
         dx, dy = direction
@@ -493,7 +495,7 @@ class FrozenCapture(QDialog):
             dx *= max(1, math.floor(15 * self.image.width() / self.width() + 0.5))
             dy *= max(1, math.floor(15 * self.image.height() / self.height() + 0.5))
         crop = self.raw_selection
-        if modifiers & alt:
+        if alternate_resize or modifiers & alt:
             crop.setRight(max(crop.left(), min(self.image.width()-1, crop.right()+dx)))
             crop.setBottom(max(crop.top(), min(self.image.height()-1, crop.bottom()+dy)))
             target = crop.bottomRight()
