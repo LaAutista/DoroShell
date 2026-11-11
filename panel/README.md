@@ -97,3 +97,9 @@ The builder applies `0003-launcher-identity.patch` after the existing panel/glas
 It joins application-ID and class-based windows to their resolved launcher and
 uses launcher/native icons before the generic fallback. See [matching rules and
 private regression tests](../docs/taskbar-identity.md).
+
+### Pinned launchers under task filters
+
+`0004-filtered-pins.patch` keeps launcher pins visible when all their windows are
+filtered out, with existing-window activation instead of duplicate launches.
+See [behavior and private regression checks](../docs/taskbar-filters.md).
