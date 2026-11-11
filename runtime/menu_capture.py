@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Freeze the desktop before editing. Only confirmed images reach the clipboard."""
+from array import array
+from contextlib import closing
 import argparse
 import math
 import os
@@ -8,11 +10,11 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from PySide6.QtCore import QEvent, QByteArray, QBuffer, QIODevice, QPoint, QRect, QSize, Qt, QTimer, QLockFile, QStandardPaths, QSaveFile
+from PySide6.QtCore import QEvent, QElapsedTimer, QEventLoop, QByteArray, QBuffer, QIODevice, QPoint, QRect, QSize, Qt, QTimer, QLockFile, QStandardPaths, QSaveFile
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPen, QPolygon, QRegion, QCursor, QIcon
 from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QLabel, QPushButton,
                                QWidget, QFileDialog, QMessageBox, QToolButton, QInputDialog, QColorDialog, QSpinBox,
-                               QCheckBox, QDialogButtonBox, QDoubleSpinBox, QFontComboBox, QFormLayout, QLineEdit)
+                               QCheckBox, QDialogButtonBox, QDoubleSpinBox, QFontComboBox, QFormLayout, QLineEdit, QComboBox)
 
 
 REGION_EFFECTS = ('Blur', 'Pixelate')
@@ -110,7 +112,6 @@ def snapshot_desktop():
 
 def x11_window_rectangles():
     """Topmost first, in native root pixels, before the overlay is mapped."""
-    from contextlib import closing
     try:
         from Xlib import X, display, error
     except ImportError:
@@ -143,7 +144,127 @@ def x11_window_rectangles():
     return rectangles
 
 
+def monitor_geometry(native, root_size, desktop):
+    """Map native root edges into the overlay's global logical geometry."""
+    sx = desktop.width()/root_size.width()
+    sy = desktop.height()/root_size.height()
+    left, top = round(native.x()*sx), round(native.y()*sy)
+    right, bottom = round((native.right()+1)*sx), round((native.bottom()+1)*sy)
+    return QRect(desktop.x()+left, desktop.y()+top, right-left, bottom-top)
+
+
+def fresh_capture(monitor, pointer):
+    app = QApplication.instance()
+    if not (monitor or pointer):
+        image, geometry = snapshot_desktop()
+        return FrozenCapture(image, geometry, x11_window_rectangles() if app.platformName() == 'xcb' else ())
+    if app.platformName() != 'xcb':
+        raise RuntimeError('Monitor and pointer recapture require X11.')
+    from Xlib import display, error
+    try:
+        with closing(display.Display()) as server:
+            root = server.screen().root
+            screen = app.screenAt(QCursor.pos()) or app.primaryScreen()
+            location = root.query_pointer()
+            if not location.same_screen:
+                raise RuntimeError('The pointer is on a separate X11 root.')
+            root_geom = root.get_geometry()
+            if root_geom.width*root_geom.height > 100_000_000:
+                raise ValueError('Unsupported virtual desktop dimensions')
+            image = screen.grabWindow(root.id).toImage()
+            if image.size() != QSize(root_geom.width, root_geom.height):
+                raise RuntimeError('Qt could not capture the complete X11 root in native pixels.')
+            image.setDevicePixelRatio(1)
+            area = image.rect()
+            if pointer:
+                if not server.has_extension('XFIXES'):
+                    raise RuntimeError('Including the pointer requires the X11 XFIXES extension.')
+                server.xfixes_query_version()
+                cursor = server.xfixes_get_cursor_image(root)
+                pos = QPoint(cursor.x, cursor.y)
+                pixels = array('I', cursor.cursor_image).tobytes()
+                sprite = QImage(pixels, cursor.width, cursor.height, cursor.width*4,
+                                QImage.Format.Format_ARGB32_Premultiplied)
+                with QPainter(image) as painter:
+                    painter.drawImage(pos-QPoint(cursor.xhot, cursor.yhot), sprite)
+            else:
+                pos = QPoint(location.root_x, location.root_y)
+            if monitor:
+                heads = []
+                if hasattr(root, 'xrandr_get_monitors'):
+                    heads = [QRect(h.x, h.y, h.width_in_pixels, h.height_in_pixels)
+                             for h in root.xrandr_get_monitors().monitors]
+                if not heads and server.has_extension('XINERAMA') and server.xinerama_is_active():
+                    heads = [QRect(h.x, h.y, h.width, h.height) for h in server.xinerama_query_screens().screens]
+                if not heads and len(screen.virtualSiblings()) == 1:
+                    heads = [area]
+                area = next((h.intersected(area) for h in heads if h.contains(pos)), QRect())
+                if area.isEmpty():
+                    raise RuntimeError('The X11 monitor under the pointer could not be identified.')
+    except (error.DisplayError, error.XError) as exc:
+        raise RuntimeError('X11 could not read the requested monitor or pointer.') from exc
+    geometry = monitor_geometry(area, image.size(), screen.virtualGeometry())
+    if monitor and len(screen.virtualSiblings()) > 1:
+        geometry = screen.geometry()
+    windows = [rect.translated(-area.topLeft()) for rect in x11_window_rectangles()]
+    return FrozenCapture(image.copy(area) if monitor else image, geometry, windows)
+
+
+def countdown(seconds):
+    if seconds == 0:
+        return True
+    panel = QDialog(None, Qt.WindowType.Dialog | Qt.WindowType.WindowStaysOnTopHint |
+                    Qt.WindowType.FramelessWindowHint)
+    panel.setWindowTitle('Capture countdown')
+    layout = QFormLayout(panel)
+    label = QLabel()
+    layout.addRow(label)
+    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
+    buttons.rejected.connect(panel.reject)
+    layout.addRow(buttons)
+    elapsed = QElapsedTimer()
+    elapsed.start()
+    def tick():
+        remaining = math.ceil((seconds*1000-elapsed.elapsed())/1000)
+        if remaining <= 0:
+            panel.accept()
+        else:
+            label.setText(f'Capturing in {remaining} s')
+    timer = QTimer(panel)
+    timer.timeout.connect(tick)
+    tick()
+    timer.start(100)
+    finished = panel.exec() == QDialog.DialogCode.Accepted
+    timer.stop()
+    panel.deleteLater()
+    return finished
+
+
+def edit_capture(editor):
+    while True:
+        outcome = editor.exec()
+        if outcome != FrozenCapture.NEW_CAPTURE:
+            return editor.selected_image()
+        monitor, seconds, pointer = editor.capture_request
+        if not countdown(seconds):
+            continue
+        # Let X11 unmap both dialogs and exposed clients repaint before sampling.
+        QApplication.sync()
+        settle = QEventLoop()
+        QTimer.singleShot(150, settle.quit)
+        settle.exec()
+        try:
+            replacement = fresh_capture(monitor, pointer)
+        except (ImportError, OSError, ValueError, MemoryError, RuntimeError) as exc:
+            QMessageBox.warning(None, 'New capture', str(exc))
+        else:
+            editor.deleteLater()
+            editor = replacement
+
+
 class FrozenCapture(QDialog):
+    NEW_CAPTURE = 2
+
     def __init__(self, image, geometry, windows=()):
         super().__init__(None, Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         if image.isNull() or geometry.isEmpty():
@@ -236,7 +357,7 @@ class FrozenCapture(QDialog):
         actions.addWidget(self.help,0,0)
         self.actions = {}
         for i,(label,action) in enumerate([('Window',self.pick_window),('Undo',self.undo),('Redo',self.redo),('Copy',self.accept),
-                ('Save…',self.choose_save),('Open in ScreenGrab',self.native_window),('Cancel',self.reject)],1):
+                ('Save…',self.choose_save),('Open in ScreenGrab',self.native_window),('New capture…',self.new_capture),('Cancel',self.reject)],1):
             button=QPushButton(label)
             self.actions[label]=button
             button.setAutoDefault(False)
@@ -256,6 +377,34 @@ class FrozenCapture(QDialog):
             bar.installEventFilter(self)
         for button in (*self.tool_buttons.values(), *self.actions.values(), self.color_button):
             button.installEventFilter(self)
+
+    def new_capture(self):
+        options = QDialog(self)
+        options.setWindowTitle('New capture')
+        form = QFormLayout(options)
+        scope = QComboBox()
+        scope.addItem('Full desktop')
+        x11 = QApplication.platformName() == 'xcb'
+        if x11:
+            scope.addItem('Monitor under pointer')
+        form.addRow('&Area', scope)
+        delay = QSpinBox()
+        delay.setRange(0, 60)
+        delay.setSuffix(' s')
+        form.addRow('&Delay', delay)
+        pointer = QCheckBox('Include &pointer (X11)')
+        pointer.setEnabled(x11)
+        form.addRow(pointer)
+        form.addRow(QLabel('Starting a new capture replaces this edit.'))
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText('Start capture')
+        buttons.accepted.connect(options.accept)
+        buttons.rejected.connect(options.reject)
+        form.addRow(buttons)
+        if options.exec() == QDialog.DialogCode.Accepted:
+            self.capture_request = (scope.currentIndex() == 1, delay.value(), pointer.isChecked())
+            self.done(self.NEW_CAPTURE)
+        options.deleteLater()
 
     def pick_window(self):
         if self.windows:
@@ -1023,9 +1172,7 @@ def main():
             windows = x11_window_rectangles()
         image, geometry=snapshot_desktop()
     if args.notify: print('FROZEN',flush=True)
-    dialog=FrozenCapture(image,geometry,windows)
-    dialog.exec()
-    image=dialog.selected_image()
+    image=edit_capture(FrozenCapture(image,geometry,windows))
     if image is None:
         return 0
     if args.output:

@@ -7,11 +7,12 @@ from Xlib import X, display, XK
 from Xlib.ext import xtest
 
 def worker():
+    from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QImage
     assert os.environ['DISPLAY'] == os.environ['DOROSHELL_NESTED_DISPLAY']
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-    from runtime.menu_capture import snapshot_desktop
+    from runtime.menu_capture import fresh_capture, snapshot_desktop
     app=QApplication([])
     d=display.Display(); r=d.screen().root
     panes=[]
@@ -26,6 +27,29 @@ def worker():
     print('Xinerama heads', [(h.x,h.y,h.width,h.height) for h in heads],flush=True)
     image, bounds=snapshot_desktop()
     print('snapshot',bounds,image.size(), flush=True)
+    for x, color in ((120, '#ff0000'), (800, '#0000ff')):
+        r.warp_pointer(x, 200)
+        d.sync()
+        app.processEvents()
+        editor = fresh_capture(True, False)
+        actual = editor.rendered_image()
+        assert actual.size().toTuple() == (640, 480), actual.size()
+        expected = QImage(actual.size(), actual.format())
+        expected.fill(color)
+        assert actual == expected, (x, editor.geometry(), r.query_pointer().root_x)
+    # A 9x5 solid cursor at (641,200), hotspot (4,2), crosses into the left head.
+    bits = r.create_pixmap(9, 5, 1)
+    bits.fill_rectangle(bits.create_gc(foreground=1), 0, 0, 9, 5)
+    cursor = bits.create_cursor(bits, (65535,65535,0), (0,0,0), 4, 2)
+    panes[1].change_attributes(cursor=cursor)
+    r.warp_pointer(641, 200)
+    d.sync()
+    editor = fresh_capture(True, True)
+    actual = editor.rendered_image()
+    for y in range(198, 203):
+        for x in range(6):
+            expected.setPixelColor(x, y, Qt.GlobalColor.yellow)
+    assert actual == expected, 'Pointer on right monitor must clip at its native left boundary'
     with tempfile.TemporaryDirectory() as tmp:
         out=Path(tmp)/'cross.png'
         p=subprocess.Popen([sys.executable,str(Path(__file__).resolve().parents[1]/'runtime/menu_capture.py'),'--output',out])
@@ -41,7 +65,7 @@ def worker():
             assert im.pixelColor(5,5).name()=='#ff0000' and im.pixelColor(im.width()-5,5).name()=='#0000ff'
         finally:
             if p.poll() is None:p.kill();p.wait()
-    print('PASS region straddles two distinct virtual monitors',flush=True)
+    print('PASS exact monitor selection, clipped cursor and cross-head region',flush=True)
 
 def nested(xephyr):
     assert os.environ.get('DOROSHELL_TEST_DISPLAY')==os.environ['DISPLAY']

@@ -5,11 +5,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 import shiboken6
-from PySide6.QtCore import QRect, QPoint, Qt, QTimer
+from PySide6.QtCore import QRect, QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QFont, QImage, QColor, QPainter
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialogButtonBox, QLineEdit, QFontComboBox, QCheckBox, QDoubleSpinBox
-from runtime.menu_capture import FrozenCapture, publish, compose_screens
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QLineEdit, QFontComboBox, QCheckBox, QDoubleSpinBox, QSpinBox
+from runtime.menu_capture import FrozenCapture, publish, compose_screens, monitor_geometry
 
 class MenuCaptureTests(unittest.TestCase):
     @classmethod
@@ -565,3 +565,26 @@ class MenuCaptureTests(unittest.TestCase):
         self.assertEqual(observed, [True, True, True])
         self.assertEqual(dialog.strokes, [])
         self.assertEqual(dialog.undo_stack, [])
+
+    def test_native_monitor_edges_map_into_negative_logical_desktop(self):
+        desktop = QRect(-1280, -100, 2560, 720)
+        root = QSize(3840, 1080)
+        self.assertEqual(monitor_geometry(QRect(0, 0, 1920, 1080), root, desktop),
+                         QRect(-1280, -100, 1280, 720))
+        self.assertEqual(monitor_geometry(QRect(1920, 0, 1920, 1080), root, desktop),
+                         QRect(0, -100, 1280, 720))
+
+    def test_new_capture_options_cancel_preserves_old_edit(self):
+        dialog = FrozenCapture(self.image(), QRect(0, 0, 400, 300))
+        self.addCleanup(shiboken6.delete, dialog)
+        self.select(dialog)
+        before = dialog.rendered_image()
+        def cancel_options():
+            form = self.app.activeModalWidget()
+            form.findChild(QSpinBox).setValue(7)
+            QTest.keyClick(form, Qt.Key.Key_Escape)
+        QTimer.singleShot(0, cancel_options)
+        dialog.actions['New capture…'].click()
+        self.assertTrue(dialog.isVisible())
+        self.assertFalse(hasattr(dialog, 'capture_request'))
+        self.assertEqual(dialog.rendered_image(), before)

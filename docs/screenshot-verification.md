@@ -2,6 +2,14 @@
 
 Print uses a DoroShell Qt Widgets overlay on X11. Its interaction follows the Plasma 6.4 capture announcement. KDE’s CaptureOverlay.qml carries LGPL-2.0-or-later and uses private Spectacle components. DoroShell implements its overlay independently and does not bundle KDE code. The optional private build of ScreenGrab 3.2.0 adds a PNG input flag and shows the imported pixmap in its native main window. The builder pins the upstream commit and keeps its corresponding source. The changes to ScreenGrab are licensed under GPL-2.0-or-later, matching the modified upstream files. The upstream license text is included in `screengrab/COPYING`. [Plasma 6.4 announcement](https://kde.org/announcements/plasma/6/6.4.0/) · [Spectacle overlay source](https://github.com/KDE/spectacle/blob/v6.4.0/src/Gui/CaptureOverlay.qml) · [LXQt ScreenGrab CLI source](https://github.com/lxqt/screengrab/blob/3.2.0/src/core/core.cpp).
 
+## New capture, monitor and pointer options
+
+Print freezes the desktop immediately. When Start is open, its menu remains visible in that first frozen frame. Enter with no region selected copies the full frame.
+
+Choose **New capture…** in the overlay for a fresh frame. Each opening defaults to full desktop, zero delay and pointer off. On X11, **Monitor under pointer** takes only the head containing the pointer hotspot at capture time. After a monitor capture, Enter copies that monitor. A delay of 1–60 seconds shows a countdown. Move the pointer to the desired monitor before it ends. **Cancel** in the options or countdown returns to the previous edit, including its annotations and crop. Escape in the editor cancels the entire capture. A successful retake replaces the previous edit and opens the new frame for editing before anything is copied.
+
+The editor and countdown close before sampling, with a short repaint interval. An explicit retake sees the then-visible desktop, so a Start menu already dismissed after the initial Print is absent. **Include pointer** reads the X11 XFixes cursor image and hotspot in native root pixels. At monitor edges only the visible portion is included. Unsupported root geometry, missing XFixes or capture failure returns to the previous edit. The cursor and desktop are separate server reads, so a rapidly moving or animated pointer can differ slightly in time from the desktop pixels. Private X11 coverage includes a timed color change, countdown cancellation, exact hotspot placement and two Xinerama heads at 100% and 150%. Physical mixed-DPI monitors, third-party compositor animations and Wayland recapture are unverified.
+
 ## Precision selection
 
 With **Select** active, drag to create, move or resize a region. The magnifier shows an 11 × 11 patch of the frozen image around the pointer. Each source pixel fills a 7 × 7 logical-pixel cell. The outlined center cell marks the sampled pixel. Black padding marks space outside the image. The lens stays on the target screen, clears the handles and both toolbars, and hides if there is insufficient room.
@@ -54,6 +62,7 @@ Effects paint first. Where two effects overlap, the most recently drawn effect s
 From the checkout, the clipboard and cross-monitor checks are:
 
 ```sh
+python tests/check_recapture_x11.py --run --xvfb /path/to/Xvfb
 python tests/check_window_capture_x11.py --run --xvfb /path/to/Xvfb
 python tests/check_screengrab_import_x11.py --run --xvfb /path/to/Xvfb --binary /path/to/import-enabled/screengrab
 python tests/check_menu_clipboard_x11.py --run --xvfb /path/to/Xvfb
