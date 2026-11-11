@@ -111,7 +111,7 @@ def snapshot_desktop():
 
 
 def x11_window_rectangles():
-    """Topmost first, in native root pixels, before the overlay is mapped."""
+    """Frozen (client, frame) bounds in native root pixels, topmost first."""
     try:
         from Xlib import X, display, error
     except ImportError:
@@ -131,12 +131,13 @@ def x11_window_rectangles():
                         continue
                     geom = window.get_geometry()
                     pos = root.translate_coords(window, 0, 0)
-                    rect = QRect(pos.x, pos.y, geom.width, geom.height)
+                    client = QRect(pos.x, pos.y, geom.width, geom.height)
+                    frame = client
                     extents = prop(window, '_NET_FRAME_EXTENTS')
                     if len(extents) == 4:
                         left, right, top, bottom = map(int, extents)
-                        rect.adjust(-left, -top, right, bottom)
-                    rectangles.append(rect)
+                        frame = client.adjusted(-left, -top, right, bottom)
+                    rectangles.append((client, frame))
                 except error.XError:
                     continue  # A client may disappear while freezing the desktop.
     except (error.DisplayError, error.XError, OSError):
@@ -206,7 +207,8 @@ def fresh_capture(monitor, pointer):
     geometry = monitor_geometry(area, image.size(), screen.virtualGeometry())
     if monitor and len(screen.virtualSiblings()) > 1:
         geometry = screen.geometry()
-    windows = [rect.translated(-area.topLeft()) for rect in x11_window_rectangles()]
+    windows = [(client.translated(-area.topLeft()), frame.translated(-area.topLeft()))
+               for client, frame in x11_window_rectangles()]
     return FrozenCapture(image.copy(area) if monitor else image, geometry, windows)
 
 
@@ -274,7 +276,11 @@ class FrozenCapture(QDialog):
         self.origin = None
         self.original = QRect()
         self.raw_selection = QRect()
-        self.windows = [r.intersected(image.rect()) for r in windows if r.intersects(image.rect())]
+        self.windows = []
+        for bounds in windows:
+            client, frame = (bounds, bounds) if isinstance(bounds, QRect) else bounds
+            if frame.intersects(image.rect()):
+                self.windows.append((client.intersected(image.rect()), frame.intersected(image.rect())))
         self.hover_window = QRect()
         self.drag = ''
         self.lens_pixel = None
@@ -363,6 +369,11 @@ class FrozenCapture(QDialog):
             button.setAutoDefault(False)
             button.clicked.connect(action)
             actions.addWidget(button,0,i)
+        self.window_borders = QCheckBox('Include titlebar and borders')
+        self.window_borders.setChecked(True)
+        self.window_borders.setToolTip('Toggle window decorations (B)')
+        self.window_borders.toggled.connect(self.refresh_window_hover)
+        actions.addWidget(self.window_borders, 0, len(self.actions)+1)
         window_button = self.actions['Window']
         window_button.setCheckable(True)
         window_button.setEnabled(bool(self.windows))
@@ -412,7 +423,14 @@ class FrozenCapture(QDialog):
 
     def window_at(self, position):
         point = self.raw_point(position)
-        return next((r for r in self.windows if r.contains(point)), QRect())
+        for client, frame in self.windows:
+            if frame.contains(point):
+                return frame if self.window_borders.isChecked() else client
+        return QRect()
+
+    def refresh_window_hover(self):
+        self.hover_window = self.window_at(self.mapFromGlobal(QCursor.pos()))
+        self.update()
 
     def view_rect(self, rect):
         if rect.isEmpty():
@@ -433,6 +451,7 @@ class FrozenCapture(QDialog):
         self.active_tool=name
         self.hover_window = QRect()
         self.actions['Window'].setChecked(name == 'Window')
+        self.window_borders.setVisible(name == 'Window')
         self.actions['Save…'].setEnabled(name != 'Window')
         self.actions['Copy'].setEnabled(name != 'Window')
         self.actions['Open in ScreenGrab'].setEnabled(name != 'Window' and os.access(self.native_binary,os.X_OK))
@@ -1044,6 +1063,8 @@ class FrozenCapture(QDialog):
             self.change_selected(None)
         elif self.active_tool == 'Edit marks' and self.origin is None and event.key() == Qt.Key.Key_F2:
             self.edit_label()
+        elif self.active_tool == 'Window' and event.key() == Qt.Key.Key_B and not event.modifiers():
+            self.window_borders.toggle()
         elif event.key()==Qt.Key.Key_W and self.origin is None and not event.modifiers():
             self.pick_window()
         elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key()==Qt.Key.Key_Z:

@@ -10,6 +10,12 @@ Choose **New capture…** in the overlay for a fresh frame. Each opening default
 
 The editor and countdown close before sampling, with a short repaint interval. An explicit retake sees the then-visible desktop, so a Start menu already dismissed after the initial Print is absent. **Include pointer** reads the X11 XFixes cursor image and hotspot in native root pixels. At monitor edges only the visible portion is included. Unsupported root geometry, missing XFixes or capture failure returns to the previous edit. The cursor and desktop are separate server reads, so a rapidly moving or animated pointer can differ slightly in time from the desktop pixels. Private X11 coverage includes a timed color change, countdown cancellation, exact hotspot placement and two Xinerama heads at 100% and 150%. Physical mixed-DPI monitors, third-party compositor animations and Wayland recapture are unverified.
 
+## Window borders
+
+Press **W** or click **Window**. **Include titlebar and borders** starts checked for each capture. Clear it, or press **B**, to crop to the client area. The preview follows the setting. Clicking the topmost window’s titlebar selects that window in either mode. After selection, Enter copies the crop and Escape cancels. The choice lasts for this frozen editor.
+
+Both rectangles come from the X11 geometry recorded at freeze time. The frame uses the window manager’s reported frame extents. Where extents are absent, both modes use the client rectangle. Titlebars drawn by the application itself remain part of the client image. Crops are clipped to the captured screen or monitor. They include any overlapping windows exactly as they appeared in the frozen image. A frame whose client is entirely outside the captured area can only be selected with borders included. Popups are not grouped with their parent, and no extra margin is added for compositor shadows.
+
 ## Precision selection
 
 With **Select** active, drag to create, move or resize a region. The magnifier shows an 11 × 11 patch of the frozen image around the pointer. Each source pixel fills a 7 × 7 logical-pixel cell. The outlined center cell marks the sampled pixel. Black padding marks space outside the image. The lens stays on the target screen, clears the handles and both toolbars, and hides if there is insufficient room.

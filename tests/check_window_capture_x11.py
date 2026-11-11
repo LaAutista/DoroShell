@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def worker():
-    from PySide6.QtCore import QPoint, QRect, Qt
+    from PySide6.QtCore import QPoint, QRect
     from PySide6.QtGui import QImage
     from PySide6.QtWidgets import QApplication, QWidget
     from Xlib import X, XK, display
@@ -35,7 +35,7 @@ def worker():
         back.setStyleSheet('background: #c02040')
         back.resize(220, 165)
         back.show()
-        front = QWidget(None, Qt.WindowType.FramelessWindowHint)
+        front = QWidget()
         front.setStyleSheet('background: #1675ae')
         front.resize(190, 145)
         front.show()
@@ -44,55 +44,75 @@ def worker():
         front.move(75, 155)
         front.raise_()
         wait(.4)
-        def frame(widget):
+        def bounds(widget):
             client = server.create_resource_object('window', int(widget.winId()))
             frame_window = client.query_tree().parent
             if frame_window.id == root.id:
                 frame_window = client
-            position = root.translate_coords(frame_window, 0, 0)
-            size = frame_window.get_geometry()
-            return QRect(position.x, position.y, size.width, size.height)
-        raw = app.primaryScreen().grabWindow(0).toImage()
-        lower = frame(back)
-        assert lower.left() < 0 and lower.right() > 0, lower
-        upper = frame(front)
-        overlap = lower.intersected(upper)
-        assert not overlap.isEmpty() and lower.left() < upper.left()
-        for i, (point, rect) in enumerate(((overlap.center(), upper), (lower.intersected(raw.rect()).topLeft() + QPoint(12, 38), lower))):
+            def rect(window):
+                position = root.translate_coords(window, 0, 0)
+                size = window.get_geometry()
+                return QRect(position.x, position.y, size.width, size.height)
+            return rect(client), rect(frame_window)
+        lower_client, lower = bounds(back)
+        upper_client, upper = bounds(front)
+        assert lower_client.left() < 0 < lower_client.right()
+        assert lower.top() < lower_client.top() and upper.top() < upper_client.top()
+        overlap = lower_client.intersected(upper_client)
+        upper_title = QPoint(upper_client.left()+8, upper_client.top()-4)
+        lower_title = QPoint(12, lower_client.top()-4)
+        assert lower_client.contains(upper_title) and upper.contains(upper_title)
+        assert lower.contains(lower_title) and not upper.contains(lower_title)
+        app.clipboard().setText('window picker sentinel')
+        cases = [(overlap.center(), upper, True), (upper_title, upper_client, False),
+                 (lower_title, lower, True), (lower_title, lower_client, False),
+                 (lower_title, lower_client, False)]
+        for i, (point, rect, include_borders) in enumerate(cases):
+            raw = app.primaryScreen().grabWindow(0).toImage()
             expected = rect.intersected(raw.rect())
+            cancel = i == len(cases)-1
             out = Path.home() / f'window-{i}.png'
-            command = [sys.executable, ROOT/'runtime/menu_capture.py', '--notify', '--output', out]
+            command = [sys.executable, ROOT/'runtime/menu_capture.py', '--notify']
+            if not cancel:
+                command.extend(['--output', out])
             proc = subprocess.Popen(command, stdout=subprocess.PIPE)
             try:
                 assert proc.stdout.readline() == b'FROZEN\n'
                 wait(.4)
                 # Change the underlying client after freezing. Output must still match every old pixel.
                 front.setStyleSheet('background: #003300')
+                front.move(320, 40)
                 wait(.1)
                 def key(name):
                     code = server.keysym_to_keycode(XK.string_to_keysym(name))
                     for kind in (X.KeyPress, X.KeyRelease):
                         xtest.fake_input(server, kind, code)
                 key('w')
+                if not include_borders:
+                    key('b')
                 xtest.fake_input(server, X.MotionNotify, x=point.x(), y=point.y())
                 xtest.fake_input(server, X.ButtonPress, 1)
                 xtest.fake_input(server, X.ButtonRelease, 1)
                 server.sync()
                 wait(.15)
-                key('Return')
+                key('Escape' if cancel else 'Return')
                 server.sync()
                 assert proc.wait(timeout=5) == 0
-                image = QImage(str(out)).convertToFormat(QImage.Format.Format_RGB32)
-                wanted = raw.copy(expected).convertToFormat(QImage.Format.Format_RGB32)
-                wanted.setDevicePixelRatio(1)
-                assert image == wanted, (image.size(), expected)
+                if cancel:
+                    assert app.clipboard().text() == 'window picker sentinel'
+                else:
+                    image = QImage(str(out)).convertToFormat(QImage.Format.Format_RGB32)
+                    wanted = raw.copy(expected).convertToFormat(QImage.Format.Format_RGB32)
+                    wanted.setDevicePixelRatio(1)
+                    assert image == wanted, (i, image.size(), expected)
             finally:
                 if proc.poll() is None:
                     proc.terminate()
                     proc.wait(timeout=5)
+            front.move(75, 155)
             front.setStyleSheet('background: #1675ae')
             wait(.2)
-        print('PASS overlapping windows, clipped decorated frame and frozen pixels at scale', os.environ['QT_SCALE_FACTOR'])
+        print('PASS frozen frame/client crops, topmost titlebar hit, offscreen clipping and Escape clipboard at scale', os.environ['QT_SCALE_FACTOR'])
     finally:
         server.close()
         manager.terminate()

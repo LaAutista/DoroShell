@@ -311,7 +311,7 @@ The opt-in `dbus-run-session -- python tests/check_start_drag_x11.py --run` chec
 
 Press **Print Screen** with Start open or closed. Drag to select, drag inside the selection to move it, or pull its handles to resize. The toolbar reports the selected size in pixels. Choose an annotation tool above the selection. **Color** sets the ink or highlighter color, and the width control sets the stroke in pixels. Each mark retains the settings it was drawn with. Ctrl+Z undoes an annotation and Ctrl+Shift+Z redoes it.
 
-**Window** (W) highlights the topmost application under the pointer. Click to select its visible frame. Pixels covered by other windows stay as they appeared when Print was pressed.
+**Window** (W) highlights the topmost application under the pointer. Click to select its visible frame. Clear **Include titlebar and borders** (B) for the client area alone. Pixels covered by other windows stay as they appeared when Print was pressed.
 
 **Enter**, **Copy**, or **Ctrl+C** copies the selection, or the full desktop when there is no selection. **Save** or **Ctrl+S** saves the final pixels as a PNG and copies them. Cancelling the save dialog returns to editing. **Escape** or **Cancel** closes the overlay and preserves the clipboard. On X11 a separate owner supplies the image after the editor exits and releases it when replaced.
 
