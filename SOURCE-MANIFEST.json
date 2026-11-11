@@ -1,12 +1,12 @@
 {
   "format": 6,
-  "candidate": "doroshell-source-20261111-taskbar-display",
-  "published_ancestor": "d9dbdf35feff99dfda5a6fdf261c9bf1d05c913f",
+  "candidate": "doroshell-source-20261111-screenshot",
+  "published_ancestor": "1f687d2ab01a09774baf8baf6bf1ec538221e745",
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 215,
-    "command": "python -m unittest discover -s tests -v",
-    "note": "Source-only integration. Private native identity, pin, drag and display checks passed separately. Live grouping and desktop-only activation checked; login, clean install and physical display rollback remain unverified."
+    "passed": 229,
+    "command": "python -m unittest discover -s tests -q",
+    "note": "Independent temporary-home unit suite passed. Private X11 editing and delayed recapture checks passed; synthetic screenshot pixels only. Physical mixed-DPI, compositor animations, Wayland, real login and clean install remain unverified. See docs/screenshot-verification.md."
   },
   "source_payloads": [
     {
@@ -191,8 +191,8 @@
     },
     {
       "path": "docs/screenshot-verification.md",
-      "sha256": "44a010467184ffce5a26247ba8b46fc929d0a258076cd540d4aa5caffa6db1ea",
-      "size": 4351,
+      "sha256": "988d7cc89003acb6ed96ba3b2cbb0f866c3767e84479a8fcf21ae8b5d38613a2",
+      "size": 12555,
       "mode": "0o644"
     },
     {
@@ -371,8 +371,8 @@
     },
     {
       "path": "runtime/menu_capture.py",
-      "sha256": "fa73b01a794feb4d2c55b9e998164558ab348610ae12da4b3e77ef3fa837a38d",
-      "size": 26750,
+      "sha256": "edb548dedeb0714468c6eaa035a95e0da206c96cef3857dec586724dfb47e670",
+      "size": 56203,
       "mode": "0o644"
     },
     {
@@ -527,14 +527,14 @@
     },
     {
       "path": "tests/check_overlay_editing_x11.py",
-      "sha256": "5c3cc9d458821c1e68567f0d7a4bfdf1745f492f2ab9e37461e3f2b2d2c1da6c",
-      "size": 4740,
+      "sha256": "048a527b94e521b88b711acf5b12ed1f043e56b628ad39e1c3e8c786dac8abf6",
+      "size": 14449,
       "mode": "0o644"
     },
     {
       "path": "tests/check_overlay_multimonitor_x11.py",
-      "sha256": "94ddc3357be6df5c86c7fb2f95677839ffa8faddfde1078e862fc2150410aad4",
-      "size": 4042,
+      "sha256": "29dbd559affe06beabe2f3eea12201bc9d130188739cdb103323ec393ab45be6",
+      "size": 5199,
       "mode": "0o644"
     },
     {
@@ -568,6 +568,12 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/check_recapture_x11.py",
+      "sha256": "c9b10e35f6daf3441392d8b38e48b65d3c23254660386428ad93dc815c1ac0c8",
+      "size": 7086,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/check_recent_controls_x11.py",
       "sha256": "74cbadfca3db413104ff0e699f06045a7bd792f3238e800033940d55ee7909e5",
       "size": 3235,
@@ -575,8 +581,8 @@
     },
     {
       "path": "tests/check_screengrab_import_x11.py",
-      "sha256": "cab2e83f2d2943d27d7561fa8f06437dc0971290d43ee9a836d59d87209b2d03",
-      "size": 4746,
+      "sha256": "1d715440aa0d49c64a21dca2536bdab8d15b233776599f038020bb16d24c65b6",
+      "size": 5889,
       "mode": "0o644"
     },
     {
@@ -779,8 +785,8 @@
     },
     {
       "path": "tests/test_menu_capture.py",
-      "sha256": "1b8d785770ef64f9715beff78729e96c0dafc5bbe3ea7e8208695d07b153f8dd",
-      "size": 7136,
+      "sha256": "43f759d8b10b62e59edf9dd4b986617d3130f357c2a4a85c35083a5db16470b6",
+      "size": 29787,
       "mode": "0o644"
     },
     {
