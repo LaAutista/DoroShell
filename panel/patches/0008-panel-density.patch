@@ -1,0 +1,104 @@
+diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
+index 79ad996..2205657 100644
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp
+@@ -35,6 +35,9 @@
+ #include <QFrame>
+ #include <QPainter>
+ #include <QGridLayout>
++#include <QVBoxLayout>
++#include <QScrollArea>
++#include <QScrollBar>
+ #include <QScreen>
+ #include <QKeyEvent>
+ #include <QDBusMessage>
+@@ -393,7 +396,11 @@ void StatusNotifierWidget::showOverflow()
+     popup->setAccessibleName(tr("Hidden notification icons"));
+     popup->setAttribute(Qt::WA_DeleteOnClose);
+     popup->setFrameShape(QFrame::StyledPanel);
+-    auto grid = new QGridLayout(popup);
++    auto contents = new QWidget(popup);
++    auto layout = new QVBoxLayout(popup);
++    layout->setContentsMargins(0, 0, 0, 0);
++    layout->addWidget(contents);
++    auto grid = new QGridLayout(contents);
+     grid->setContentsMargins(8, 8, 8, 8);
+     grid->setSpacing(4);
+     int count = 0;
+@@ -405,7 +412,7 @@ void StatusNotifierWidget::showOverflow()
+         if (!original || original->isVisible())
+             continue;
+         const int slash = service.indexOf(QLatin1Char('/'));
+-        auto button = new OverflowButton(service.left(slash), service.mid(slash), mPlugin, popup);
++        auto button = new OverflowButton(service.left(slash), service.mid(slash), mPlugin, contents);
+         button->setAutoHide(false);
+         button->setFixedSize(36, 36);
+         button->setFocusPolicy(Qt::StrongFocus);
+@@ -420,9 +427,29 @@ void StatusNotifierWidget::showOverflow()
+     }
+     mOverflow = popup;
+     popup->ensurePolished();
+-    popup->setFixedSize(popup->sizeHint());
++    contents->adjustSize();
+     auto anchor = mShowBtn->mapToGlobal(QPoint(0, 0));
+     auto bounds = mShowBtn->screen()->availableGeometry();
++    QSize limit = bounds.size();
++    if (mPlugin->panel()->isHorizontal()) limit.rheight() -= mShowBtn->height();
++    else limit.rwidth() -= mShowBtn->width();
++    limit = limit.expandedTo(QSize(1, 1));
++    QSize size = popup->sizeHint();
++    if (size.width() > limit.width() || size.height() > limit.height())
++    {
++        layout->removeWidget(contents);
++        auto scroll = new QScrollArea(popup);
++        scroll->setFrameShape(QFrame::NoFrame);
++        scroll->setFocusPolicy(Qt::NoFocus);
++        scroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
++        scroll->setWidget(contents);
++        contents->setAutoFillBackground(false);
++        scroll->viewport()->setAutoFillBackground(false);
++        layout->addWidget(scroll);
++        if (size.height() > limit.height()) size.rwidth() += scroll->verticalScrollBar()->sizeHint().width();
++        if (size.width() > limit.width()) size.rheight() += scroll->horizontalScrollBar()->sizeHint().height();
++    }
++    popup->setFixedSize(size.boundedTo(limit));
+     QPoint position(anchor.x(), anchor.y() - popup->height());
+     if (mPlugin->panel()->position() == ILXQtPanel::PositionTop)
+         position.setY(anchor.y() + mShowBtn->height());
+diff --git a/plugin-taskbar/lxqttaskbutton.cpp b/plugin-taskbar/lxqttaskbutton.cpp
+index f74e469..fefe539 100644
+--- a/plugin-taskbar/lxqttaskbutton.cpp
++++ b/plugin-taskbar/lxqttaskbutton.cpp
+@@ -63,12 +63,17 @@ void LeftAlignedTextStyle::drawItemText(QPainter * painter, const QRect & rect,
+             , const QPalette & pal, bool enabled, const QString & text
+             , QPalette::ColorRole textRole) const
+ {
+-    QString txt = text;
+-    // get the button text because the text that's given to this function may be middle-elided
+     if (const QToolButton *tb = dynamic_cast<const QToolButton*>(painter->device()))
+-        txt = tb->text();
+-    txt = QFontMetrics(painter->font()).elidedText(txt, Qt::ElideRight, rect.width());
+-    QProxyStyle::drawItemText(painter, rect, (flags & ~Qt::AlignHCenter) | Qt::AlignLeft, pal, enabled, txt, textRole);
++    {
++        // The button text supplied by Qt may already be middle-elided.
++        const QString txt = QFontMetrics(painter->font()).elidedText(tb->text(), Qt::ElideRight, rect.width());
++        QProxyStyle::drawItemText(painter, rect, (flags & ~Qt::AlignHCenter) | Qt::AlignLeft, pal, enabled, txt, textRole);
++    }
++    else
++    {
++        // Tooltips inherit this style too; retain their text and wrapping flags.
++        QProxyStyle::drawItemText(painter, rect, flags, pal, enabled, text, textRole);
++    }
+ }
+ 
+ 
+@@ -129,8 +134,8 @@ void LXQtTaskButton::updateText()
+ {
+     if (!mWindow) return;
+     QString title = mBackend->getWindowTitle(mWindow);
+-    setTextExplicitly(title.replace(QStringLiteral("&"), QStringLiteral("&&")));
+     setToolTip(title);
++    setTextExplicitly(title.replace(QStringLiteral("&"), QStringLiteral("&&")));
+ }
+ 
+ /************************************************

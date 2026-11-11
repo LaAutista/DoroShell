@@ -7,7 +7,7 @@ import tempfile
 import time
 
 
-def isolated(xvfb, command):
+def isolated(xvfb, command, geometry='1024x768x24'):
     with tempfile.TemporaryDirectory(prefix='doroshell-private-display-') as tmp:
         base=Path(tmp);auth=base/'Xauthority';auth.touch(mode=0o600)
         number=next(n for n in range(120,220) if not Path(f'/tmp/.X11-unix/X{n}').exists() and not Path(f'/tmp/.X{n}-lock').exists())
@@ -23,7 +23,7 @@ def isolated(xvfb, command):
         # No inherited Wayland socket or session bus can route a test to personal applications.
         env.pop('WAYLAND_DISPLAY',None);env.pop('DBUS_SESSION_BUS_ADDRESS',None)
         with open(base/'xvfb.log','w') as log:
-            server=subprocess.Popen([str(xvfb),screen,'-screen','0','1024x768x24','-nolisten','tcp','-auth',str(auth)],stdout=log,stderr=log)
+            server=subprocess.Popen([str(xvfb),screen,'-screen','0',geometry,'-nolisten','tcp','-auth',str(auth)],stdout=log,stderr=log)
             try:
                 deadline=time.monotonic()+5
                 while not Path(f'/tmp/.X11-unix/X{number}').exists():

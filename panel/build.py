@@ -27,7 +27,7 @@ def build(work, jobs):
         actual = subprocess.check_output(['git','rev-parse','HEAD'], cwd=target, text=True).strip()
         if actual != revision:
             raise RuntimeError('Upstream tag changed; refusing unreviewed source')
-    for patch in ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch'):
+    for patch in ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch'):
         run(['git','apply','--check',ROOT/'patches'/patch], cwd=work/'source')
         run(['git','apply',ROOT/'patches'/patch], cwd=work/'source')
     deps, prefix = work/'deps', work/'runtime'
@@ -42,7 +42,7 @@ def build(work, jobs):
     shutil.copytree(stage/str(prefix).lstrip('/'),prefix,dirs_exist_ok=True)
     notices=prefix/'share/doroshell-panel';notices.mkdir(parents=True,exist_ok=True)
     shutil.copytree(ROOT/'licenses',notices/'licenses',dirs_exist_ok=True)
-    for patch in ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch'):
+    for patch in ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch'):
         shutil.copy2(ROOT/'patches'/patch,notices/patch)
     print('Built:',prefix/'bin/lxqt-panel')
     print('Keep this directory: runtime plugin paths are tied to its prefix. Nothing is enabled.')

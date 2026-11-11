@@ -119,3 +119,7 @@ mixed minimized/sticky/workspace state, window creation/closure, repeated toggle
 and orientation changes in the same running panel.
 `0007-show-desktop-drag.patch` keeps the desktop exposed during repeated drag
 hovers; clicks retain their normal toggle behavior.
+
+`0008-panel-density.patch` bounds large hidden-icon popups with keyboard-accessible
+scrolling and preserves wrapped long task-label tooltips. See [density and scaling
+checks](../docs/panel-density.md) for the synthetic scope and remaining limits.
