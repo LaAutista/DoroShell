@@ -5,10 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 import shiboken6
-from PySide6.QtCore import QRect, QPoint, Qt
-from PySide6.QtGui import QFont, QImage, QColor
+from PySide6.QtCore import QRect, QPoint, Qt, QTimer
+from PySide6.QtGui import QFont, QImage, QColor, QPainter
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QLineEdit, QFontComboBox, QCheckBox, QDoubleSpinBox
 from runtime.menu_capture import FrozenCapture, publish, compose_screens
 
 class MenuCaptureTests(unittest.TestCase):
@@ -262,7 +262,9 @@ class MenuCaptureTests(unittest.TestCase):
         dialog.set_tool('Text')
         anchor = QPoint(46, 55)
         def text_input(answer):
-            return patch('runtime.menu_capture.QInputDialog.getText', return_value=answer)
+            value, accepted = answer
+            result = (value, dialog.font(), dialog.colors['ink']) if accepted else None
+            return patch('runtime.menu_capture.text_editor', return_value=result)
         with text_input(('old', True)):
             QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=anchor)
         original = dialog.strokes[0]
@@ -376,6 +378,10 @@ class MenuCaptureTests(unittest.TestCase):
             dialog.show()
             self.app.processEvents()
             font = QFont(dialog.font())
+            dialog.set_tool('Edit marks')
+            dialog.strokes.append(('Text', [QPoint(50, 50)], 'label', QColor('black'), 3))
+            dialog.selected_mark = 0
+            dialog.updated()
             for extra_points in (0, 3):
                 if extra_points:
                     font.setPointSizeF(font.pointSizeF() + extra_points)
@@ -473,3 +479,89 @@ class MenuCaptureTests(unittest.TestCase):
         self.assertEqual(dialog.rendered_image(), blurred)
         mark('Redact', QPoint(15, 5), QPoint(16, 6))
         self.assertEqual(dialog.rendered_image().pixelColor(15, 5), QColor('black'))
+
+    def test_styled_labels_keep_font_color_position_and_legacy_undo(self):
+        source = self.image()
+        dialog = FrozenCapture(source, QRect(0, 0, 200, 150))
+        self.addCleanup(shiboken6.delete, dialog)
+        left = Qt.MouseButton.LeftButton
+        a, b = QPoint(14, 38), QPoint(36, 95)
+        serif = QFont('DejaVu Serif', 18)
+        mono = QFont('DejaVu Sans Mono', 12)
+        mono.setBold(True)
+        mono.setItalic(True)
+        red, blue = QColor('firebrick'), QColor('navy')
+        dialog.set_tool('Text')
+        for point, value in ((a, ('old', serif, red)), (b, ('new', mono, blue))):
+            with patch('runtime.menu_capture.text_editor', return_value=value):
+                QTest.mouseClick(dialog, left, pos=point)
+        original = dialog.strokes[0]
+        self.assertEqual([m[5] for m in dialog.strokes], [serif, mono])
+        dialog.set_tool('Edit marks')
+        QTest.mouseClick(dialog, left, pos=dialog.mark_bounds(original).center())
+        self.assertEqual(dialog.color_button.text(), 'Edit text…')
+        with patch('runtime.menu_capture.text_editor', return_value=('old', mono, blue)):
+            dialog.color_button.click()
+        changed = dialog.strokes[0]
+        self.assertEqual((changed[3], changed[5]), (blue, mono))
+        self.assertEqual(dialog.strokes[1][5], mono)
+        dialog.undo()
+        self.assertEqual(dialog.strokes[0], original)
+        dialog.redo()
+        hit = dialog.mark_bounds(changed).center()
+        QTest.mousePress(dialog, left, pos=hit)
+        QTest.mouseRelease(dialog, left, pos=hit+QPoint(7, 4))
+        self.assertEqual(dialog.strokes[0][5], mono)
+        expected = source.copy()
+        with QPainter(expected) as paint:
+            paint.scale(2, 2)
+            paint.setRenderHint(QPainter.RenderHint.Antialiasing)
+            font = QFont(mono)
+            font.setPixelSize(round(12*dialog.logicalDpiY()/72))
+            paint.setFont(font)
+            paint.setPen(blue)
+            paint.drawText(a+QPoint(7, 4), 'old')
+            paint.drawText(b, 'new')
+        self.assertEqual(dialog.rendered_image(), expected)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'styled.png'
+            self.assertTrue(publish(dialog.rendered_image(), self.app, path))
+            self.assertEqual(QImage(str(path)), expected)
+
+        legacy = original[:5]
+        dialog.strokes[:] = [legacy]
+        dialog.selected_mark = 0
+        with patch('runtime.menu_capture.text_editor', return_value=('old', mono, blue)):
+            dialog.edit_label()
+        dialog.undo()
+        self.assertEqual(dialog.strokes, [legacy])
+        self.assertEqual(dialog.mark_bounds(legacy), dialog.fontMetrics().boundingRect('old').translated(a))
+
+    def test_cancel_new_styled_label_in_narrow_large_font_dialog(self):
+        dialog = FrozenCapture(self.image(), QRect(0, 0, 320, 480))
+        self.addCleanup(shiboken6.delete, dialog)
+        larger = QFont(dialog.font())
+        larger.setPointSizeF(larger.pointSizeF()+3)
+        dialog.setFont(larger)
+        dialog.set_tool('Text')
+        observed = []
+        def cancel_form():
+            form = self.app.activeModalWidget()
+            try:
+                ok = form.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok)
+                observed.append(not ok.isEnabled())
+                observed.append(form.width() <= 320 and form.height() <= 480)
+                field = form.findChild(QLineEdit)
+                field.setText('temporary')
+                form.findChild(QFontComboBox).setCurrentFont(QFont('DejaVu Serif'))
+                form.findChild(QDoubleSpinBox).setValue(24)
+                form.findChild(QCheckBox).setChecked(True)
+                observed.append(ok.isEnabled())
+            finally:
+                form.reject()
+        QTimer.singleShot(0, cancel_form)
+        QTest.mouseClick(dialog, Qt.MouseButton.LeftButton, pos=QPoint(80, 80))
+        self.assertEqual(observed, [True, True, True])
+        self.assertEqual(dialog.strokes, [])
+        self.assertEqual(dialog.undo_stack, [])

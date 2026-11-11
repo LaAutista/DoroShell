@@ -11,10 +11,70 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, QByteArray, QBuffer, QIODevice, QPoint, QRect, QSize, Qt, QTimer, QLockFile, QStandardPaths, QSaveFile
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPen, QPolygon, QRegion, QCursor, QIcon
 from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QLabel, QPushButton,
-                               QWidget, QFileDialog, QMessageBox, QToolButton, QInputDialog, QColorDialog, QSpinBox)
+                               QWidget, QFileDialog, QMessageBox, QToolButton, QInputDialog, QColorDialog, QSpinBox,
+                               QCheckBox, QDialogButtonBox, QDoubleSpinBox, QFontComboBox, QFormLayout, QLineEdit)
 
 
 REGION_EFFECTS = ('Blur', 'Pixelate')
+
+
+def text_editor(parent, text, font, color):
+    dialog = QDialog(parent)
+    dialog.setWindowTitle('Edit text annotation' if text else 'Add text annotation')
+    form = QFormLayout(dialog)
+    label = QLineEdit(text)
+    form.addRow('&Text', label)
+    family = QFontComboBox()
+    family.setSizeAdjustPolicy(QFontComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+    family.setMinimumContentsLength(9)
+    family.setCurrentFont(font)
+    initial_family = family.currentFont().family()
+    form.addRow('Font &family', family)
+    size = QDoubleSpinBox()
+    size.setRange(1, 512)
+    size.setSuffix(' pt')
+    size.setValue(font.pointSizeF() if font.pointSizeF() > 0 else font.pixelSize()*72/parent.logicalDpiY())
+    initial_size = size.value()
+    form.addRow('&Size', size)
+    bold, italic = QCheckBox('&Bold'), QCheckBox('&Italic')
+    bold.setChecked(font.bold())
+    italic.setChecked(font.italic())
+    form.addRow(bold, italic)
+    swatch = QPushButton(color.name())
+    swatch.setAutoDefault(False)
+    def choose_color():
+        nonlocal color
+        chosen = QColorDialog.getColor(color, dialog, 'Text color')
+        if chosen.isValid():
+            color = chosen
+            swatch.setText(color.name())
+            swatch.setStyleSheet('border-bottom: 3px solid ' + color.name())
+    swatch.clicked.connect(choose_color)
+    swatch.setStyleSheet('border-bottom: 3px solid ' + color.name())
+    form.addRow('&Color', swatch)
+    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+    buttons.accepted.connect(dialog.accept)
+    buttons.rejected.connect(dialog.reject)
+    form.addRow(buttons)
+    ok = buttons.button(QDialogButtonBox.StandardButton.Ok)
+    ok.setEnabled(bool(text))
+    label.textChanged.connect(lambda value: ok.setEnabled(bool(value)))
+    label.selectAll()
+    label.setFocus()
+    result = None
+    if dialog.exec() == QDialog.DialogCode.Accepted and label.text():
+        chosen = QFont(font)
+        if family.currentFont().family() != initial_family:
+            chosen.setFamily(family.currentFont().family())
+        if size.value() != initial_size:
+            chosen.setPointSizeF(size.value())
+        if chosen.bold() != bold.isChecked():
+            chosen.setBold(bold.isChecked())
+        if chosen.italic() != italic.isChecked():
+            chosen.setItalic(italic.isChecked())
+        result = label.text(), chosen, color
+    dialog.deleteLater()
+    return result
 
 
 def compose_screens(frames):
@@ -242,6 +302,9 @@ class FrozenCapture(QDialog):
         self.widths[self.ink_group()]=width
 
     def choose_color(self):
+        if self.active_tool == 'Edit marks':
+            self.edit_label()
+            return
         group=self.ink_group()
         color=QColorDialog.getColor(self.colors[group],self,'Annotation color')
         if color.isValid():
@@ -286,6 +349,12 @@ class FrozenCapture(QDialog):
         bar.adjustSize()
 
     def updated(self):
+        editing = self.active_tool == 'Edit marks'
+        selected_text = editing and self.selected_mark is not None and self.strokes[self.selected_mark][0] == 'Text'
+        self.color_button.setText('Edit text…' if selected_text else 'Color')
+        if editing:
+            self.color_button.setEnabled(selected_text)
+            self.color_button.setAccessibleName('Edit text annotation' if selected_text else 'Color')
         size = self.pixel_rect().size()
         self.help.setText('Click a window' if self.active_tool == 'Window' else f'{size.width()} × {size.height()}')
         self.actions['Undo'].setEnabled(bool(self.undo_stack))
@@ -369,7 +438,7 @@ class FrozenCapture(QDialog):
         return font, box
 
     def draw_mark(self, painter, stroke):
-        tool, points, text, color, width = stroke
+        tool, points, text, color, width = stroke[:5]
         pen=QPen(color,width,Qt.PenStyle.SolidLine,Qt.PenCapStyle.RoundCap,Qt.PenJoinStyle.RoundJoin)
         pen.setCosmetic(True)
         painter.setPen(pen)
@@ -397,7 +466,11 @@ class FrozenCapture(QDialog):
         elif tool=='Redact':
             painter.fillRect(box,Qt.GlobalColor.black)
         elif tool=='Text':
+            painter.save()
+            if len(stroke) > 5:
+                painter.setFont(self.text_render_font(stroke[5]))
             painter.drawText(points[0],text)
+            painter.restore()
         elif tool=='Arrow':
             start, end = points[0], points[-1]
             angle = math.atan2(start.y()-end.y(),start.x()-end.x())
@@ -409,14 +482,22 @@ class FrozenCapture(QDialog):
         else:
             painter.drawPolyline(QPolygon(points))
 
+    def text_render_font(self, font):
+        # Keep logical glyph size consistent across the overlay and native-image paint devices.
+        result = QFont(font)
+        if result.pointSizeF() > 0:
+            result.setPixelSize(max(1, round(result.pointSizeF()*self.logicalDpiY()/72)))
+        return result
+
     def mark_bounds(self, stroke):
-        tool, points, text, color, width = stroke
+        tool, points, text, color, width = stroke[:5]
         if tool in REGION_EFFECTS:
             return QPolygon([points[0], points[-1]]).boundingRect().intersected(self.rect())
         if tool == 'Number':
             return self.stamp_layout(points[0], text)[1]
         if tool == 'Text':
-            return self.fontMetrics().boundingRect(text).translated(points[0])
+            metrics = QFontMetrics(self.text_render_font(stroke[5])) if len(stroke) > 5 else self.fontMetrics()
+            return metrics.boundingRect(text).translated(points[0])
         margin = math.ceil(width / 2) + (14 if tool == 'Arrow' else 0)
         return QPolygon(points).boundingRect().adjusted(-margin, -margin, margin, margin)
 
@@ -558,12 +639,17 @@ class FrozenCapture(QDialog):
             self.drag='draw'
             tool = self.active_tool
             text = ''
-            if tool=='Text':
-                text, ok = QInputDialog.getText(self,'Annotate screenshot','Text')
+            if tool == 'Text':
                 self.origin = None
                 self.drag = ''
-                if not ok or not text:
-                    return
+                result = text_editor(self, '', self.font(), self.colors['ink'])
+                if result:
+                    text, font, color = result
+                    mark = (tool, [p], text, color, self.widths['ink'], font)
+                    self.strokes.append(mark)
+                    self.record(len(self.strokes)-1, None, mark)
+                    self.updated()
+                return
             if tool == 'Number':
                 used = {int(mark[2]) for mark in self.strokes if mark[0] == 'Number'}
                 number = 1
@@ -577,7 +663,7 @@ class FrozenCapture(QDialog):
             if tool=='Highlight':
                 color.setAlpha(115)
             self.strokes.append((tool,[p],text,color,self.widths[group]))
-            if tool in ('Text', 'Number'):
+            if tool == 'Number':
                 self.record(len(self.strokes)-1, None, self.strokes[-1])
         else:
             self.lens_pixel = self.raw_origin
@@ -621,12 +707,12 @@ class FrozenCapture(QDialog):
             # Keep the grabbed point on the frozen desktop. The crop clips export.
             delta = QPoint(max(0, min(self.width()-1, p.x())),
                            max(0, min(self.height()-1, p.y()))) - self.origin
-            tool, points, text, color, width = self.original_mark
+            tool, points = self.original_mark[:2]
             if tool in REGION_EFFECTS:
                 box = self.mark_bounds(self.original_mark)
                 delta = QPoint(max(-box.left(), min(self.width()-1-box.right(), delta.x())),
                                max(-box.top(), min(self.height()-1-box.bottom(), delta.y())))
-            self.strokes[self.selected_mark] = (tool, [v + delta for v in points], text, color, width)
+            self.strokes[self.selected_mark] = (tool, [v + delta for v in points], *self.original_mark[2:])
         elif self.drag=='new':
             self.selection=QRect(self.origin,p).normalized().intersected(self.rect())
             self.raw_selection=QRect(self.raw_origin,raw).normalized().intersected(self.image.rect())
@@ -707,15 +793,18 @@ class FrozenCapture(QDialog):
     def edit_label(self):
         if self.selected_mark is None:
             return
-        tool, points, text, color, width = self.strokes[self.selected_mark]
+        mark = self.strokes[self.selected_mark]
+        tool, points, text, color, width = mark[:5]
         if tool == 'Number':
             number, ok = QInputDialog.getInt(self, 'Edit numbered stamp', 'Number', int(text), 1, 2147483647)
             if ok:
                 self.change_selected((tool, points, str(number), color, width))
         elif tool == 'Text':
-            new_text, ok = QInputDialog.getText(self, 'Edit annotation', 'Text', text=text)
-            if ok and new_text:
-                self.change_selected((tool, points, new_text, color, width))
+            font = mark[5] if len(mark) > 5 else self.font()
+            result = text_editor(self, text, font, color)
+            if result and result != (text, font, color):
+                new_text, new_font, new_color = result
+                self.change_selected((tool, points, new_text, new_color, width, new_font))
 
     def mouseDoubleClickEvent(self, event):
         if self.active_tool == 'Edit marks' and event.button() == Qt.MouseButton.LeftButton:

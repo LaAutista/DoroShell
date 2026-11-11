@@ -15,7 +15,7 @@ def worker(binary):
     assert Path.home() == Path(os.environ['TMPDIR']).parent
     sys.path.insert(0,str(ROOT))
     from PySide6.QtCore import QPoint, QRect, Qt
-    from PySide6.QtGui import QColor, QImage
+    from PySide6.QtGui import QColor, QFont, QImage, QPainter
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import QApplication
     from Xlib import X, XK, display
@@ -62,6 +62,18 @@ def worker(binary):
         for y in range(180, 188):
             for x in (*range(140, 148), *range(152, 160)):
                 expected.setPixelColor(x-20, y-70, QColor(100, 100, 100))
+        font = QFont('DejaVu Serif', 17)
+        font.setBold(True)
+        font.setItalic(True)
+        ink = QColor('#123477')
+        overlay.strokes.append(('Text', [QPoint(65, 220)], 'Import', ink, 3, font))
+        with QPainter(expected) as painter:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            reference = QFont(font)
+            reference.setPixelSize(round(17*overlay.logicalDpiY()/72))
+            painter.setFont(reference)
+            painter.setPen(ink)
+            painter.drawText(QPoint(45, 150), 'Import')
         assert overlay.rendered_image()==expected
         assert expected.size().toTuple()==(260,180)
         assert expected.pixelColor(25,35)!=source.pixelColor(45,105)

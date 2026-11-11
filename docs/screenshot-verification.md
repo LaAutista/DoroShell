@@ -20,6 +20,12 @@ Drag the selected mark to move it, press **Delete** to remove it, or double-clic
 
 Edits preserve the crop and the mark’s color and stroke width. Marks can cross the crop boundary. Export clips the artwork to the crop and omits the selection outline. Switch to **Select** to move or resize the crop with the mouse or arrow keys. Escape in the overlay cancels the capture.
 
+## Text labels
+
+Choose **Text** and click where the label’s baseline should start. The dialog opens with the overlay font and current ink color. Enter a single line, choose the font family and point size, and set bold, italic and color as needed. **OK** applies the label. Cancelling discards the draft, including formatting changes.
+
+To restyle an existing label, choose **Edit marks**, click the label, then choose **Edit text…**. Double-click and **F2** open the same dialog. Each label keeps its formatting when moved. Confirming changes to the wording, font and color together takes one undo step. Escape inside the text dialog returns to the overlay. Escape in the overlay cancels the capture and preserves the clipboard.
+
 ## Straight lines and numbered stamps
 
 Choose **Line** and drag between two points. Hold **Shift** while dragging or releasing to snap to the nearest multiple of 45°. Snapping keeps the pointer distance from the fixed endpoint, rounded to whole logical coordinates. A click or a drag back to the start adds no mark and preserves redo history. Lines use the current ink color and stroke width.

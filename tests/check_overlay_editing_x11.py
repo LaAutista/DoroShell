@@ -14,7 +14,8 @@ def worker():
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from PySide6.QtCore import QPoint, QRect, QTimer, Qt
     from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPen
-    from PySide6.QtWidgets import QApplication, QFileDialog, QLineEdit
+    from PySide6.QtWidgets import (QApplication, QFileDialog, QLineEdit, QCheckBox, QDoubleSpinBox,
+                                   QFontComboBox, QPushButton)
     from Xlib import X, XK, display
     from Xlib.ext import xtest
     from runtime.menu_capture import FrozenCapture, transfer_png
@@ -240,7 +241,7 @@ def worker():
             wait()
 
         def enter_text(value):
-            # getText starts its own modal event loop.
+            # The text editor runs its own modal event loop.
             event(X.KeyPress, ctrl)
             key('a')
             event(X.KeyRelease, ctrl)
@@ -255,15 +256,44 @@ def worker():
         click(editor.tool_buttons['Edit marks'])
         point_click(260, 266)
         assert editor.selected_mark == 1  # Text over the filled redaction.
-        QTimer.singleShot(200, lambda: key('Escape'))
+        edited_family = None
+        def set_style():
+            nonlocal edited_family
+            form = app.activeModalWidget()
+            family = form.findChild(QFontComboBox)
+            family.setCurrentIndex((family.currentIndex()+1) % family.count())
+            edited_family = family.currentFont().family()
+            form.findChild(QDoubleSpinBox).setValue(19)
+            for check in form.findChildren(QCheckBox):
+                check.setChecked(True)
+            return form
+        def cancel_style():
+            set_style()
+            key('Escape')
+        QTimer.singleShot(200, cancel_style)
         key('F2')
         wait()
         assert editor.isVisible() and editor.rendered_image() == old_text
-        QTimer.singleShot(200, lambda: enter_text('new'))
-        key('F2')
+        def accept_style():
+            form = set_style()
+            swatch = next(b for b in form.findChildren(QPushButton) if b.text().startswith('#'))
+            def choose_blue():
+                picker = app.activeModalWidget()
+                picker.setCurrentColor(QColor('#1648ad'))
+                picker.accept()
+            QTimer.singleShot(150, choose_blue)
+            swatch.click()
+            text_field = form.findChildren(QLineEdit)[0]
+            text_field.setFocus()
+            enter_text('new')
+        QTimer.singleShot(200, accept_style)
+        click(editor.color_button)
         wait()
         edited = editor.rendered_image()
         assert editor.strokes[1][2] == 'new' and edited != old_text
+        style = editor.strokes[1][5]
+        assert style.family() == edited_family and style.pointSizeF() == 19
+        assert style.bold() and style.italic() and editor.strokes[1][3] == QColor('#1648ad')
         click(editor.actions['Undo'])
         assert editor.rendered_image() == old_text
         click(editor.actions['Redo'])
@@ -286,7 +316,7 @@ def worker():
         assert app.clipboard().image().convertToFormat(marked.format()) == marked
         app.clipboard().setText('replacement')
         wait()
-        print('PASS real X11 crop resize/move, redaction, snapped line, numbered stamp, blur/pixelate regions, Undo/Redo, label editing, save-dialog cancel/save, exact edited PNG and clipboard pixels, full-desktop Enter and Escape preservation',flush=True)
+        print('PASS real X11 crop resize/move, redaction, snapped line, numbered stamp, blur/pixelate regions, Undo/Redo, text font and color editing, save-dialog cancel/save, exact edited PNG and clipboard pixels, full-desktop Enter and Escape preservation',flush=True)
     finally:
         overlay.close(); wm.terminate(); wm.wait(timeout=5); server.close()
 
