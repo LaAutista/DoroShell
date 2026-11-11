@@ -108,6 +108,29 @@ def worker(binary,evidence,case):
         watcher=dbus.Interface(bus.get_object('org.kde.StatusNotifierWatcher','/StatusNotifierWatcher'),'org.kde.StatusNotifierWatcher');watcher.RegisterStatusNotifierItem('org.kde.StatusNotifierItem.Lifecycle');wait(1.5)
         for i in range(2):
             field=QLineEdit();field.setWindowTitle('Disposable focus '+str(i));field.setGeometry(150+i*350,200,240,70);field.show();fields.append(field)
+        if case=='entry-limit':
+            # This is a limitation probe, not a claim of keyboard-only entry.
+            app.sync();wait()
+            pointer=root.query_pointer()
+            fields[0].activateWindow();fields[0].setFocus();wait()
+            key('a');assert fields[0].text()=='a','disposable app focus setup failed'
+            p=panel_window();hints=p.get_wm_hints()
+            assert hints is not None and not hints['input'],'panel unexpectedly accepts keyboard focus; revisit limitation'
+            for _ in range(4):key('Tab')
+            key('Return');key('space');key('Menu');key('Escape')
+            assert not popups() and not calls,'keyboard unexpectedly entered overflow; revisit limitation'
+            # Openbox normal window cycling also skips this no-focus dock.
+            for _ in range(3):
+                alt=d.keysym_to_keycode(XK.string_to_keysym('Alt_L'))
+                xtest.fake_input(d,X.KeyPress,alt);key('Tab')
+                xtest.fake_input(d,X.KeyRelease,alt);d.sync();wait()
+                focused=d.get_input_focus().focus
+                assert focused.id in [int(f.winId()) for f in fields],'window cycling did not remain in fixture apps'
+            after=root.query_pointer()
+            assert (after.root_x,after.root_y)==(pointer.root_x,pointer.root_y),'pointer moved during keyboard probe'
+            assert not popups() and not calls
+            print('LIMIT CONFIRMED: no-focus panel and normal Openbox keyboard cycling do not reach overflow; no pointer input used',flush=True)
+            return
         app.sync();wait();click(200,230);key('a');assert fields[0].text()=='a'
         popup=open_popup()
         if case in ('context','context-fallback'):
@@ -170,7 +193,7 @@ def worker(binary,evidence,case):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--binary',type=Path,required=True);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--case',choices=['popup','attention','context-fallback','context'],default='popup');p.add_argument('--xvfb',type=Path);p.add_argument('--run',action='store_true');p.add_argument('--worker',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--binary',type=Path,required=True);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--case',choices=['popup','attention','context-fallback','context','entry-limit'],default='popup');p.add_argument('--xvfb',type=Path);p.add_argument('--run',action='store_true');p.add_argument('--worker',action='store_true');a=p.parse_args()
     if a.worker:worker(a.binary.resolve(),a.evidence.resolve(),a.case)
     elif a.run and a.xvfb:isolated(a.xvfb.resolve(),[sys.executable,str(Path(__file__).resolve()),'--worker','--binary',str(a.binary.resolve()),'--evidence',str(a.evidence.resolve()),'--case',a.case])
     else:p.error('Opt in with --run --xvfb PATH')

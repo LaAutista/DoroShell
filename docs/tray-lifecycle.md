@@ -56,3 +56,32 @@ shortcuts, exactly one dispatch per shortcut, reopening and typing focus after
 Escape. Use the command above with either value for `--case`. The fallback test
 checks protocol dispatch; it cannot establish the behavior of menus drawn by an
 external real application.
+
+## Keyboard-only entry: known limitation
+
+The pinned LXQt Panel 2.4.1 sets `Qt::WindowDoesNotAcceptFocus` deliberately to
+preserve taskbar minimize/restore behavior. The overflow arrow has the accessible
+name “Show hidden icons”, but a name alone does not provide keyboard access.
+Unlike the main-menu and taskbar plugins, `plugin-statusnotifier` registers no
+LXQt GlobalKeys action for showing overflow, and the panel exposes no inspected
+command/IPC entry point for that action. There is no existing notifier shortcut
+setting to enable in this source. Removing the focus restriction or assigning a
+new global shortcut would be feature/design work, not a tested configuration fix.
+
+The opt-in `--case entry-limit` probe confirms this boundary on private X11/Openbox:
+the dock's WM_HINTS input flag is false; Tab, Return, Space, Menu and Escape in a
+disposable app do not enter overflow; normal Alt+Tab cycling stays in the fixture
+apps. It injects no pointer events and verifies that pointer coordinates remain
+unchanged. It reports **LIMIT CONFIRMED**, not an accessibility pass. This does not
+claim to enumerate every window-manager override or assistive-technology action.
+
+Once the arrow is opened with a pointer, existing tests cover Tab/Shift+Tab
+navigation, Return activation, Menu/Shift+F10, no duplicate activation and Escape
+back to the prior app. The popup, imported-menu and protocol-fallback cases were
+rerun against the unchanged nine-patch runtime; the earlier density test covers
+multi-icon forward/reverse traversal. This is not an end-to-end pointer-free path,
+and screen-reader usability is not established by accessible labels alone.
+
+No production change, global shortcut, service installation or personal binding
+change is made for this acceptance checkpoint. The known entry gap remains open;
+all nine native patches and live-session safeguards are preserved.

@@ -1,7 +1,7 @@
 {
   "format": 8,
-  "candidate": "doroshell-source-20261111-xembed-coexistence",
-  "published_ancestor": "1e029cc934aec326ada2f29f21c34c47f13ad09a",
+  "candidate": "doroshell-source-20261111-tray-entry-limit",
+  "published_ancestor": "f26f43978936ccdd7c69387030b1bd996f1c3570",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -10,7 +10,8 @@
     "tray_keyboard": "5017780",
     "show_desktop": "3262715",
     "panel_density": "5749fa1",
-    "release_consistency": "1e029cc"
+    "release_consistency": "1e029cc",
+    "xembed_coexistence": "f26f439"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -49,8 +50,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "69f73a98fe05788f33deaa2a1dc3ab56b97cda38ed32a2d48ce7567104d2492b",
-      "size": 5972,
+      "sha256": "e88494deffba5a98cb7a7afab943dceec8d2a0bbfdc83cd00bf0c6a785c8520c",
+      "size": 6517,
       "mode": "0o644"
     },
     {
@@ -151,8 +152,8 @@
     },
     {
       "path": "docs/final-acceptance.md",
-      "sha256": "7690d6451dee556b5d971283fa9ffc92f3a045a001dc1efe714f1bae2a4856f8",
-      "size": 6159,
+      "sha256": "117d15dc5c86788d332342c9518c4ce8593d47e1103c0bf2f89abd8d8bb2dcba",
+      "size": 6352,
       "mode": "0o644"
     },
     {
@@ -199,8 +200,8 @@
     },
     {
       "path": "docs/roadmap.md",
-      "sha256": "5636e0af2f0864b5f021e460be413859d5a7b162ad3eeac68a2da425c13a7cc3",
-      "size": 4325,
+      "sha256": "c9e0a6a63c21cb8b1fc75832e2762ecd31f1f9c0646baa5acd94a5539b553dc2",
+      "size": 4514,
       "mode": "0o644"
     },
     {
@@ -235,8 +236,8 @@
     },
     {
       "path": "docs/tray-lifecycle.md",
-      "sha256": "9d86751a3349e7108b68a35ae40008ae7b266703c3cc444d870a358f7571a412",
-      "size": 3435,
+      "sha256": "9de3c8ad3f6fe4712c5cbe8702feadc4845ea2c23dbdcb1faf601451030bbe82",
+      "size": 5324,
       "mode": "0o644"
     },
     {
@@ -271,8 +272,8 @@
     },
     {
       "path": "docs/xembed-tray.md",
-      "sha256": "d9ee40d4d5ab3e898be92166d543d31ba43bed23940ada5eb9d5f968bd6e7afb",
-      "size": 3230,
+      "sha256": "7a214c5592bde6c971f8175c0604fb77fed8c90b4c0d6bd45d9c0bcb9acde598",
+      "size": 3328,
       "mode": "0o644"
     },
     {
@@ -331,8 +332,8 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "228ab0524bef52a71f6649f42c4a0d0c307307d20151ceb4ecfa528fcfae0bc5",
-      "size": 12868,
+      "sha256": "3ccc3faab3170a3906e9e59c5dad6b6dcd9bba1478f6dbef1b31d8fe9e247cbc",
+      "size": 13100,
       "mode": "0o644"
     },
     {
@@ -733,8 +734,8 @@
     },
     {
       "path": "tests/check_tray_lifecycle_x11.py",
-      "sha256": "939fd3da0d6850eaf37b95550126217481651d6e5762de1bc6a4cacaf814c42d",
-      "size": 12465,
+      "sha256": "4e63dc48b7dbdf28bfab75b7777ee5aef3d43b7c5163b42857e5a7b8f2eeeadf",
+      "size": 14044,
       "mode": "0o644"
     },
     {

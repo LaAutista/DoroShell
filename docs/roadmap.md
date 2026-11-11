@@ -48,7 +48,7 @@ local; source ships neutral assets. No exact visual parity is claimed.
 1. Later, explicitly chosen activation and representative real-app/notifier checks
    for the staged panel. Preserve clients, settings and rollback paths.
 2. Broader notifier/app diversity, real-client XEmbed variants, long-session behavior and a
-   keyboard-only entry path to tray overflow. Grouped previews and supported
+   keyboard-only entry path to tray overflow. The [entry probe](tray-lifecycle.md#keyboard-only-entry-known-limitation) confirms normal Openbox cycling cannot reach the no-focus dock; no notifier shortcut action exists in this source. Grouped previews and supported
    progress/overlay data are broader feature work, not claimed complete.
 3. Physical multi-monitor/mixed-DPI, other WMs and Wayland; additional fonts and
    layouts beyond the documented bounded fixtures.

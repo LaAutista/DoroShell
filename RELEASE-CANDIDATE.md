@@ -16,6 +16,15 @@ The nine-patch standard build, full 237-test unit suite, private coexistence and
 related tray/density regressions are checked for this increment. Earlier eight-patch
 build/archive evidence below remains historical. No live activation was retried.
 
+## Subsequent keyboard-entry acceptance
+
+After `f26f439`, the [entry probe](docs/tray-lifecycle.md#keyboard-only-entry-known-limitation)
+confirms the no-focus dock has no normal keyboard-only route to overflow under
+Openbox. No notifier shortcut action exists in the inspected source. This increment
+changes tests/docs only, preserves all nine patches, and reruns the full 237-test
+suite plus popup/imported-menu/fallback keyboard checks on the same tested runtime.
+It makes no new build or live activation claim.
+
 ## Source, tests and live installation are different claims
 
 The [acceptance matrix](docs/final-acceptance.md) records the distinction. Read-only
@@ -93,7 +102,7 @@ private backups, caches and toolchains. Neutral project SVGs remain included.
 - Review staged-versus-installed provenance and prepare a later activation/rollback
   plan without changing the session; activation itself needs the user's chosen time.
 - Broaden real notifier/app and long-session acceptance; keyboard-only overflow
-  entry and real-client XEmbed variants remain unverified.
+  entry is a confirmed native limitation; real-client XEmbed variants remain unverified.
 - Physical mixed-DPI/multi-monitor, Wayland, real audio/DPMS and display recovery
   remain outside private Xvfb/fake-driver evidence.
 - Fresh-login and clean-system acceptance remain explicitly user-deferred.

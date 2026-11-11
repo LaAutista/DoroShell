@@ -47,7 +47,7 @@ This covers synthetic RGB24 XEmbed using the direct X-event input path. It does
 not establish GTK/Wine real-client compatibility, the alternate XTest forwarding
 path, ARGB variants, every notifier, long-session recovery, tray-manager replacement,
 physical mixed-DPI or Wayland (the legacy plugin explicitly supports X11 only).
-Keyboard-only entry into overflow remains unverified. Those gaps remain separate
+Keyboard-only entry into overflow is a [confirmed native limitation](tray-lifecycle.md#keyboard-only-entry-known-limitation) on normal Openbox cycling. Those gaps remain separate
 from the passing bounded bridge case.
 
 The ninth patch is staged source, not live. The attempted earlier live refresh

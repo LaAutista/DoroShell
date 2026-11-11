@@ -51,7 +51,7 @@ remain available; building this source does not invoke them.
 - A controlled panel-only activation of the staged fixes, if explicitly chosen,
   followed by real-notifier/app checks and verification that clients/settings survive.
 - Broader real-application/notifier diversity, real-client XEmbed variants, long-session use,
-  other fonts/layouts and keyboard-only entry to tray overflow.
+  other fonts/layouts and keyboard-only entry to tray overflow. The [private entry probe](tray-lifecycle.md#keyboard-only-entry-known-limitation) now confirms the native no-focus/absent-shortcut limitation; popup keyboard controls remain separately tested.
 - Physical multi-monitor/mixed-DPI, Wayland, physical audio/DPMS and display recovery
   remain unverified. Private Xvfb or fake-driver tests do not establish them.
 - Fresh-login and clean CachyOS install/upgrade/rollback are user-deferred. Do not
