@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from PySide6.QtCore import QByteArray, QBuffer, QIODevice, QPoint, QRect, QSize, Qt, QTimer, QLockFile, QStandardPaths, QSaveFile
+from PySide6.QtCore import QEvent, QByteArray, QBuffer, QIODevice, QPoint, QRect, QSize, Qt, QTimer, QLockFile, QStandardPaths, QSaveFile
 from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPolygon, QRegion, QCursor, QIcon
 from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QLabel, QPushButton,
                                QWidget, QFileDialog, QMessageBox, QToolButton, QInputDialog, QColorDialog, QSpinBox)
@@ -93,6 +93,7 @@ class FrozenCapture(QDialog):
         self.windows = [r.intersected(image.rect()) for r in windows if r.intersects(image.rect())]
         self.hover_window = QRect()
         self.drag = ''
+        self.lens_pixel = None
         self.strokes = []
         self.redo_stack = []
         self.active_tool = 'Select'
@@ -103,6 +104,8 @@ class FrozenCapture(QDialog):
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.CrossCursor)
         screen = QApplication.screenAt(QCursor.pos()) or QApplication.primaryScreen()
+        self.screen_bounds = [geometry.intersected(s.geometry()).translated(-geometry.topLeft())
+                              for s in screen.virtualSiblings()]
         self.viewport = geometry.intersected(screen.geometry()).translated(-geometry.topLeft())
         if self.viewport.isEmpty():
             self.viewport = self.rect()
@@ -178,6 +181,8 @@ class FrozenCapture(QDialog):
         native.setToolTip('Open these pixels in the native window' if native.isEnabled()
                           else 'Install the ScreenGrab PNG importer to open this image.')
         self.set_tool('Select')
+        for child in self.findChildren(QWidget):
+            child.installEventFilter(self)
 
     def pick_window(self):
         if self.windows:
@@ -200,6 +205,7 @@ class FrozenCapture(QDialog):
         return 'highlight' if self.active_tool=='Highlight' else 'ink'
 
     def set_tool(self, name):
+        self.lens_pixel = None
         self.active_tool=name
         self.hover_window = QRect()
         self.actions['Window'].setChecked(name == 'Window')
@@ -306,6 +312,43 @@ class FrozenCapture(QDialog):
             else:
                 painter.drawPolyline(QPolygon(points))
 
+    def lens_rect(self):
+        if self.lens_pixel is None or self.active_tool != 'Select':
+            return QRect()
+        point = self.view_rect(QRect(self.lens_pixel, QSize(1, 1))).center()
+        screen = next((r for r in self.screen_bounds if r.contains(point)), QRect())
+        side = 77  # 11 source pixels at seven logical pixels per cell.
+        if screen.width() < side or screen.height() < side:
+            return QRect()
+        blocked = [self.tools.geometry(), self.controls.geometry()]
+        for handle in [point, *self.handles().values()]:
+            blocked.append(QRect(handle - QPoint(6, 6), QSize(13, 13)))
+        for y in (point.y() + 12, point.y() - side - 12, screen.top(), screen.bottom()-side+1):
+            for x in (point.x() + 12, point.x() - side - 12, screen.left(), screen.right()-side+1):
+                box = QRect(max(screen.left(), min(x, screen.right()-side+1)),
+                            max(screen.top(), min(y, screen.bottom()-side+1)), side, side)
+                if not any(box.intersects(obstacle) for obstacle in blocked):
+                    return box
+        return QRect()
+
+    def paint_lens(self, painter):
+        box = self.lens_rect()
+        if box.isEmpty():
+            return
+        source = QRect(self.lens_pixel - QPoint(5, 5), QSize(11, 11))
+        visible = source.intersected(self.image.rect())
+        offset = (visible.topLeft() - source.topLeft()) * 7
+        painter.fillRect(box, Qt.GlobalColor.black)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+        painter.drawImage(QRect(box.topLeft() + offset, visible.size() * 7), self.image, visible)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(Qt.GlobalColor.white)
+        painter.drawRect(box.adjusted(0, 0, -1, -1))
+        center = QRect(box.center() - QPoint(3, 3), QSize(6, 6))
+        painter.drawRect(center)
+        painter.setPen(Qt.GlobalColor.black)
+        painter.drawRect(center.adjusted(-1, -1, 1, 1))
+
     def paintEvent(self, event):
         with QPainter(self) as painter:
             painter.drawImage(self.rect(), self.image)
@@ -332,6 +375,7 @@ class FrozenCapture(QDialog):
                 painter.setBrush(QColor('white'))
                 for point in (() if picking else self.handles().values()):
                     painter.drawEllipse(point,4,4)
+            self.paint_lens(painter)
 
     def mousePressEvent(self, event):
         if event.button()!=Qt.MouseButton.LeftButton:
@@ -365,6 +409,7 @@ class FrozenCapture(QDialog):
                 color.setAlpha(115)
             self.strokes.append((tool,[p],text,color,self.widths[group]))
         else:
+            self.lens_pixel = self.raw_origin
             self.drag=self.handle_at(p) or ('move' if self.selection.contains(p) else 'new')
             if self.drag=='new':
                 self.selection=QRect()
@@ -373,6 +418,9 @@ class FrozenCapture(QDialog):
     def drag_to(self,position):
         p = position.toPoint()
         raw = self.raw_point(position)
+        if self.active_tool == 'Select':
+            self.lens_pixel = QPoint(max(0, min(raw.x(), self.image.width()-1)),
+                                     max(0, min(raw.y(), self.image.height()-1)))
         if self.drag=='draw':
             self.strokes[-1][1].append(p)
         elif self.drag=='new':
@@ -416,6 +464,7 @@ class FrozenCapture(QDialog):
             self.drag_to(event.position())
             if self.selection.width()<2 or self.selection.height()<2:
                 self.selection=QRect()
+            self.lens_pixel = None
             self.origin=None
             self.drag=''
             self.updated()
@@ -430,8 +479,58 @@ class FrozenCapture(QDialog):
             self.strokes.append(self.redo_stack.pop())
             self.updated()
 
+    def adjust_crop(self, event):
+        directions = {Qt.Key.Key_Left: (-1, 0), Qt.Key.Key_Right: (1, 0),
+                      Qt.Key.Key_Up: (0, -1), Qt.Key.Key_Down: (0, 1)}
+        direction = directions.get(event.key())
+        modifiers = event.modifiers()
+        shift, alt = Qt.KeyboardModifier.ShiftModifier, Qt.KeyboardModifier.AltModifier
+        if (direction is None or modifiers & ~(shift | alt) or self.active_tool != 'Select'
+                or self.selection.isEmpty() or self.origin is not None):
+            return False
+        dx, dy = direction
+        if not modifiers & shift:
+            dx *= max(1, math.floor(15 * self.image.width() / self.width() + 0.5))
+            dy *= max(1, math.floor(15 * self.image.height() / self.height() + 0.5))
+        crop = self.raw_selection
+        if modifiers & alt:
+            crop.setRight(max(crop.left(), min(self.image.width()-1, crop.right()+dx)))
+            crop.setBottom(max(crop.top(), min(self.image.height()-1, crop.bottom()+dy)))
+            target = crop.bottomRight()
+        else:
+            crop.moveTo(max(0, min(self.image.width()-crop.width(), crop.x()+dx)),
+                        max(0, min(self.image.height()-crop.height(), crop.y()+dy)))
+            target = crop.center()
+            if dx:
+                target.setX(crop.left() if dx < 0 else crop.right())
+            if dy:
+                target.setY(crop.top() if dy < 0 else crop.bottom())
+        self.selection = self.view_rect(crop)
+        self.lens_pixel = target if modifiers & shift else None
+        self.updated()
+        return True
+
+    def release_lens(self, event):
+        if event.key() == Qt.Key.Key_Shift and self.origin is None:
+            self.lens_pixel = None
+            self.update()
+
+    def eventFilter(self, child, event):
+        # Buttons normally consume arrow keys for focus traversal.
+        if event.type() == QEvent.Type.KeyPress and self.adjust_crop(event):
+            return True
+        if event.type() == QEvent.Type.KeyRelease:
+            self.release_lens(event)
+        return super().eventFilter(child, event)
+
+    def keyReleaseEvent(self, event):
+        self.release_lens(event)
+        super().keyReleaseEvent(event)
+
     def keyPressEvent(self,event):
-        if event.key() in (Qt.Key.Key_Return,Qt.Key.Key_Enter):
+        if self.adjust_crop(event):
+            event.accept()
+        elif event.key() in (Qt.Key.Key_Return,Qt.Key.Key_Enter):
             self.accept()
         elif event.key()==Qt.Key.Key_Escape:
             self.reject()

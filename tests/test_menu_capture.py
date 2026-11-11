@@ -143,3 +143,71 @@ class MenuCaptureTests(unittest.TestCase):
         self.assertEqual(image.pixelColor(50,104),QColor('#e9a4cd'))
         self.assertEqual(image.pixelColor(50,129),QColor('#007830'))
         shiboken6.delete(dialog)
+
+    def test_precision_keys_use_frozen_pixels_with_negative_origin_and_scale(self):
+        image = QImage(900, 600, QImage.Format.Format_RGB32)
+        image.fill(QColor('navy'))
+        dialog = FrozenCapture(image, QRect(-120, -50, 600, 400))
+        self.addCleanup(shiboken6.delete, dialog)
+        self.select(dialog)
+        crop = QRect(dialog.pixel_rect())
+        shift, alt = Qt.KeyboardModifier.ShiftModifier, Qt.KeyboardModifier.AltModifier
+        def press(key, modifiers=Qt.KeyboardModifier.NoModifier):
+            QTest.keyClick(dialog.actions['Copy'], key, modifiers)
+        press(Qt.Key.Key_Right)
+        crop.translate(23, 0)
+        press(Qt.Key.Key_Up, shift)
+        crop.translate(0, -1)
+        press(Qt.Key.Key_Left, alt | shift)
+        crop.adjust(0, 0, -1, 0)
+        self.assertEqual(dialog.pixel_rect(), crop)
+        for _ in range(40):
+            press(Qt.Key.Key_Left)
+            press(Qt.Key.Key_Down)
+        self.assertEqual(dialog.pixel_rect().size(), crop.size())
+        self.assertEqual(dialog.pixel_rect().bottomLeft(), image.rect().bottomLeft())
+        press(Qt.Key.Key_Down, alt)
+        self.assertEqual(dialog.pixel_rect().height(), crop.height())
+        for _ in range(40):
+            press(Qt.Key.Key_Up, alt)
+            press(Qt.Key.Key_Left, alt)
+        self.assertEqual(dialog.pixel_rect(), QRect(0, 600-crop.height(), 1, 1))
+        self.assertEqual(dialog.selection, dialog.view_rect(dialog.pixel_rect()))
+        for _ in range(45):
+            press(Qt.Key.Key_Right, alt)
+        self.assertEqual(dialog.pixel_rect().right(), image.rect().right())
+        press(Qt.Key.Key_Right)
+        self.assertEqual(dialog.pixel_rect().left(), 0)
+
+    def test_drag_lens_paints_frozen_neighbors_and_excludes_editor_chrome(self):
+        image = QImage(960, 720, QImage.Format.Format_RGB32)
+        image.fill(QColor('navy'))
+        point = QPoint(300, 230)
+        raw = point * 1.5
+        for dx in range(-5, 6):
+            for dy in range(-5, 6):
+                image.setPixelColor(raw.x()+dx, raw.y()+dy, QColor(120+dx, 140+dy, 60))
+        image.setDevicePixelRatio(1.5)
+        dialog = FrozenCapture(image, QRect(-20, -10, 640, 480))
+        self.addCleanup(shiboken6.delete, dialog)
+        dialog.show()
+        QTest.mousePress(dialog, Qt.MouseButton.LeftButton, pos=QPoint(90, 85))
+        QTest.mouseMove(dialog, point)
+        box = dialog.lens_rect()
+        self.assertFalse(box.isEmpty())
+        self.assertTrue(any(r.contains(box) for r in dialog.screen_bounds))
+        self.assertFalse(any(box.contains(p) for p in dialog.handles().values()))
+        self.assertFalse(any(box.intersects(bar.geometry()) for bar in (dialog.tools, dialog.controls)))
+        preview = dialog.grab().toImage()
+        for dx, dy in ((0, 0), (-4, 3), (4, -3)):
+            sample = (box.center() + QPoint(dx*7, dy*7)) * preview.devicePixelRatio()
+            self.assertEqual(preview.pixelColor(sample), image.pixelColor(raw + QPoint(dx, dy)))
+        expected = image.copy(dialog.pixel_rect())
+        expected.setDevicePixelRatio(1)
+        self.assertEqual(dialog.rendered_image(), expected)
+        QTest.mouseRelease(dialog, Qt.MouseButton.LeftButton, pos=point)
+        self.assertTrue(dialog.lens_rect().isEmpty())
+        dialog.set_tool('Pen')
+        QTest.mousePress(dialog, Qt.MouseButton.LeftButton, pos=point)
+        self.assertTrue(dialog.lens_rect().isEmpty())
+        QTest.mouseRelease(dialog, Qt.MouseButton.LeftButton, pos=point)
