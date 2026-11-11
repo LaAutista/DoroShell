@@ -1,0 +1,21 @@
+diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
+index aea5e41..3eaf83b 100644
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp
+@@ -185,6 +185,8 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
+     });
+     // show/hide mShowBtn if needed whenever an item gets or loses attention
+     connect(button, &StatusNotifierButton::attentionChanged, mShowBtn, [this, button] {
++        // Overflow is a snapshot; attention can move an item into or out of it.
++        if (mOverflow) mOverflow->close();
+         if (button->hasAttention())
+         {
+             if (mShowBtn->isVisible() || mForceVisible)
+@@ -412,6 +414,7 @@ void StatusNotifierWidget::showOverflow()
+     position.setX(std::clamp(position.x(), bounds.left(), std::max(bounds.left(), bounds.right() - popup->width() + 1)));
+     position.setY(std::clamp(position.y(), bounds.top(), std::max(bounds.top(), bounds.bottom() - popup->height() + 1)));
+     popup->move(position);
++    mPlugin->willShowWindow(popup);
+     popup->show();
+     if (auto first = popup->findChild<StatusNotifierButton *>())
+         first->setFocus();

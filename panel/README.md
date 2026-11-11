@@ -103,3 +103,10 @@ private regression tests](../docs/taskbar-identity.md).
 `0004-filtered-pins.patch` keeps launcher pins visible when all their windows are
 filtered out, with existing-window activation instead of duplicate launches.
 See [behavior and private regression checks](../docs/taskbar-filters.md).
+
+### Tray popup attention lifecycle
+
+`0005-tray-attention-popup.patch` closes stale overflow snapshots when an item's
+attention timer moves it into or out of the panel, and holds an auto-hiding panel
+visible while overflow is open. See [focus, status transitions
+and private checks](../docs/tray-lifecycle.md).
