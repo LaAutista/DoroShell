@@ -90,3 +90,10 @@ The optional updated panel adds **Unpin from taskbar** to closed-launcher, singl
 ### Optional wallpaper glass
 
 The current builder also applies `patches/0002-wallpaper-glass.patch`. It adds an opt-in, asynchronous cached wallpaper backdrop to the native panel, not a compositor. Existing binaries are unchanged until rebuilt and selected through the normal next-startup workflow. Default/fallback remains the existing opaque theme. [Configuration, limits and private verification](../docs/wallpaper-glass.md).
+
+### Launcher identity and icon fallback
+
+The builder applies `0003-launcher-identity.patch` after the existing panel/glass patches.
+It joins application-ID and class-based windows to their resolved launcher and
+uses launcher/native icons before the generic fallback. See [matching rules and
+private regression tests](../docs/taskbar-identity.md).
