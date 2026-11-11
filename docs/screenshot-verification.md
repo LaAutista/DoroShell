@@ -26,7 +26,7 @@ Choose **Line** and drag between two points. Hold **Shift** while dragging or re
 
 Choose **Number** and click to stamp a filled circle. Each new stamp uses the smallest unused positive integer, starting at 1. For example, deleting 2 from a set of 1, 2 and 3 leaves 1 and 3 in place, and the next stamp gets 2. Undo and redo restore the original labels. In **Edit marks**, double-click a stamp or select it and press **F2** to set its number. Manually assigned labels may repeat. Stamps use the current ink color, a contrasting label and a circle sized to fit its digits.
 
-In **Edit marks**, drag either mark to move it or press **Delete** to remove it. Click a line first to expose its endpoint handles. Drag a handle to reshape the line, optionally holding Shift. Dropping one endpoint exactly on the other restores the original line. Each completed change takes one undo step. Crop boundaries clip the exported artwork. The toolbars wrap on narrow screens. Layout checks cover widths of 320, 400 and 600 logical pixels at a height of 480 with the test font.
+In **Edit marks**, drag either mark to move it or press **Delete** to remove it. Click a line first to expose its endpoint handles. Drag a handle to reshape the line, optionally holding Shift. Dropping one endpoint exactly on the other restores the original line. Each completed change takes one undo step. Crop boundaries clip the exported artwork. The toolbars wrap on narrow screens. Layout checks cover widths of 320, 400 and 600 logical pixels at a height of 480 with the default font and with the font enlarged by three points.
 
 ## Blur, Pixelate and solid Redact
 

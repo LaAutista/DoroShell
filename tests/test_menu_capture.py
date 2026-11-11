@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 import shiboken6
 from PySide6.QtCore import QRect, QPoint, Qt
-from PySide6.QtGui import QImage, QColor
+from PySide6.QtGui import QFont, QImage, QColor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from runtime.menu_capture import FrozenCapture, publish, compose_screens
@@ -375,18 +375,25 @@ class MenuCaptureTests(unittest.TestCase):
             self.addCleanup(shiboken6.delete, dialog)
             dialog.show()
             self.app.processEvents()
-            for bar in (dialog.tools, dialog.controls):
-                self.assertTrue(dialog.rect().contains(bar.geometry()), (width, bar.geometry()))
-            for button in (*dialog.tool_buttons.values(), *dialog.actions.values()):
-                self.assertTrue(button.isVisibleTo(dialog))
-                self.assertTrue(button.parentWidget().rect().contains(button.geometry()))
+            font = QFont(dialog.font())
+            for extra_points in (0, 3):
+                if extra_points:
+                    font.setPointSizeF(font.pointSizeF() + extra_points)
+                    dialog.setFont(font)
+                    self.app.processEvents()
+                for bar in (dialog.tools, dialog.controls):
+                    self.assertTrue(dialog.rect().contains(bar.geometry()), (width, bar.geometry()))
+                for button in (*dialog.tool_buttons.values(), *dialog.actions.values(),
+                               dialog.color_button, dialog.stroke_width, dialog.help):
+                    self.assertTrue(button.isVisibleTo(dialog))
+                    self.assertTrue(button.parentWidget().rect().contains(button.geometry()))
 
-            for y in (0, 470):
-                dialog.selection = QRect(width//2, y, 8, 8)
-                dialog.updated()
-                self.assertFalse(dialog.tools.geometry().intersects(dialog.controls.geometry()))
-                self.assertTrue(dialog.rect().contains(dialog.tools.geometry()))
-                self.assertTrue(dialog.rect().contains(dialog.controls.geometry()))
+                for y in (0, 470):
+                    dialog.selection = QRect(width//2, y, 8, 8)
+                    dialog.updated()
+                    self.assertFalse(dialog.tools.geometry().intersects(dialog.controls.geometry()))
+                    self.assertTrue(dialog.rect().contains(dialog.tools.geometry()))
+                    self.assertTrue(dialog.rect().contains(dialog.controls.geometry()))
 
     def test_region_effects_exact_scaled_edge_crop_and_history(self):
         image = QImage(60, 45, QImage.Format.Format_RGB32)

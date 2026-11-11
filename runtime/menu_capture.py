@@ -138,9 +138,6 @@ class FrozenCapture(QDialog):
                  ('Text','draw-text','T'),('Redact','edit-redact','■'),
                  ('Line','draw-line','╱'),('Number','','①'),
                  ('Blur','','Blur'),('Pixelate','','Pixelate'),('Edit marks','','Edit marks')]
-        columns = len(icons)+2
-        if self.viewport.width() < 760:
-            columns = 4 if self.viewport.width() < 400 else 6
         tips = {'Edit marks': 'Select and drag a mark. Delete removes it. F2 edits text or a number.',
                 'Line': 'Draw a straight line. Hold Shift to snap to 45°.',
                 'Number': 'Place a numbered stamp.',
@@ -158,7 +155,7 @@ class FrozenCapture(QDialog):
                 button.setIcon(icon)
             button.setMinimumSize(28,28)
             button.clicked.connect(lambda checked=False, tool=name: self.set_tool(tool))
-            tools.addWidget(button, i//columns, i%columns)
+            tools.addWidget(button, 0, i)
             self.tool_buttons[name]=button
 
         self.color_button = QPushButton('Color')
@@ -171,23 +168,20 @@ class FrozenCapture(QDialog):
         self.stroke_width.setSuffix(' px')
         self.stroke_width.valueChanged.connect(self.set_width)
         for i, control in enumerate((self.color_button, self.stroke_width), len(icons)):
-            tools.addWidget(control, i//columns, i%columns)
+            tools.addWidget(control, 0, i)
 
         actions = QGridLayout(self.controls)
         actions.setContentsMargins(5,4,5,4)
         self.help = QLabel()
         actions.addWidget(self.help,0,0)
         self.actions = {}
-        columns = 8
-        if self.viewport.width() < 760:
-            columns = 2 if self.viewport.width() < 400 else 4
         for i,(label,action) in enumerate([('Window',self.pick_window),('Undo',self.undo),('Redo',self.redo),('Copy',self.accept),
                 ('Save…',self.choose_save),('Open in ScreenGrab',self.native_window),('Cancel',self.reject)],1):
             button=QPushButton(label)
             self.actions[label]=button
             button.setAutoDefault(False)
             button.clicked.connect(action)
-            actions.addWidget(button,i//columns,i%columns)
+            actions.addWidget(button,0,i)
         window_button = self.actions['Window']
         window_button.setCheckable(True)
         window_button.setEnabled(bool(self.windows))
@@ -198,6 +192,8 @@ class FrozenCapture(QDialog):
         native.setToolTip('Open these pixels in the native window' if native.isEnabled()
                           else 'Install the ScreenGrab PNG importer to open this image.')
         self.set_tool('Select')
+        for bar in (self.tools, self.controls):
+            bar.installEventFilter(self)
         for button in (*self.tool_buttons.values(), *self.actions.values(), self.color_button):
             button.installEventFilter(self)
 
@@ -277,6 +273,18 @@ class FrozenCapture(QDialog):
         return QPoint(round(position.x()*self.image.width()/self.width()),
                       round(position.y()*self.image.height()/self.height()))
 
+    def fit_toolbar(self, bar):
+        grid = bar.layout()
+        if grid.sizeHint().width() > self.viewport.width():
+            widgets = [grid.itemAt(i).widget() for i in range(grid.count())]
+            # Measure each candidate grid with Qt's current font, style and spacing.
+            for columns in range(len(widgets)-1, 0, -1):
+                for i, widget in enumerate(widgets):
+                    grid.addWidget(widget, i//columns, i%columns)
+                if grid.sizeHint().width() <= self.viewport.width():
+                    break
+        bar.adjustSize()
+
     def updated(self):
         size = self.pixel_rect().size()
         self.help.setText('Click a window' if self.active_tool == 'Window' else f'{size.width()} × {size.height()}')
@@ -285,7 +293,7 @@ class FrozenCapture(QDialog):
         target=self.selection.intersected(self.viewport)
         center=target.center().x() if not target.isEmpty() else self.viewport.center().x()
         for bar,above in ((self.tools,True),(self.controls,False)):
-            bar.adjustSize()
+            self.fit_toolbar(bar)
             x=max(self.viewport.left(),min(center-bar.width()//2,self.viewport.right()-bar.width()+1))
             if above:
                 y=self.viewport.top()+6 if target.isEmpty() else target.top()-bar.height()-6
@@ -772,6 +780,9 @@ class FrozenCapture(QDialog):
             self.update()
 
     def eventFilter(self, child, event):
+        if child in (self.tools, self.controls) and event.type() == QEvent.Type.LayoutRequest:
+            if child.sizeHint() != child.size():
+                self.updated()
         # Buttons normally consume arrow keys for focus traversal.
         if event.type() == QEvent.Type.KeyPress and self.adjust_crop(event):
             return True
