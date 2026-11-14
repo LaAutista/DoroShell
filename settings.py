@@ -172,6 +172,15 @@ class Settings(QWidget):
         self.pink = QCheckBox('Use pink ordinary pointer')
         self.pink.setToolTip('Off keeps your normal inherited pointer; only the loading cursor changes.')
         forms['Cursor'].addRow(self.pink)
+        self.categories.addItem('Mouse & Touchpad')
+        input_area = QScrollArea(); input_area.setWidgetResizable(True)
+        try:
+            from input_preferences import page as input_page
+            input_area.setWidget(input_page(self.home))
+        except ImportError:
+            missing = QLabel('Input preferences component is not installed. Update the toolkit before using these controls.')
+            missing.setWordWrap(True); input_area.setWidget(missing)
+        self.pages.addWidget(input_area)
         self.categories.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.categories.setCurrentRow(0)
         self.selection_summary = QLabel('No changes selected')
