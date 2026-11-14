@@ -4,7 +4,8 @@
 
 Use a normal user account that has already started an LXQt/X11 session on Arch,
 CachyOS or EndeavourOS. Other Arch derivatives pass the same capability checks.
-Core setup currently needs a single `panel1` and Openbox configuration. Missing or
+Core setup currently needs a single `panel1` and Openbox configuration (LXQt's default
+layout without a `panels=` line counts as a single `panel1`). Missing or
 custom layouts produce a specific refusal. DoroShell does not install a display
 manager, switch desktop environments, or claim Wayland support. Custom XDG roots
 remain unsupported by the older installation adapters and are refused explicitly.
@@ -73,6 +74,22 @@ palette generators remain available, and custom portraits can be chosen in Start
 the guarded Advanced display UI. It does not set a mode or VSync during installation.
 **Physical NVIDIA transition/recovery mismatch remains unresolved.** Do not infer
 hardware rollback reliability from fake-driver tests. See [display diagnostics](../display/README.md).
+
+### Duplicate app icons after an earlier install
+
+Installs made before Quick Launch merging kept LXQt's Quick Launch bar next to the
+DoroShell taskbar, so each pinned app also appeared as a separate running button.
+From the source checkout:
+
+```sh
+python panel/profile.py preview-merge-quicklaunch   # list what would be pinned
+python panel/profile.py merge-quicklaunch           # back up, then pin; next login
+```
+
+Folder links and custom commands stay in Quick Launch. The previous panel profile is
+saved as `~/.local/state/doroshell/panel-before-merge-*.conf`. Because the profile now
+differs from the installed one, restoring the stock panel later needs
+`--keep-panel-edits`.
 
 ## Recovery
 

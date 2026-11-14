@@ -45,8 +45,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "c19fc3f14eccb38cacd16912b9dd34459905bd30a527101f870d2ca2c8208ba5",
-      "size": 2629,
+      "sha256": "012971bc015299891bddef9dfe7ff349fd60dbc368d123a42c573ef0e2c0654b",
+      "size": 3397,
       "mode": "0o644"
     },
     {
@@ -159,8 +159,8 @@
     },
     {
       "path": "compatibility.py",
-      "sha256": "b3c611cfcdc05a5185a89409bbd700a2e77471865f8056e7898448deabf33d6e",
-      "size": 2896,
+      "sha256": "34063bdf94af9bbb7921df2222140fba92d62098a91a8407e0c24d146ea3529c",
+      "size": 3000,
       "mode": "0o644"
     },
     {
@@ -171,8 +171,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "ecdc8ac0c2717e29125c40118453e96ef6675913c7c490a9569177fe40af7e2f",
-      "size": 25929,
+      "sha256": "19386796396fa23ccc2c57c790f74f601779301b89f5875c18da4c15e23fc4e4",
+      "size": 26571,
       "mode": "0o644"
     },
     {
@@ -225,14 +225,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "f6d30d221448248fcad6ff89329ef7d2e20006456552924e415d6c3d4d6d9179",
-      "size": 7787,
+      "sha256": "7397360aac524d8aa34082fcab72256333bc83049c2a8058100b5d0533332bd9",
+      "size": 8134,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "1b6ce7a9c4d90b90e450766f325725dc949db6f2d7b68430d5166a3cebc4b9cb",
-      "size": 9588,
+      "sha256": "5b590371b7a399491d912289c7b5433b15225cebf8ac7b592f2d2118359f1a52",
+      "size": 10347,
       "mode": "0o644"
     },
     {
@@ -249,8 +249,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "d6ab95230964274ea14acd236d924ba40f99001037935a2a0c7d58e5795948c5",
-      "size": 6204,
+      "sha256": "66b8d078d0a481a6047a535ed7f9250a9fe7c05e5cf9b9565c8b281c31028b06",
+      "size": 6334,
       "mode": "0o644"
     },
     {
@@ -591,8 +591,8 @@
     },
     {
       "path": "panel/profile.py",
-      "sha256": "c1b98be57a814ea08d6c00c4bcc07c464eb0d0620f7a138fb03229d1fe03e08b",
-      "size": 15846,
+      "sha256": "d11465764d8fe8b046a596fb8e88bb9c88bd2cbc147c0c2853a14c0ec2030809",
+      "size": 22497,
       "mode": "0o644"
     },
     {
@@ -1059,8 +1059,8 @@
     },
     {
       "path": "tests/test_deployment.py",
-      "sha256": "ec60c911dba2721e99e8a100bffd74e1a4d8540632b3325b356b402c7ab4cd28",
-      "size": 13534,
+      "sha256": "388b3f1067cd118560a3ca6932c690c1d281ed7c9db28222486b0c39575fdea3",
+      "size": 15852,
       "mode": "0o644"
     },
     {
@@ -1155,8 +1155,8 @@
     },
     {
       "path": "tests/test_native_panel.py",
-      "sha256": "894a9d21d8468d9a92f083995f392c8ee03ac14a5607d7f4397e4794994f398a",
-      "size": 10166,
+      "sha256": "65d835dcefffddfe1f2b2f7cc64591a83d96bf6cb15b650153bcefd4075edf7d",
+      "size": 20878,
       "mode": "0o644"
     },
     {

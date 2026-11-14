@@ -45,6 +45,143 @@ class NativePanelTests(unittest.TestCase):
                 profile.prepare(home, home/'conflict', Path('/usr/bin/true'))
             self.assertFalse((home/'conflict').exists())
 
+    def quicklaunch_fixture(self, home):
+        apps = home/'apps'; apps.mkdir()
+        for name in ('alpha', 'beta'):
+            (apps/(name+'.desktop')).write_text('[Desktop Entry]\nType=Application\nName='+name+'\nExec=/bin/true\n')
+        (apps/'folder.desktop').write_text('[Desktop Entry]\nType=Link\nName=Folder\nURL=file:///tmp\n')
+        return apps
+
+    def test_stock_quicklaunch_apps_become_taskbar_pins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp); apps = self.quicklaunch_fixture(home)
+            raw = ('[panel1]\nplugins=fancymenu, quicklaunch, taskbar, worldclock\n[quicklaunch]\n'
+                   'apps\\1\\desktop='+str(apps/'alpha.desktop')+'\napps\\2\\desktop='+str(apps/'folder.desktop')+
+                   '\napps\\3\\desktop='+str(apps/'beta.desktop')+'\napps\\4\\desktop='+str(apps/'alpha.desktop')+
+                   '\napps\\5\\desktop='+str(apps/'missing.desktop')+'\napps\\size=5\n')
+            out = home/'out.conf'; out.write_bytes(profile.profile(raw, home, [], None))
+            cfg = QSettings(str(out), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'), [str(apps/'alpha.desktop'), str(apps/'beta.desktop')])
+            # Non-application and unavailable launchers stay where the user put them.
+            self.assertIn('quicklaunch', cfg.value('panel1/plugins'))
+            self.assertEqual(cfg.value('quicklaunch/apps/size', type=int), 2)
+            self.assertEqual(cfg.value('quicklaunch/apps/1/desktop'), str(apps/'folder.desktop'))
+            self.assertEqual(cfg.value('quicklaunch/apps/2/desktop'), str(apps/'missing.desktop'))
+            # An all-application Quick Launch disappears entirely.
+            raw = '[panel1]\nplugins=quicklaunch, taskbar\n[quicklaunch]\napps\\1\\desktop='+str(apps/'beta.desktop')+'\napps\\size=1\n'
+            out.write_bytes(profile.profile(raw, home, [], None))
+            cfg = QSettings(str(out), QSettings.Format.IniFormat)
+            self.assertNotIn('quicklaunch', cfg.value('panel1/plugins'))
+            self.assertNotIn('quicklaunch', cfg.childGroups())
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'), str(apps/'beta.desktop'))
+
+    def test_merge_existing_profile_backs_up_and_is_repeatable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp); apps = self.quicklaunch_fixture(home)
+            config = home/'.config/doroshell/panel.conf'; config.parent.mkdir(parents=True)
+            original = ('[panel1]\nplugins=doroshellStart, quicklaunch, doroshellTasks\n[doroshellStart]\ntype=quicklaunch\n'
+                        'apps\\1\\desktop='+str(apps/'folder.desktop')+'\napps\\size=1\n[quicklaunch]\ntype=quicklaunch\n'
+                        'apps\\1\\desktop='+str(apps/'alpha.desktop')+'\napps\\2\\desktop='+str(apps/'beta.desktop')+
+                        '\napps\\size=2\n[doroshellTasks]\ntype=taskbar\ndoroshellPinned='+str(apps/'beta.desktop')+'\n')
+            config.write_text(original); config.chmod(0o600)
+            profile.merge_existing(home, preview=True)
+            self.assertEqual(config.read_text(), original)
+            profile.merge_existing(home)
+            cfg = QSettings(str(config), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('panel1/plugins'), ['doroshellStart', 'doroshellTasks'])
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'), [str(apps/'beta.desktop'), str(apps/'alpha.desktop')])
+            self.assertEqual(cfg.value('doroshellStart/apps/1/desktop'), str(apps/'folder.desktop'))
+            self.assertEqual(config.stat().st_mode & 0o777, 0o600)
+            backups = list((home/'.local/state/doroshell').glob('panel-before-merge-*.conf'))
+            self.assertEqual(len(backups), 1); self.assertEqual(backups[0].read_text(), original)
+            merged = config.read_bytes(); profile.merge_existing(home)
+            self.assertEqual(config.read_bytes(), merged)
+            self.assertEqual(len(list((home/'.local/state/doroshell').glob('panel-before-merge-*.conf'))), 1)
+
+    def test_merge_keeps_start_launcher_and_restore_still_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp); apps = self.quicklaunch_fixture(home)
+            start = home/'.local/share/applications/lxqt-comfort.desktop'; start.parent.mkdir(parents=True)
+            start.write_text('[Desktop Entry]\nType=Application\nName=DoroShell Start\nExec=/bin/true\n')
+            panel = home/'.config/lxqt/panel.conf'; panel.parent.mkdir(parents=True)
+            # integrate.py layout: Start lives in its own quicklaunch; apps in the stock one.
+            panel.write_text('[panel1]\nplugins=comfortstart, quicklaunch, taskbar\n[comfortstart]\ntype=quicklaunch\n'
+                             'apps\\1\\desktop='+str(start)+'\napps\\size=1\n[quicklaunch]\napps\\1\\desktop='+str(start)+
+                             '\napps\\2\\desktop='+str(apps/'alpha.desktop')+'\napps\\size=2\n')
+            original = panel.read_bytes()
+            profile.prepare(home, home/'prepared', Path('/usr/bin/true'))
+            cfg = QSettings(str(home/'prepared/panel.conf'), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'), str(apps/'alpha.desktop'))
+            self.assertIn('comfortstart', cfg.value('panel1/plugins'))
+            self.assertEqual(cfg.value('comfortstart/apps/1/desktop'), str(start))
+            self.assertEqual(cfg.value('quicklaunch/apps/1/desktop'), str(start))  # Start never becomes a pin
+            profile.switch(home, home/'prepared')
+            # A merge of a DoroShell-owned profile keeps the manifest consistent.
+            config = home/'.config/doroshell/panel.conf'
+            cfg = QSettings(str(config), QSettings.Format.IniFormat)
+            cfg.setValue('quicklaunch/apps/2/desktop', str(apps/'beta.desktop')); cfg.setValue('quicklaunch/apps/size', 2); cfg.sync()
+            import json, hashlib
+            manifest = home/'.local/state/doroshell/native-panel.json'; record = json.loads(manifest.read_text())
+            record['.config/doroshell/panel.conf']['after'] = hashlib.sha256(config.read_bytes()).hexdigest()
+            manifest.write_text(json.dumps(record))
+            profile.merge_existing(home)
+            record = json.loads(manifest.read_text())
+            self.assertEqual(record['.config/doroshell/panel.conf']['after'], hashlib.sha256(config.read_bytes()).hexdigest())
+            self.assertNotIn('pending_after', record['.config/doroshell/panel.conf'])
+            profile.switch(home, rollback=True)  # no --keep-panel-edits needed
+            self.assertEqual(panel.read_bytes(), original)
+            self.assertFalse(config.exists())
+
+    def test_merge_leaves_empty_unknown_and_unmoved_widgets_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp); apps = self.quicklaunch_fixture(home)
+            for body in ('apps\\size=0\n',
+                         'apps\\1\\desktop='+str(apps/'alpha.desktop')+'\napps\\extra=1\napps\\size=1\n',
+                         'apps\\1\\desktop='+str(apps/'folder.desktop')+'\napps\\size=1\n'):
+                raw = '[panel1]\nplugins=quicklaunch, taskbar\n[quicklaunch]\n'+body
+                out = home/'out.conf'; out.write_bytes(profile.profile(raw, home, [], None))
+                cfg = QSettings(str(out), QSettings.Format.IniFormat)
+                self.assertIn('quicklaunch', cfg.value('panel1/plugins'))
+                original = QSettings(str(home/'raw.conf'), QSettings.Format.IniFormat)
+                (home/'raw.conf').write_text(raw); original = QSettings(str(home/'raw.conf'), QSettings.Format.IniFormat)
+                self.assertEqual({k: cfg.value(k) for k in cfg.allKeys() if k.startswith('quicklaunch/apps')},
+                                 {k: original.value(k) for k in original.allKeys() if k.startswith('quicklaunch/apps')})
+
+    def test_merge_respects_array_size_and_saves_duplicate_only_cleanup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp); apps = self.quicklaunch_fixture(home)
+            # Stale entry 2 lies past apps/size=1 and must not be resurrected as a pin.
+            raw = ('[panel1]\nplugins=quicklaunch, taskbar\n[quicklaunch]\napps\\1\\desktop='+str(apps/'alpha.desktop')+
+                   '\napps\\2\\desktop='+str(apps/'beta.desktop')+'\napps\\size=1\n')
+            out = home/'out.conf'; out.write_bytes(profile.profile(raw, home, [], None))
+            cfg = QSettings(str(out), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'), str(apps/'alpha.desktop'))
+            # Missing apps/size: leave the widget alone.
+            raw = '[panel1]\nplugins=quicklaunch, taskbar\n[quicklaunch]\napps\\1\\desktop='+str(apps/'alpha.desktop')+'\n'
+            out.write_bytes(profile.profile(raw, home, [], None))
+            cfg = QSettings(str(out), QSettings.Format.IniFormat)
+            self.assertIn('quicklaunch', cfg.value('panel1/plugins'))
+            self.assertEqual(cfg.value('quicklaunch/apps/1/desktop'), str(apps/'alpha.desktop'))
+            # Only a duplicate is removed (folder link stays): the change must still be saved.
+            config = home/'.config/doroshell/panel.conf'; config.parent.mkdir(parents=True)
+            config.write_text('[panel1]\nplugins=quicklaunch, doroshellTasks\n[quicklaunch]\ntype=quicklaunch\n'
+                              'apps\\1\\desktop='+str(apps/'folder.desktop')+'\napps\\2\\desktop='+str(apps/'alpha.desktop')+
+                              '\napps\\size=2\n[doroshellTasks]\ntype=taskbar\ndoroshellPinned='+str(apps/'alpha.desktop')+'\n')
+            config.chmod(0o600)
+            profile.merge_existing(home)
+            cfg = QSettings(str(config), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('quicklaunch/apps/size', type=int), 1)
+            self.assertEqual(cfg.value('quicklaunch/apps/1/desktop'), str(apps/'folder.desktop'))
+
+    def test_merge_refuses_symlinked_state(self):
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as outside:
+            home = Path(tmp)
+            config = home/'.config/doroshell/panel.conf'; config.parent.mkdir(parents=True)
+            config.write_text('[panel1]\nplugins=doroshellTasks\n[doroshellTasks]\ntype=taskbar\n')
+            (home/'.local/state').mkdir(parents=True); (home/'.local/state/doroshell').symlink_to(outside)
+            with self.assertRaisesRegex(RuntimeError, 'symlink'):
+                profile.merge_existing(home)
+
     def test_standalone_profile_loads_inherited_clock_and_tray_types(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)

@@ -39,6 +39,11 @@ the newer controller. Do not downgrade it from an old local toolkit or archive.
 
 ## Known issues and recent evidence
 
+Laptop follow-up (2026-11-14): stock LXQt panel files without `panels=` were wrongly
+refused; Quick Launch apps were duplicated beside taskbar pins; upgrades from the
+older installer kept the plain Start icon. All three are fixed with unit/temporary-home
+tests. A live laptop update and next-login check are separate and recorded only once done.
+
 The physical NVIDIA refresh change can take effect and then fail verification before
 Keep/Revert. The user restored the rate manually. The root cause and physical rollback
 reliability remain unverified. Preferred-marker whitespace handling, Apply/OK routing,

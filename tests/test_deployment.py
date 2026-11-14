@@ -51,6 +51,36 @@ class DeploymentTests(unittest.TestCase):
         (self.home/'.config/lxqt/panel.conf').write_text('panels=panel1,panel2\n')
         self.assertTrue(compatibility.inspect(self.home,['native-panel'],{},dict(ID='debian'))['issues'])
 
+    def test_stock_start_icon_upgrades_to_doro_but_keeps_personal_pictures(self):
+        manifest = self.home/'.local/state/lxqt-comfort/menu-install.json'
+        entry = self.home/'.local/share/applications/lxqt-comfort.desktop'
+        art = self.home/'.local/share/lxqt-comfort'
+        self.assertTrue(deploy.stock_start_icon(self.home, manifest))  # first install
+        manifest.parent.mkdir(parents=True); manifest.write_text('{}')
+        entry.parent.mkdir(parents=True)
+        entry.write_text('[Desktop Entry]\nName=DoroShell Start\nIcon='+str(art/'start.svg')+'\n')
+        self.assertTrue(deploy.stock_start_icon(self.home, manifest))  # earlier install, plain icon
+        entry.write_text('[Desktop Entry]\nName=DoroShell Start\nIcon=/home/someone/Pictures/mine.png\n')
+        self.assertFalse(deploy.stock_start_icon(self.home, manifest))  # personal Icon= path
+        entry.write_text('[Desktop Entry]\nName=DoroShell Start\nIcon='+str(art/'start.svg')+'\n')
+        art.mkdir(parents=True); (art/'start-icon.png').write_bytes(b'png')
+        self.assertFalse(deploy.stock_start_icon(self.home, manifest))  # personal picture chosen
+        (art/'start-icon.png').unlink(); entry.unlink()
+        self.assertFalse(deploy.stock_start_icon(self.home, manifest))  # manifest but no launcher: leave it
+
+    def test_default_single_panel_without_panels_key_is_supported(self):
+        # LXQt writes no `panels=` line for its default single-panel layout.
+        self.fixture()
+        panel = self.home/'.config/lxqt/panel.conf'
+        panel.write_text('[General]\n__userfile__=true\n\n[panel1]\nplugins=fancymenu, quicklaunch, taskbar\n')
+        env = dict(XDG_CURRENT_DESKTOP='LXQt', XDG_SESSION_TYPE='x11')
+        with patch.object(compatibility.shutil, 'which', return_value='/usr/bin/pacman'):
+            self.assertEqual(compatibility.inspect(self.home, deploy.CORE, env, dict(ID='cachyos', ID_LIKE='arch'))['issues'], [])
+            panel.write_text('[General]\npanels = panel1, panel2\n[panel1]\n')
+            self.assertTrue(compatibility.inspect(self.home, ['native-panel'], env, dict(ID='arch'))['issues'])
+            panel.write_text('[General]\n__userfile__=true\n')
+            self.assertTrue(compatibility.inspect(self.home, ['native-panel'], env, dict(ID='arch'))['issues'])
+
     def test_optional_dependencies_and_scoped_removal(self):
         self.assertEqual(deploy.select_modules(['clipboard']),['menu','native-panel','clipboard'])
         self.assertEqual(deploy.select_modules(['clipboard'],expand=False),['clipboard'])
