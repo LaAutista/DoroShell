@@ -2,6 +2,15 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Accept LXQt's default single-panel layout, which has `[panel1]` but no `panels=` key.
+  The capability check refused it, blocking updates on stock CachyOS LXQt setups.
+- Move stock Quick Launch applications into native taskbar pins on first install, so a
+  pinned app and its running window share one button instead of appearing twice.
+  Folder links, custom commands, missing files and ambiguous window identities stay in
+  Quick Launch. Existing installs can opt in with `panel/profile.py merge-quicklaunch`
+  (preview with `preview-merge-quicklaunch`); the previous profile is backed up first.
+- Upgrade a Start button that still shows the plain stock `start.svg` to the bundled Doro
+  artwork, as fresh installs already do. A personal picture is never replaced.
 - Separate read-only runtime profile capability, bounded system-rule intent and
   unverified current initialization on Mouse & Touchpad. Flag incomplete/conflicting
   evidence; never infer disabled acceleration from a missing property or stale log.

@@ -74,6 +74,7 @@ def profile(original, home, launchers, hidden):
             identity=(app.get_startup_wm_class() or path.stem).casefold()
             if identity in identities:raise ValueError('Ambiguous pinned application identity: '+identity)
             identities.add(identity);pins.append(str(path))
+        result=merge_quicklaunch(cfg,result,pins,identities,home)
         cfg.setValue('doroshellTasks/doroshellPinned',pins)
         for key,value in {'buttonStyle':'Icon','buttonWidth':48,'groupingEnabled':True,'iconByClass':True,'showOnlyOneDesktopTasks':False}.items():
             cfg.setValue('doroshellTasks/'+key,value)
@@ -126,6 +127,119 @@ def profile(original, home, launchers, hidden):
         if cfg.status()!=QSettings.Status.NoError:raise RuntimeError('Profile serialization failed')
         return config_path.read_bytes()
 
+
+def app_info(path):
+    """Desktop application for a launcher path, or None (missing file, Type=Link, invalid entry)."""
+    if not Path(path).is_absolute() or not Path(path).is_file():return None
+    try:return Gio.DesktopAppInfo.new_from_filename(str(path))
+    except TypeError:return None  # PyGObject raises when the constructor returns NULL
+
+
+def merge_quicklaunch(cfg, plugins, pins, identities, home=None):
+    """Move stock Quick Launch applications into taskbar pins so each app is one button.
+
+    Only plain application launchers move. The DoroShell Start launcher, folder links,
+    custom commands, missing files and ambiguous window identities stay in Quick Launch.
+    A widget with unrecognised keys or non-text values is left untouched, a widget from
+    which nothing moves is not rewritten, and a widget is removed only when every entry
+    moved. `pins` and `identities` are extended in place; the new plugin list is returned.
+    """
+    start=str((home or Path.home())/'.local/share/applications/lxqt-comfort.desktop')
+    result=[]
+    for name in plugins:
+        if name=='doroshellStart' or cfg.value(name+'/type',name)!='quicklaunch':
+            result.append(name);continue
+        prefix=name+'/apps/'
+        entries={};unknown=False
+        for key in cfg.allKeys():
+            if not key.startswith(prefix) or key==prefix+'size':continue
+            index,_,field=key[len(prefix):].partition('/')
+            value=cfg.value(key)
+            if not index.isdigit() or not field or '/' in field or not isinstance(value,str):
+                unknown=True;break
+            entries.setdefault(int(index),{})[field]=value
+        if unknown or not entries:
+            result.append(name);continue
+        moved=[];leftover=[]
+        for index in sorted(entries):
+            entry=entries[index]
+            path=entry.get('desktop')
+            if set(entry)!={'desktop'} or path==start:
+                leftover.append(entry);continue
+            if path in pins:
+                moved.append(path);continue  # already pinned: this was the duplicate
+            app=app_info(path)
+            identity=(app.get_startup_wm_class() or Path(path).stem).casefold() if app is not None else None
+            if identity is None or identity in identities:
+                leftover.append(entry);continue
+            identities.add(identity);pins.append(path);moved.append(path)
+        if not moved:
+            result.append(name);continue
+        cfg.remove(name+'/apps')
+        if leftover:
+            for number,entry in enumerate(leftover,1):
+                for field,value in entry.items():
+                    cfg.setValue(f'{prefix}{number}/{field}',value)
+            cfg.setValue(prefix+'size',len(leftover))
+            result.append(name)
+        else:
+            cfg.remove(name)
+    return result
+
+
+def merge_existing(home, preview=False):
+    """Apply merge_quicklaunch to an already installed DoroShell panel profile (next login).
+
+    When the profile is still exactly as DoroShell installed it, the native-panel manifest
+    is updated too (two-phase, like upgrade()), so restore/removal keep working. A profile
+    the user already edited keeps its manifest; restoring it needs --keep-panel-edits as before.
+    """
+    state=home/'.local/state/doroshell'
+    config=home/'.config/doroshell/panel.conf';manifest=state/'native-panel.json'
+    for path in (state,config,manifest):safe(path,home)
+    if not config.is_file():raise ValueError('DoroShell panel profile is not installed')
+    original=config.read_bytes()
+    with tempfile.TemporaryDirectory() as tmp:
+        work=Path(tmp)/'panel.conf';work.write_bytes(original)
+        cfg=QSettings(str(work),QSettings.Format.IniFormat)
+        plugins=cfg.value('panel1/plugins',[])
+        if isinstance(plugins,str):plugins=[plugins]
+        if 'doroshellTasks' not in plugins:raise ValueError('DoroShell taskbar is not in panel1')
+        pins=cfg.value('doroshellTasks/doroshellPinned',[])
+        if isinstance(pins,str):pins=[pins]
+        pins=[p for p in (pins or []) if isinstance(p,str)]
+        identities=set()
+        for path in pins:
+            app=app_info(path)
+            identities.add(((app.get_startup_wm_class() if app else None) or Path(path).stem).casefold())
+        before=list(pins)
+        result=merge_quicklaunch(cfg,plugins,pins,identities,home)
+        if result==plugins and pins==before:
+            print('Nothing to merge: no Quick Launch applications next to the taskbar');return
+        for path in pins[len(before):]:print('Pin in taskbar:',path)
+        if preview:return
+        cfg.setValue('panel1/plugins',result);cfg.setValue('doroshellTasks/doroshellPinned',pins)
+        cfg.sync()
+        if cfg.status()!=QSettings.Status.NoError:raise RuntimeError('Profile serialization failed')
+        content=work.read_bytes()
+    record=entry=None
+    if manifest.is_file():
+        record=json.loads(manifest.read_text());validate_record(record)
+        entry=record['.config/doroshell/panel.conf']
+        if digest(original) not in (entry['after'],entry.get('pending_after')):entry=None  # already a personal edit
+    state.mkdir(parents=True,exist_ok=True)
+    with tempfile.NamedTemporaryFile(prefix='panel-before-merge-',suffix='.conf',dir=state,delete=False) as backup:
+        backup.write(original);backup.flush();os.fsync(backup.fileno())
+    os.chmod(backup.name,0o600)
+    if entry is not None:
+        entry['pending_after']=digest(content);atomic(manifest,json.dumps(record,indent=2).encode())
+    atomic(config,content,config.stat().st_mode&0o777)
+    if entry is not None:
+        entry['after']=entry.pop('pending_after');atomic(manifest,json.dumps(record,indent=2).encode())
+    print('Saved previous panel settings:',backup.name)
+    if record is not None and entry is None:
+        print('Note: this profile already had personal edits; restoring the stock panel needs --keep-panel-edits.')
+    print('Takes effect at your next normal login. No process stopped or started.')
 
 def launchers_from_dockbarx():
     raw=subprocess.check_output(['gsettings','get','org.dockbarx.dockbarx','launchers'],text=True)
@@ -262,7 +376,7 @@ def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['prepare','preview-next-login','enable-next-login','restore-next-login'])
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['prepare','preview-next-login','enable-next-login','restore-next-login','merge-quicklaunch','preview-merge-quicklaunch'])
     p.add_argument('--home',type=Path,default=Path.home());p.add_argument('--prepared',type=Path);p.add_argument('--binary',type=Path);p.add_argument('--hide',action='append',default=None)
     p.add_argument('--keep-panel-edits', action='store_true', help='Save changed panel settings privately before restoring the previous panel')
     a=p.parse_args()
@@ -272,4 +386,6 @@ if __name__=='__main__':
     elif a.action in ('preview-next-login', 'enable-next-login'):
         if not a.prepared:p.error('enable-next-login needs --prepared')
         switch(a.home,a.prepared,preview=a.action=='preview-next-login')
+    elif a.action in ('merge-quicklaunch','preview-merge-quicklaunch'):
+        merge_existing(a.home,preview=a.action.startswith('preview'))
     else:switch(a.home,rollback=True,keep_panel_edits=a.keep_panel_edits)

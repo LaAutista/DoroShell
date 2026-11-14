@@ -258,13 +258,26 @@ def installed_modules(home):
     return result
 
 
+def stock_start_icon(home, manifest):
+    """True when Start has no personal picture: a first install, or an earlier install that
+    still shows the plain stock start.svg. Those get the bundled Doro artwork; a picture the
+    user chose (start-icon.png or any other Icon= path) is never replaced."""
+    if (home/'.local/share/lxqt-comfort/start-icon.png').exists():
+        return False
+    if not manifest.exists():
+        return True
+    entry = home/'.local/share/applications/lxqt-comfort.desktop'
+    icons = [line[5:] for line in entry.read_text().splitlines() if line.startswith('Icon=')] if entry.is_file() else []
+    return icons == [str(home/'.local/share/lxqt-comfort/start.svg')]
+
+
 def step(home, name, binaries, theme, remove=False, job=None):
     """Return the managed path inventory and the existing adapter operation."""
     import install, modules
     manifest = manifest_for(home, name)
     paths = {manifest}
     if name == 'menu':
-        icon = ROOT/'assets/doro/start.png' if not manifest.exists() and not (home/'.local/share/lxqt-comfort/start-icon.png').exists() else None
+        icon = ROOT/'assets/doro/start.png' if stock_start_icon(home, manifest) else None
         paths.update(install.targets(home, icon))
         paths.update(home/'.local/state/lxqt-comfort/desktop-before'/p for p in ('panel.conf', 'globalkeyshortcuts.conf'))
         operation = lambda: install.rollback(home) if remove else install.install(home, True, icon)
