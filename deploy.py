@@ -415,7 +415,11 @@ def main(argv=None):
     if args.remove and 'menu' in selected:
         from input_preferences import Preferences
         Preferences(home).require_inactive()
-    report = compatibility.inspect(home, selected)
+    capability_modules = selected
+    if args.recover and 'native-panel' in journal['done']:
+        # Validated completed outputs are retained; recovery will not read the stock layout.
+        capability_modules = [name for name in selected if name != 'native-panel']
+    report = compatibility.inspect(home, capability_modules)
     packages = packages_for(selected); versions = compatibility.package_versions(packages)
     print(json.dumps(dict(platform=report, package_versions=versions, modules=selected), indent=2))
     if not args.apply:

@@ -76,6 +76,14 @@ Legacy pending journals and ambiguous interrupted shared-file writes require
 inspection, not guessed migration. Completed legacy undo remains supported.
 See INSTALL's recovery limits and RELEASE-CANDIDATE's targeted regression evidence.
 
+The bounded multi-panel recovery follow-up on `c87ff151` skips the stock-layout
+capability check only when the validated recovery journal says native-panel already
+completed. A later second panel in the stock file is preserved during recovery and
+exact undo. Completed output content/mode/symlink edits still refuse before prerequisites
+or writes. First/unfinished native-profile work and custom XDG roots remain unsupported;
+this is not a general multi-panel adapter. Recovery still requires its creating source
+revision; do not edit an old pending journal's source hash to force migration.
+
 Input preferences from `0cf6019` are integrated on top of `e18026e`. The helper now
 ships in the menu toolkit with declared Xlib/udev prerequisites. DoroShell Settings
 has its own Mouse & Touchpad page and a native LXQt link; this is not an LXQt UI

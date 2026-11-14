@@ -1,3 +1,27 @@
+# Completed native-panel recovery checkpoint — 2026-11-14
+
+Based on `c87ff151f7ca658b665d79bbc4a323461f086068`, preserving public bootstrap and
+the continuation wording. No unpublished system-input helper is included. In a
+disposable home, interrupt before maintenance after menu/native-panel complete,
+then add a second panel to the separate stock LXQt file. The baseline CLI wrongly
+refuses recovery on its single-panel capability gate. Recovery now omits that
+irrelevant check only after validating the journal and completed output bytes/modes.
+The requested modules, remaining capability checks and conflict safeguards are unchanged.
+
+Four focused regression tests and the **350-test full suite pass**, using offscreen
+Qt and disposable homes without a personal display/session bus. Tests cover the
+reproduced failure, unchanged completed evidence, exact undo preserving the new stock
+layout, content/mode/symlink conflicts, unfinished native-panel refusal and retained
+custom-XDG refusal. Package inventory/native building are mocked in the new CLI
+tests; the real temporary-home native-profile and journal adapters run. Existing
+repeat/removal/upgrade and recovery regressions remain included. No package, native
+binary, live UI, login, physical input/display or clean-OS acceptance is added.
+
+Source inventory, catalogued artwork and exported-archive hashes are verified for
+the review bundle. First/unfinished native-profile recovery remains broader work;
+same-source recovery still refuses older pending journals rather than migrating them.
+The previous disabled input-helper/authentication investigation remains separate.
+
 # Provenance and optional lock-screen design checkpoint — 2026-11-14
 
 Based on published `fd1859d`, preserving all later Start, screenshot and display work.

@@ -141,6 +141,15 @@ Unknown versions, invalid progress/request/snapshot records, and changed complet
 files are refused before recovery writes. Cursor writes retain pending hashes/modes
 for retry and use atomic records.
 
+If native-panel already completed, recovery does not require its separate stock LXQt
+configuration to remain a single-panel layout: that completed step is skipped, so
+recovery will not read or rewrite the stock profile. Its recorded managed files must
+still match exactly. A second panel subsequently added to the stock file survives
+recovery and exact undo. First-time or unfinished native-panel work still requires
+the supported single-panel layout, and custom XDG roots remain refused. The same-source
+requirement still applies; this change does not migrate pending journals from older
+revisions or justify changing their recorded source hashes.
+
 Legacy format-1 **pending** journals have no completed-step evidence and require
 manual inspection; no safe history can be reconstructed from current files alone.
 Valid completed format-1 journals retain their recorded exact-undo support, but

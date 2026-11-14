@@ -2,6 +2,9 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Recover a completed native-panel step after the unrelated stock LXQt layout gains
+  a second panel. Verify the recorded output bytes/modes first and retain the stock
+  layout; unfinished native-panel work still needs the supported single-panel layout.
 - Update bootstrap and handoff instructions for the public repository: curl/Git need
   no GitHub CLI, account or token. Anonymous fetch disables credential helpers and
   terminal prompts per command. Preserve complete-download-before-execution checks.

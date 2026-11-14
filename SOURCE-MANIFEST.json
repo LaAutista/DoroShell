@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-input-readonly-diagnostics-20261114",
+  "candidate": "doroshell-panel-layout-recovery-20261114",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -18,17 +18,18 @@
     "display_diagnostic_phases": "Private schema-2 phase/property diagnostics; exact state equivalence retained; see RELEASE-CANDIDATE.md",
     "native_tray_shortcut": "d7279a62921cb3fb7e6a4907a4c3e40e1b919736",
     "portable_installer": "bootstrap/deploy over existing adapters; legacy cursor recovery; profile-preserving native upgrade; docs/HANDOFF.md",
-    "private_bootstrap": "Authenticated GitHub CLI acquisition after real raw-URL 404; repository remains private",
+    "private_bootstrap": "Historical private-repository bootstrap; superseded by public anonymous HTTPS follow-up 2f9c2f86850a7f9eac2abb6c6737887bc224fa26.",
     "independent_qa": "Private screenshot acceptance on dee97b4; unmerged lock probe f81d5d5 fails final stacking assertion. See docs/STATUS.md; probe excluded.",
     "deployment_recovery": "Follow-up to fa8808c75f4d6d1d639432d95f093d20a1497459: format-2 completed output evidence and shared recovery/undo validation; see RELEASE-CANDIDATE.md",
     "input_preferences": "Feature 0cf6019a0e4d5e32d1e81df4f2f495075b1f4694 integrated on e18026e166c96382f24843cdb3467ffe989c5568; installed helper lifecycle/ownership/restoration; docs/input-preferences.md",
-    "input_diagnostics": "Read-only diagnostic follow-up on d84b39272b7a45efd51751a7a6b5b97da767f95c: bounded configuration intent, runtime capability and explicit unverified initialization; no logs/privileged reader"
+    "input_diagnostics": "Read-only diagnostic follow-up on d84b39272b7a45efd51751a7a6b5b97da767f95c: bounded configuration intent, runtime capability and explicit unverified initialization; no logs/privileged reader",
+    "panel_layout_recovery": "Bounded completed-native-panel recovery on c87ff151f7ca658b665d79bbc4a323461f086068; preserve later stock multi-panel layout, exact undo and output conflict refusal; no new layout/XDG adapter."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 337,
-    "command": "python -m unittest discover -s tests -v",
-    "note": "337 full-suite tests passed: 11 new diagnostic cases plus all 24 previous input/lifecycle tests and 17 recovery regressions. Installed-toolkit private X11 mocked capability/intent/status, restoration and rendering passed; narrow/large-font screenshots inspected. Inventory/checksum archive round-trip checked. Read-only hardware capability observation only; no input/session/system changes, physical motion, login, hotplug or clean OS claim."
+    "passed": 350,
+    "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
+    "note": "350 full-suite tests passed in a disposable HOME with personal display/session bus unavailable. Four new completed-panel layout recovery regressions; package inventory/native builds mocked, real file/journal adapters exercised. No new private X11, authentication, physical device, login or clean-OS acceptance. Source/archive inventory and hashes verified separately."
   },
   "source_payloads": [
     {
@@ -45,8 +46,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "528d5adcce0beece9e45fd9abe35c52ac9dd296cb9c8554b7662ab81f9565b1e",
-      "size": 4242,
+      "sha256": "00202a9cc34081ca5c61cc2d7e305599bedede1699b0ec398443a938528db61c",
+      "size": 4496,
       "mode": "0o644"
     },
     {
@@ -69,14 +70,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "fe958868b2dd0190e9f8f2a825adf55e154a6b8521f0df481bfa2bf330b1d96c",
-      "size": 26504,
+      "sha256": "545d03c00938780c66eb5685caf16b4e1055a0fb7d5279ec200399be13c094f7",
+      "size": 28139,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "22657b7876acc9c340b1d0d4ab9e7146ec601780b48dedb259536b3f49e3b796",
-      "size": 7773,
+      "sha256": "c19174bd774a79d04415361402f6245b3b153b5e9eca304bad1e1c0b021334fc",
+      "size": 7816,
       "mode": "0o644"
     },
     {
@@ -171,8 +172,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "9ab59ef1ca0b66cec293da9a30f0fc018aa64a27122bfbb7a703993f7b8f5b32",
-      "size": 26589,
+      "sha256": "98637f0a7b9229f7faad7fc11730f17bf7d16c82adc74276cf1b2e12f59e1626",
+      "size": 26868,
       "mode": "0o644"
     },
     {
@@ -225,14 +226,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "fe081cc82f71128194bca72756c5c813c66d2ce8d057834d9bd77008ec3b3ed0",
-      "size": 8548,
+      "sha256": "e07f26ad77116596d95db406b59e9005d80f9cbfbd0aa8fe6fa154fe335ba476",
+      "size": 9141,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "0fbba5373b3c6e7ca78ae3a34904a1e6f71547dd11ce171d3f952e99cfcdef80",
-      "size": 11091,
+      "sha256": "36249ae6c255e5f23a45e14a0ceb6f052b953e6fa040df871f8c8db3c327354f",
+      "size": 11741,
       "mode": "0o644"
     },
     {
@@ -243,14 +244,14 @@
     },
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "ccc7a9f3beac5eccd4c6c53d80355b7ce3858bcf3545c2320d510fb45609c549",
-      "size": 1923,
+      "sha256": "965443ae472a0aff221897568369ce70f6f187858ed943f7513121cc947274ec",
+      "size": 2092,
       "mode": "0o644"
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "e80aab96ba9a1cb9ab90f13ed68a3559204bab5fbe3ec583e823155c522772d0",
-      "size": 7032,
+      "sha256": "dbebaea5c0ba7c7133df4abd9fff1737a41a75d287c5f285d214e782985ceac3",
+      "size": 7662,
       "mode": "0o644"
     },
     {
@@ -1163,6 +1164,12 @@
       "path": "tests/test_panel_build.py",
       "sha256": "06f3b6d2678054e48cac4f744c86d75707d8e0a498c8ef86ba8a5bee033dd31f",
       "size": 2811,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_panel_layout_recovery.py",
+      "sha256": "260f861128eb2bd5175e3a6cbfcfd4122044f7e3bf4da3ff16ecd728847a0b7b",
+      "size": 6102,
       "mode": "0o644"
     },
     {

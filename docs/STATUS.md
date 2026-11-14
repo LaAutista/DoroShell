@@ -13,7 +13,7 @@ separate from this pass. Source publication does not imply live activation.
 | Panel/tray | Ten-patch native panel, profile-preserving updates, Quick Launch apps merged into taskbar pins (opt-in command for existing installs) | Read-only running path confirms ten-patch runtime. New upgrade tests preserve config and baseline and cover interrupted writes. No panel refresh performed. |
 | Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
 | Installer | Bootstrap, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and missing-capability/fault tests; see release evidence for final counts. Existing adapters remain the persistence engines. |
-| Compatibility | Arch lineage/pacman, LXQt/X11, single panel1 (including LXQt's default file without `panels=`)/Openbox capability gates; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/multi-panel/Wayland refused. |
+| Compatibility | Arch lineage/pacman, LXQt/X11, single panel1 (including LXQt's default file without `panels=`)/Openbox capability gates; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/new multi-panel profiles/Wayland refused; completed-step recovery exception below. |
 | Lock-screen animation | Design only | [Separate design](animated-lock-screen-design.md); no authentication/locker changes or claim of implementation. |
 
 The inherited 262-test suite passed before installer edits; the portable installer
@@ -24,6 +24,14 @@ clipboard staging, repeats, first-baseline restoration, exact prior-upgrade undo
 injected partial failure/recovery, invalid records, byte/mode/symlink conflicts and
 native launcher upgrades, cursor interrupted-write recovery and bootstrap transport refusal. Build/bootstrap/final suite results are recorded in
 [release evidence](../RELEASE-CANDIDATE.md).
+
+The completed-panel recovery follow-up passes **350 tests**, including four new
+disposable-home regressions. A completed native-panel step no longer blocks recovery
+of later work when the separate stock LXQt layout gains another panel. Recorded
+managed outputs remain verified and unchanged; exact undo preserves the new stock
+layout and restores the prior managed bytes/modes. Content, chmod and symlink conflicts,
+unfinished native-panel work and custom XDG roots still refuse. This does not enable
+first-time multi-panel installation or broaden hardware/login acceptance.
 
 The recovery follow-up to `fa8808c` adds 17 tests: completed-output content/mode
 edits cannot be adopted during recovery; unsupported/malformed journals are refused
