@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Restore automatic, explicitly approved prerequisite stages in the copy-paste
+  installer: curl, Git/Python and missing PySide6/GIO validation imports. Print plans,
+  keep normal sudo/pacman confirmation, stop on cancellation/failure and revalidate
+  before module/configuration writes. Plan/`--no-packages` never install. Add scoped
+  `deploy.py --prerequisites` guidance and actionable import diagnostics.
 - Carry explicit `--panel panelN` through bootstrap/deploy, record it for repeat and
   recovery, and validate selection before package/build/managed writes. Resume saved
   first-profile staging after interruption. Retain exact undo and legacy single-panel

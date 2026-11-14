@@ -12,11 +12,12 @@ manager, switch desktop environments, or claim Wayland support. Custom XDG roots
 remain unsupported by the older installation adapters and are refused explicitly.
 
 The repository is public. The bootstrap command in [README](../README.md) uses
-`curl`, Git and Python and requires no GitHub account, token or GitHub CLI. Git fetch uses anonymous
+`curl`, Git and Python and requires no GitHub account, token or GitHub CLI. The apply
+flow offers missing prerequisites with normal pacman approval. Git fetch uses anonymous
 HTTPS with credential helpers disabled for that command; persistent Git configuration
-is unchanged. Missing acquisition tools must be installed separately: bootstrap
-refuses before package changes so layout validation cannot be bypassed by an early
-package offer. It prints the Git/Python prerequisite command for separate review.
+is unchanged. Prerequisite installation is a separate stage before layout validation;
+it never authorizes writing an unvalidated DoroShell profile. Plan mode and
+`--no-packages` report missing tools without authentication or package execution.
 The command downloads to a temporary
 file before execution, fetches the complete Git revision, checks its inventory and
 keeps the source at `~/.local/share/doroshell/sources/COMMIT`. About 80 MB of bundled
@@ -35,7 +36,7 @@ part of the wallpaper native build; clipboard needs the native panel and Start.
 cursor and glass selections are retained on update; change them explicitly in
 Settings or with the existing `setup.py` interface.
 
-After layout validation, missing official packages trigger `sudo pacman -Syu --needed ...` and pacman's
+After layout validation, missing selected module packages trigger `sudo pacman -Syu --needed ...` and pacman's
 normal confirmation. `--no-packages` refuses instead. This updates the whole system
 when necessary; it is not an isolated Python dependency installation. No AUR
 helper or repository is added. Packages are never removed during DoroShell rollback.
@@ -64,6 +65,50 @@ button; use the existing reviewed shortcut-integration workflow separately if ne
 Screenshots configure Print on disk; running shortcut daemons may require the next
 normal login to pick up changes. No process is restarted by `deploy.py`.
 
+## Prerequisite stages
+
+The README block is one copy-paste command. It assumes Arch's base Bash/coreutils
+(`mktemp`, `rm`, `mkdir`, `mv`) and an initialized LXQt/X11 desktop. Run it as the
+normal desktop user with working `sudo` and Arch `pacman`; it does not configure administrative access. It
+prints each missing-prerequisite plan before invoking sudo/pacman. Authentication
+and pacman's ordinary confirmation remain interactive; there is no `--noconfirm`,
+credential handling, AUR helper or fallback privileged shell.
+
+| Stage | Official Arch packages | When needed |
+| --- | --- | --- |
+| Web download | `curl` | README command only; a local bootstrap script uses Git directly |
+| Source acquisition | `git python` | Bootstrap before source download/verification |
+| Explicit panel validation | `pyside6 python-gobject` | Missing/broken QtCore or GIO imports for a selected `--panel`; checked before DoroShell configuration writes |
+| Selected modules/build | Derived from `setup.PACKAGES` and native builder requirements | After platform and panel validation; optional modules only when selected |
+
+Each command has the form `sudo pacman -Syu --needed PACKAGE...`, for example
+`sudo pacman -Syu --needed curl git python` or
+`sudo pacman -Syu --needed pyside6 python-gobject`. These are full-system updates,
+not isolated Python installs. Arch's [pyside6](https://archlinux.org/packages/extra/x86_64/pyside6/)
+provides Qt bindings; [python-gobject](https://archlinux.org/packages/extra/x86_64/python-gobject/)
+provides GIO and depends on GLib/introspection runtime packages.
+
+**Prerequisites may be installed before the panel can be validated.** If validation
+then refuses the layout, no DoroShell configuration is written, but successfully
+installed packages/system updates are not rolled back. Declining authentication or
+pacman, any command failure, or dependencies still unavailable afterward stops the
+flow without a silent retry. An interrupted package operation needs normal package
+manager inspection; DoroShell does not repair it automatically. A Python upgrade or
+custom/virtual-environment interpreter can require rerunning with the system Python.
+Known platform/layout errors still refuse before package offers when detectable.
+
+Use the README block's final `doroshell --plan`, or `bash bootstrap.sh --plan`, for
+preview. `--no-packages` also forbids prerequisite offers. When tools are missing,
+these modes return nonzero with package guidance; they do not report install success.
+Bootstrap plan may download/cache source once acquisition tools are present.
+
+From an existing checkout, `python -B deploy.py --prerequisites --modules menu` prints
+the separated package groups without importing GUI bindings, reading installed-user
+state, checking packages or downloading anything. Omit `--modules` for core, or add
+`--with` options explicitly. Its default is core, not the installed module selection;
+it is guidance only and cannot combine with apply/remove/recover/undo. Ordinary
+`deploy.py` plans still report platform issues and now explicitly label a blocked plan.
+
 ## Explicit panel selection
 
 First-time native-panel setup can select a standard `panelN` by its existing INI ID:
@@ -79,13 +124,14 @@ This reuses the [prepared-profile adapter](../panel/README.md#explicit-selection
 The stock LXQt file is never written. Unselected panel/plugin sections and unrelated
 settings remain byte-identical in the staged profile; selected geometry is retained.
 The adapter requires a `panels=` list for multiple panels and unique widget ownership.
-Wrong/missing panels, shared widgets and ambiguous syntax refuse before package
-offers, builds or managed-file writes. No panel is chosen automatically. Bootstrap
+Wrong/missing panels, shared widgets and ambiguous syntax refuse before selected
+module package offers, builds or managed-file writes. Validation prerequisites may
+need the separately described earlier package stage. No panel is chosen automatically. Bootstrap
 still downloads and caches the source before that validation.
 
-PySide6 and GIO must already be importable for explicit-selection validation; if
-absent, the command stops with a prerequisite diagnostic without offering packages.
-Install those prerequisites separately before retrying. The default single-panel1
+PySide6 and GIO must be importable for explicit-selection validation. Apply can offer
+their packages, then reruns the same validation; plan/`--no-packages` reports the
+exact prerequisite command instead. The default single-panel1
 workflow retains its existing behavior and geometry defaults.
 
 Repeat and recovery reuse the saved panel choice; omit `--panel`. Scoped updates

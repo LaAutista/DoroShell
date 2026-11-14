@@ -198,6 +198,7 @@
     "tests/test_portable_settings.py",
     "tests/test_portrait_crop.py",
     "tests/test_preferred_transition.py",
+    "tests/test_prerequisites.py",
     "tests/test_readability.py",
     "tests/test_screenshot.py",
     "tests/test_settings.py",
@@ -223,8 +224,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 222,
-  "source_payload_count": 220,
+  "file_count": 223,
+  "source_payload_count": 221,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

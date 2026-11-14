@@ -12,7 +12,7 @@ separate from this pass. Source publication does not imply live activation.
 | Mouse & Touchpad | DoroShell Settings page, installed opt-in X11 helper, login intent, restoration and guarded removal/undo; read-only capability/configuration-intent status | 35 input unit/lifecycle/diagnostic tests and private rendered installed-toolkit acceptance; evdev profile support only when exposed. Current initialization remains unverified; stale logs cannot establish it. Native LXQt is linked, not patched. No physical input or login acceptance. |
 | Panel/tray | Ten-patch native panel, profile-preserving updates, Quick Launch apps merged into taskbar pins (opt-in command for existing installs) | Read-only running path confirms ten-patch runtime. New upgrade tests preserve config and baseline and cover interrupted writes. No panel refresh performed. |
 | Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
-| Installer | Bootstrap, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and missing-capability/fault tests; see release evidence for final counts. Existing adapters remain the persistence engines. |
+| Installer | Bootstrap, approved automatic prerequisite stages, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and fake-command missing-capability/cancellation/fault tests; see release evidence for final counts. Actual package/authentication and clean-machine acceptance remain separate. Existing adapters remain the persistence engines. |
 | Compatibility | Arch lineage/pacman, LXQt/X11, Openbox; single panel1 or bounded explicit multi-panel selection through setup/deploy/bootstrap; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/Wayland refused. Explicit panelN selection preserves other standard panels; shared widgets/ambiguous layouts remain unsupported. |
 | Lock-screen animation | Design only | [Separate design](animated-lock-screen-design.md); no authentication/locker changes or claim of implementation. |
 
@@ -52,6 +52,17 @@ journal adapters, mocked package/build boundaries and inert binary paths; bootst
 argument forwarding is synthetic. Explicit choice records use pointer 2/journal 3;
 old installers refuse them. Source/archive hashes are checked separately. No new
 native UI, package, real-session or clean-OS acceptance is claimed.
+
+The automatic-prerequisite follow-up on `a7cbccb` passes **387 tests**. Fourteen added
+cases cover the exact README download command, missing curl/Git/Python, safe argv,
+normal approval-command construction, cancellation/failure, success without an
+available dependency, strict post-package panel validation, no-package/plan refusal,
+scoped guidance without user-state reads and expected versus unexpected import errors.
+Package/authentication/download commands are fake or mocked; real temporary-home
+profile adapters run. No actual package installation, sudo authentication, clean OS
+or login test occurred. Pre-validation packages may update the system before a layout
+is rejected; DoroShell configuration still requires successful validation. This
+supersedes the prior checkpoint's manual-only prerequisite boundary.
 
 The recovery follow-up to `fa8808c` adds 17 tests: completed-output content/mode
 edits cannot be adopted during recovery; unsupported/malformed journals are refused

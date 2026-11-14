@@ -1,3 +1,34 @@
+# Automatic prerequisite flow checkpoint — 2026-11-14
+
+Based on `a7cbccbc10ae8e3dc8964b013831e1ced9f24cff`, preserving recorded panel choice,
+strict layout validation and installer recovery. The README copy-paste command can
+offer missing curl; bootstrap can offer Git/Python; deploy can offer PySide6/GIO
+needed for explicit panel validation. Each stage prints its command/effect, uses
+ordinary sudo/pacman approval and stops on cancellation/failure or an unavailable
+dependency after the command succeeds. No unattended flags or authorization grants.
+Plan and `--no-packages` do not authenticate or install. `--prerequisites` prints
+scoped guidance without reading user state; it is not an installation/readiness check.
+
+This deliberately supersedes manual-only prerequisites in the previous checkpoint:
+these prerequisite full-system updates can precede layout validation and are not
+rolled back if the layout is refused. The same panel validation is rerun afterward;
+module package/build and DoroShell configuration writes still require success.
+Known platform errors refuse before this stage. Missing/broken dependency imports
+have actionable Arch commands; unexpected programming errors are not converted into
+an automatic package request.
+
+The **387-test full suite passes** in disposable HOME/runtime with offscreen Qt and
+no personal display/session bus. Fourteen added tests cover exact README command
+execution with fake download/package tools, missing-tool identity, cancellation,
+failure/no-effect success, no-package/plan guidance, post-package wrong/shared-panel
+refusal, successful revalidation, scoped no-state package guidance and import errors.
+Actual temporary-home profile/journal adapters run; package/authentication/build
+boundaries are mocked. Source/archive checks accompany the private review bundle.
+No real authentication/package install, native UI/build, clean OS, login, physical
+input/display or session change occurred. Disabled input-helper work is untouched.
+Publication awaits independent review and a fresh remote-head check; local GitHub
+DNS resolution failed. No push was attempted.
+
 # Deploy/bootstrap explicit-panel checkpoint — 2026-11-14
 
 Based on `df1d976666924ae4c8c3f09a581b4475f0786204`, preserving the prior

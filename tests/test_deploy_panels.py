@@ -183,3 +183,55 @@ class DeployPanelTests(unittest.TestCase):
         changed=self.config.read_bytes();self.cli('--apply');self.assertEqual(self.config.read_bytes(),changed)
         with self.assertRaises(RuntimeError):self.cli('--apply','--remove')
         self.assertEqual(self.config.read_bytes(),changed)
+
+    def test_validation_prerequisites_apply_then_revalidate_before_config(self):
+        real=deploy.panel_preflight; calls=[]; before=self.snapshot()
+        def preflight(*args):
+            calls.append(True)
+            if len(calls)==1:raise deploy.PanelPrerequisitesUnavailable('fixture missing bindings')
+            return real(*args)
+        def package(argv):
+            self.assertEqual(argv,['sudo','pacman','-Syu','--needed','pyside6','python-gobject'])
+            self.assertEqual(self.snapshot(),before)
+        self.run.side_effect=package
+        with patch.object(deploy,'panel_preflight',side_effect=preflight):self.initial('--apply')
+        self.assertGreaterEqual(len(calls),3)  # Initial check, post-package check, final adapter check.
+        self.run.assert_called_once();self.assertEqual(layout.installed_panel(self.config.read_text()),'panel2')
+        self.assertIn('The panel may still be refused afterward',self.output.getvalue())
+
+    def test_validation_prerequisite_cancel_or_failure_stops_without_writes(self):
+        before=self.snapshot()
+        for code in (1,127):
+            self.run.reset_mock();self.run.side_effect=subprocess.CalledProcessError(code,['fixture-pacman'])
+            with patch.object(deploy,'panel_preflight',side_effect=deploy.PanelPrerequisitesUnavailable('fixture missing')):
+                with self.assertRaises(subprocess.CalledProcessError):self.initial('--apply')
+            self.run.assert_called_once();self.build.assert_not_called();self.assertEqual(self.snapshot(),before)
+
+    def test_unavailable_bindings_after_success_never_retry_or_write(self):
+        before=self.snapshot()
+        with patch.object(deploy,'panel_preflight',side_effect=deploy.PanelPrerequisitesUnavailable('fixture missing')):
+            with self.assertRaisesRegex(ValueError,'still unavailable after pacman'):self.initial('--apply')
+        self.run.assert_called_once();self.build.assert_not_called();self.assertEqual(self.snapshot(),before)
+
+    def test_post_prerequisite_panel_refusal_prevents_module_packages_and_config(self):
+        self.packages.return_value={'python':None}
+        real=deploy.panel_preflight
+        for text in (self.original.replace('panel2','panel9'),
+                     self.original.replace('plugins=taskTwo,trayTwo','plugins=clockOne,trayTwo')):
+            self.stock.write_text(text);before=self.snapshot();calls=[];self.run.reset_mock()
+            def preflight(*args):
+                calls.append(True)
+                if len(calls)==1:raise deploy.PanelPrerequisitesUnavailable('fixture missing')
+                return real(*args)
+            with patch.object(deploy,'panel_preflight',side_effect=preflight),self.assertRaises(ValueError):self.initial('--apply')
+            self.run.assert_called_once_with(['sudo','pacman','-Syu','--needed','pyside6','python-gobject'])
+            self.build.assert_not_called();self.assertEqual(self.snapshot(),before)
+
+    def test_plan_no_packages_and_platform_refusal_never_offer_validation_packages(self):
+        before=self.snapshot()
+        with patch.object(deploy,'panel_preflight',side_effect=deploy.PanelPrerequisitesUnavailable('fixture missing')):
+            self.initial();self.assertIn('Plan blocked',self.output.getvalue())
+            with self.assertRaises(deploy.PanelPrerequisitesUnavailable):self.initial('--apply','--no-packages')
+            with patch.object(compatibility,'inspect',return_value={'issues':['fixture unsupported platform']}):
+                with self.assertRaisesRegex(ValueError,'unsupported platform'):self.initial('--apply')
+        self.run.assert_not_called();self.build.assert_not_called();self.assertEqual(self.snapshot(),before)

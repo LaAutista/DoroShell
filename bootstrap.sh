@@ -2,12 +2,14 @@
 # Download a complete revision first. Never execute a partially downloaded script.
 set -euo pipefail
 main() (
-    local channel=development ref=main arg root tmp revision destination
-    local -a forwarded=()
+    local channel=development ref=main apply=false allow_packages=true arg root tmp revision destination
+    local -a forwarded=() missing=()
     while (($#)); do
         case "$1" in
             --channel) channel=${2:?Missing channel}; shift 2 ;;
             --ref) ref=${2:?Missing revision}; shift 2 ;;
+            --apply) apply=true; forwarded+=(--apply); shift ;;
+            --no-packages) allow_packages=false; forwarded+=(--no-packages); shift ;;
             --plan) shift ;;
             *) forwarded+=("$1"); shift ;;
         esac
@@ -15,10 +17,25 @@ main() (
     case "$channel" in development) ;; stable) ref=stable ;; *) echo 'Choose development or stable' >&2; return 2 ;; esac
     [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$ref" != *..* ]] || { echo 'Invalid revision' >&2; return 2; }
     [[ $EUID != 0 ]] || { echo 'Run as your normal desktop user, not root.' >&2; return 1; }
-    if ! command -v git >/dev/null || ! command -v python3 >/dev/null; then
-        echo 'Git and Python must be available before layout validation. No packages were changed.' >&2
-        echo 'Review prerequisites separately: sudo pacman -Syu --needed git python' >&2
-        return 1
+    for arg in git python3; do
+        command -v "$arg" >/dev/null || missing+=("$arg")
+    done
+    if ((${#missing[@]})); then
+        printf 'Missing acquisition commands: %s\n' "${missing[*]}" >&2
+        echo 'Prerequisite plan: sudo pacman -Syu --needed git python' >&2
+        echo 'This may update the whole system before layout validation. No DoroShell configuration is written at this step.' >&2
+        if ! "$apply" || ! "$allow_packages"; then
+            echo 'Plan only or --no-packages; no packages changed. Use --apply without --no-packages to review pacman approval, or run the prerequisite command separately.' >&2
+            return 1
+        fi
+        command -v sudo >/dev/null && command -v pacman >/dev/null || {
+            echo 'Automatic prerequisites require sudo and Arch pacman. No alternative or privileged shell is attempted.' >&2; return 1;
+        }
+        echo "Review pacman's full-system update prompt; decline it to cancel." >&2
+        sudo pacman -Syu --needed git python
+        command -v git >/dev/null && command -v python3 >/dev/null || {
+            echo 'Git/Python are still unavailable after the prerequisite command; stopping before download.' >&2; return 1;
+        }
     fi
     # Existing installers use the default XDG layout; do not silently install elsewhere.
     root="$HOME/.local/share/doroshell/sources"

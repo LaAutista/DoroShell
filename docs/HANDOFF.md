@@ -94,8 +94,8 @@ setup repeat/restoration, interrupted staging/retry,
 upgrade undo and installed offscreen UI checks pass; no native/login/hardware claim.
 
 The follow-up on `df1d976` integrates that adapter into deploy/bootstrap with explicit
-`--panel panelN`. Validate before package offers/build/managed writes; bootstrap needs
-Git/Python first, and selection validation needs PySide6/GIO already importable.
+`--panel panelN`. Validate before module package offers/build/managed writes; bootstrap
+needs Git/Python first, and selection validation needs PySide6/GIO importable.
 Pointer format 2/journal format 3 retain the choice through repeat, scoped update and
 recovery; old installers refuse these schemas. Legacy single-panel schemas remain
 supported. Recover unfinished first staging using its saved plan rather than upgrading
@@ -103,6 +103,17 @@ an incomplete manifest. Do not infer a choice, replace unrelated sections, or mi
 old pending journals. The 373-test suite covers invalid selection, source/output edits,
 interruption, exact undo/removal and safe bootstrap forwarding in disposable homes.
 No real native process, package or session change was performed. See INSTALL for limits.
+
+The prerequisite follow-up on `a7cbccb` supplies automatic user-initiated missing-tool
+stages: curl in the README download command, Git/Python in bootstrap, PySide6/GIO
+in explicit panel validation. Print the plan, keep normal sudo/pacman approval,
+stop on cancellation/failure, then recheck before module/configuration work. Do not
+weaken panel validation: a prerequisite full-system update may finish even when the
+layout is subsequently refused. Plan and `--no-packages` never offer authentication.
+`deploy.py --prerequisites` prints scoped guidance without reading user state; it
+is not an install/readiness check. Missing sudo/pacman requires manual administration,
+not a new helper or policy. Fake-command/disposable-home evidence is separate from
+actual pacman, authentication, clean OS and login acceptance; see RELEASE-CANDIDATE.
 
 Input preferences from `0cf6019` are integrated on top of `e18026e`. The helper now
 ships in the menu toolkit with declared Xlib/udev prerequisites. DoroShell Settings

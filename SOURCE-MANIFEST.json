@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-deploy-panel-selection-20261114",
+  "candidate": "doroshell-automatic-prerequisites-20261114",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -25,13 +25,14 @@
     "input_diagnostics": "Read-only diagnostic follow-up on d84b39272b7a45efd51751a7a6b5b97da767f95c: bounded configuration intent, runtime capability and explicit unverified initialization; no logs/privileged reader",
     "panel_layout_recovery": "Bounded completed-native-panel recovery on c87ff151f7ca658b665d79bbc4a323461f086068; preserve later stock multi-panel layout, exact undo and output conflict refusal; no new layout/XDG adapter.",
     "panel_selection": "Bounded profile.py prepare --panel on 010af6a77040169eac7133d38d7573e9c602ec23; byte-preserved unrelated sections, selected geometry and companion targeting; prepared-plan/setup workflow only, not full deploy multi-panel support.",
-    "deploy_panel_selection": "Bounded deploy/bootstrap --panel integration on df1d976666924ae4c8c3f09a581b4475f0786204; pointer-2/journal-3 recorded choice, pre-package validation and saved first-stage recovery. Legacy single-panel records retained; see docs/INSTALL.md."
+    "deploy_panel_selection": "Bounded deploy/bootstrap --panel integration on df1d976666924ae4c8c3f09a581b4475f0786204; pointer-2/journal-3 recorded choice, pre-package validation and saved first-stage recovery. Legacy single-panel records retained; see docs/INSTALL.md.",
+    "automatic_prerequisites": "Follow-up on a7cbccbc10ae8e3dc8964b013831e1ced9f24cff: user-initiated automatic curl/Git/Python and explicit-panel validation prerequisite stages, ordinary pacman approval, cancellation/failure stops and mandatory revalidation before module/configuration writes. Scope and package-update boundary in docs/INSTALL.md."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 373,
+    "passed": 387,
     "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
-    "note": "373 tests pass in disposable HOME/runtime without personal display/session bus. Eleven new CLI panel-selection/recovery cases and two bootstrap tests; real profile/journal adapters with mocked package/build boundaries and inert native paths. No native UI/build, physical monitor, login, OS package or authentication acceptance in this follow-up. Source/archive hashes verified separately."
+    "note": "387 tests pass in disposable HOME/runtime without personal display/session bus. Fourteen new prerequisite/download/CLI cases; exact README command uses fake package/download tools, profile/journal adapters use mocked package/build boundaries. No actual sudo/authentication, OS packages, native UI/build, login or hardware acceptance. Source/archive hashes verified separately."
   },
   "source_payloads": [
     {
@@ -48,8 +49,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "075326ec1d2a9e02b9c0f8fd5825cb5d58f7c596b400c637dfb3c9e04ae89316",
-      "size": 5318,
+      "sha256": "c6957e094440f7f1173d78842f4c46aad5d247f5965d350b87fcad8de98a2546",
+      "size": 5727,
       "mode": "0o644"
     },
     {
@@ -66,20 +67,20 @@
     },
     {
       "path": "README.md",
-      "sha256": "eaef9d5aa5d2a99847cf4a131f96ce21d3e9f8a31e42236d7835529e0795ab68",
-      "size": 6899,
+      "sha256": "6d61fb81b7be265f489064c9a1ee9e25d4db3886e49e329858e6d4f5bc172531",
+      "size": 8780,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "b3ef4eb3239d7d035eb836ddf3f23fbe81b5dbbe066ebe692d14c86db9985d56",
-      "size": 31896,
+      "sha256": "1a68dbcac7b6d905046a8f635c088e17d48d28e3404c7ff521f9729cd6e4650f",
+      "size": 34020,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "6459597e717b3cb8b5800159fff6318ef6813a65e1282c276ff90c18def2507d",
-      "size": 7911,
+      "sha256": "01d4e52faf44a5e331c0bc7dc5b6023c9117055ecc0420857c6768d5df4e8ce2",
+      "size": 7946,
       "mode": "0o644"
     },
     {
@@ -126,8 +127,8 @@
     },
     {
       "path": "bootstrap.sh",
-      "sha256": "0ff6c9b20c10932a398cdb88cca14150cece1cfd9d7b340089cc7f305d6c5270",
-      "size": 3002,
+      "sha256": "e9d49fe3043c6db68837998304f0e3dbb8b47ab7a2d62fdc9c19d7a190d9d330",
+      "size": 4131,
       "mode": "0o644"
     },
     {
@@ -174,8 +175,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "eba55d4723edc2a83cb6b2fcceee886dabc70f679906879d92e213482ceb0f06",
-      "size": 32550,
+      "sha256": "f9ac493713016444f1a70208da71ebd64ead1dee68e52ac8e3c69f7dadd6c66f",
+      "size": 36648,
       "mode": "0o644"
     },
     {
@@ -210,8 +211,8 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "93243aba642c6be4ccd73bb5c672d83cc256eff30540fbec54298e8c6747865e",
-      "size": 4939,
+      "sha256": "dfb1035591f94dd2a3331707b373b3ae00758e8ea6694d5321e9e5c99aaa0800",
+      "size": 5118,
       "mode": "0o644"
     },
     {
@@ -228,14 +229,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "47842a079df2067ac5bc28de4aecfdbc42514f90343f6d36f90e46bb28159dfb",
-      "size": 10622,
+      "sha256": "205b80df44c3c7882af295c0de82813601a72846fdb8e4d28989d90bb9cf1ed8",
+      "size": 11461,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "50a4106cb10fc6473c0fc9db1a1c69b69a35de514b15fc63d951c15726e1c387",
-      "size": 14169,
+      "sha256": "5d4420cff25a8225c4c86b05f879c73fba3df6a3517257638304af0acd72e00c",
+      "size": 17415,
       "mode": "0o644"
     },
     {
@@ -252,8 +253,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "8c5147c36234e5dc15c17d7ac2fc31bfa57730fd732445d4b5a70d437ce4d173",
-      "size": 9234,
+      "sha256": "6a219f222ffbbc2ec5263813138174a76d7afdba789f9e6732cd92851a83de03",
+      "size": 10198,
       "mode": "0o644"
     },
     {
@@ -492,8 +493,8 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "fc377c8ded7b06fd578966c750c7f0d199bb3762ae45bab0802df8e25942cdc5",
-      "size": 15486,
+      "sha256": "5ba79f70b3897c3dcfd4601197c0d2032ae8d3a477cf65b9525fa81eb222317e",
+      "size": 15585,
       "mode": "0o644"
     },
     {
@@ -1038,8 +1039,8 @@
     },
     {
       "path": "tests/test_bootstrap.py",
-      "sha256": "c5e15192b0ccf3c403b8b810a4bcbeedffd075f4d0edc76f2d24844878a7202f",
-      "size": 5672,
+      "sha256": "94bf89fab53e483c69875687ed280da21fa7d8b699b90e5c997ee2420273bc70",
+      "size": 8241,
       "mode": "0o644"
     },
     {
@@ -1068,8 +1069,8 @@
     },
     {
       "path": "tests/test_deploy_panels.py",
-      "sha256": "745178f77fd9c2e18c4051978de7bc6f06cd2bf9a158b18854b8782791485782",
-      "size": 12350,
+      "sha256": "2e6c99067a11fced8be421e410d8d42d230343557aca31393bf1f2fecf378f99",
+      "size": 16066,
       "mode": "0o644"
     },
     {
@@ -1208,6 +1209,12 @@
       "path": "tests/test_preferred_transition.py",
       "sha256": "c8c1d3351e2753f2102a11e10551d6c1884a9545bd9de7d3e8683b26840e88d8",
       "size": 6264,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_prerequisites.py",
+      "sha256": "4a49b9dc779a4508f7341b3c0195fa4d1e43b990f141b404114382e9e8f6ea97",
+      "size": 7190,
       "mode": "0o644"
     },
     {

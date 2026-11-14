@@ -28,6 +28,11 @@ BUILD_PACKAGES = ['base-devel', 'git', 'cmake', 'ninja', 'pkgconf', 'qt6-base', 
                   'liblxqt', 'lxqt-build-tools', 'libqtxdg', 'kwindowsystem', 'layer-shell-qt']
 PANEL_PACKAGES = ['libdbusmenu-lxqt', 'solid', 'libsysstat', 'libstatgrab', 'libxdamage',
                   'libxkbcommon-x11', 'libpulse', 'alsa-lib', 'lm_sensors', 'libxtst']
+PANEL_VALIDATION_PACKAGES = ['pyside6', 'python-gobject']
+
+
+class PanelPrerequisitesUnavailable(ValueError):
+    """Only missing/broken external imports needed for read-only panel validation."""
 
 
 def safe(path, home):
@@ -55,6 +60,24 @@ def packages_for(selected):
     if 'native-panel' in selected: packages.update(BUILD_PACKAGES+PANEL_PACKAGES)
     if 'wallpaper' in selected: packages.update(BUILD_PACKAGES+['libfm-qt', 'xorg-xrandr'])
     return sorted(packages)
+
+
+def prerequisite_plan(selected, panel):
+    """Print package guidance without probing or reading an installed-user state."""
+    print('Prerequisite guidance only; no commands executed or installation state checked.')
+    print('README web acquisition (local bootstrap needs only Git/Python):')
+    print('  sudo pacman -Syu --needed curl git python')
+    print('Explicit --panel validation needs working PySide6.QtCore and GIO:')
+    print('  sudo pacman -Syu --needed pyside6 python-gobject')
+    print('Use the system Python; a virtual environment/custom interpreter may not see Arch packages.')
+    print('Selected modules: '+', '.join(selected))
+    print('Panel: '+(panel or 'not selected; no layout checked'))
+    print('Selected runtime/build packages (includes only requested optional modules and dependencies):')
+    print('  sudo pacman -Syu --needed '+' '.join(packages_for(selected)))
+    print('These are full-system update commands for separate review, not partial upgrades.')
+    print('--apply can offer missing prerequisites through normal pacman approval, then validate the panel before configuration writes.')
+    print('Default here is core, not saved module choices. Use --modules/--with to choose a scope.')
+    print('This is not an install/readiness check. Run the normal plan after prerequisites are available.')
 
 
 def run(argv, **kwargs):
@@ -120,15 +143,18 @@ def panel_record(record, panel):
 
 
 def panel_preflight(home, panel, journal_path=None):
-    """Read-only selection validation before package/build or managed-file writes."""
+    """Read-only selection validation before module package/build or managed writes."""
     validate_panel(panel)
     try:
-        from panel import profile
-        from panel.layout import installed_panel, sections, select_panel
         from PySide6.QtCore import QSettings
-    except ModuleNotFoundError as error:
-        if error.name not in ('PySide6', 'gi'): raise
-        raise ValueError('Panel validation needs PySide6 and GIO installed first; no packages or settings were changed.') from error
+        from gi.repository import Gio
+    except ImportError as error:
+        raise PanelPrerequisitesUnavailable('Panel validation needs PySide6 and GIO working in this Python. '
+                         'Review separately: sudo pacman -Syu --needed pyside6 python-gobject. '
+                         'Use the system Python; virtual environments may not see Arch packages. '
+                         'No packages or settings were changed.') from error
+    from panel import profile
+    from panel.layout import installed_panel, sections, select_panel
     import tempfile
     prepared = journal_path.parent/'panel' if journal_path is not None else None
     if prepared is not None and (prepared/'plan.json').exists():
@@ -467,10 +493,19 @@ def main(argv=None):
     parser.add_argument('--recover', action='store_true', help='Retry pending module using existing conflict checks; requires --apply')
     parser.add_argument('--undo', metavar='TRANSACTION', help='Exact prior-upgrade restoration; requires --apply')
     parser.add_argument('--no-packages', action='store_true', help='Refuse missing packages instead of offering pacman')
+    parser.add_argument('--prerequisites', action='store_true', help='Print scoped Arch package guidance only; no probes, downloads or installation')
     args = parser.parse_args(argv)
     if args.panel is not None:
         validate_panel(args.panel)
         if args.undo: raise ValueError('--panel cannot be combined with --undo')
+    if args.prerequisites:
+        if args.apply or args.remove or args.recover or args.undo:
+            raise ValueError('--prerequisites is guidance only; cannot combine with apply/remove/recover/undo')
+        selected = select_modules(args.modules if args.modules is not None else CORE, args.extras)
+        if args.panel is not None and 'native-panel' not in selected:
+            raise ValueError('--panel requires the native-panel module')
+        prerequisite_plan(selected, args.panel)
+        return 0
     home = args.home.absolute()
     safe(home, home)
     pointer = home/'.local/state/doroshell/deployment.json'; safe(pointer, home)
@@ -506,13 +541,18 @@ def main(argv=None):
         # Completed steps retain outputs; explicit choices use adapter preflight below.
         capability_modules = [name for name in selected if name != 'native-panel']
     report = compatibility.inspect(home, capability_modules)
+    panel_prerequisites = None
     if panel is not None and 'native-panel' in selected and not (args.remove or args.undo or completed_panel):
         try: panel_preflight(home, panel, journal_path if args.recover else None)
+        except PanelPrerequisitesUnavailable as error: panel_prerequisites = str(error)
         except (OSError, ValueError, RuntimeError) as error: report['issues'].append(str(error))
     packages = packages_for(selected); versions = compatibility.package_versions(packages)
-    print(json.dumps(dict(platform=report, package_versions=versions, modules=selected, panel=panel), indent=2))
+    issues = report['issues'] + ([panel_prerequisites] if panel_prerequisites else [])
+    print(json.dumps(dict(platform={**report, 'issues':issues}, package_versions=versions, modules=selected, panel=panel), indent=2))
     if not args.apply:
         print('Plan only. Add --apply. Optional modules: '+', '.join(OPTIONAL))
+        if issues:
+            print('Plan blocked: resolve the reported prerequisites/layout before applying. No installation was performed.')
         if args.undo: print('Would undo transaction:', args.undo)
         return 0
     if os.geteuid() == 0: raise ValueError('Run as the desktop user, not root')
@@ -522,12 +562,28 @@ def main(argv=None):
         if request['source'] != hashlib.sha256((ROOT/'SHA256SUMS').read_bytes()).hexdigest():
             raise ValueError('Recovery needs the same source revision; no packages or files were changed')
     if not (args.remove or args.undo):
-        if report['issues']: raise ValueError('\n'.join(report['issues']))
+        if report['issues']: raise ValueError('\n'.join(issues))
         import source_release
         source_release.check(ROOT, source_release.source_files(ROOT))
+        if panel_prerequisites:
+            if args.no_packages: raise PanelPrerequisitesUnavailable(panel_prerequisites)
+            print('Validation prerequisite plan: sudo pacman -Syu --needed '+' '.join(PANEL_VALIDATION_PACKAGES), flush=True)
+            print('This may update the whole system before the panel can be validated. The panel may still be refused afterward. '
+                  'No DoroShell configuration will be written until validation succeeds. Review pacman approval; decline to cancel.', flush=True)
+            run(['sudo', 'pacman', '-Syu', '--needed', *PANEL_VALIDATION_PACKAGES])
+            import importlib
+            importlib.invalidate_caches()
+            try: panel_preflight(home, panel, journal_path if args.recover else None)
+            except PanelPrerequisitesUnavailable as error:
+                raise ValueError('Validation prerequisites are still unavailable after pacman. '
+                                 'Use the system Python or inspect its packages; no automatic retry. '
+                                 'No DoroShell configuration was written.') from error
+            versions = compatibility.package_versions(packages)
         missing = [p for p,v in versions.items() if v is None]
         if missing:
-            if args.no_packages: raise ValueError('Missing packages: '+', '.join(missing))
+            if args.no_packages:
+                raise ValueError('Missing packages: '+', '.join(missing)+
+                                 '\nReview selected prerequisites separately: sudo pacman -Syu --needed '+' '.join(packages))
             print('Missing packages: '+', '.join(missing)+'. pacman will offer a full-system update; review its prompt.', flush=True)
             run(['sudo', 'pacman', '-Syu', '--needed', *packages])
             versions = compatibility.package_versions(packages)

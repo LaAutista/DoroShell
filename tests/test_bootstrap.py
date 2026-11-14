@@ -62,15 +62,56 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
             self.assertEqual(forwarded,['--apply','--modules','native-panel','--panel',panel])
         self.assertFalse((self.home/'should-not-run').exists())
 
-    def test_missing_acquisition_tools_never_install_before_layout_validation(self):
+    def test_missing_acquisition_tools_plan_never_prompts_or_writes(self):
         self.env['PATH']=str(self.home/'bin')  # Fake Git exists, Python is unavailable by PATH.
         for name in ('sudo','pacman'):
             path=self.home/'bin'/name
             path.write_text('#!/bin/sh\necho invoked > "$HOME/package-invoked"\nexit 1\n');path.chmod(0o755)
-        result=self.run_bootstrap('--apply','--panel','panel2',ok=False)
+        result=self.run_bootstrap('--plan','--panel','panel2',ok=False)
         self.assertIn('before layout validation',result.stderr)
         self.assertFalse((self.home/'package-invoked').exists())
         self.assertFalse((self.home/'.local').exists())
+
+    def test_missing_tool_names_and_no_packages_are_accurate(self):
+        self.env['PATH']=str(self.home/'bin')
+        git=self.home/'bin/git';fake_git=git.read_bytes()
+        for missing in (('git',),('python3',),('git','python3')):
+            git.unlink(missing_ok=True);(self.home/'bin/python3').unlink(missing_ok=True)
+            if 'git' not in missing:git.write_bytes(fake_git);git.chmod(0o755)
+            if 'python3' not in missing:(self.home/'bin/python3').symlink_to('/usr/bin/python3')
+            result=self.run_bootstrap('--apply','--no-packages',ok=False)
+            self.assertIn('Missing acquisition commands: '+' '.join(missing)+'\n',result.stderr)
+            self.assertIn('no packages changed',result.stderr)
+            self.assertFalse((self.home/'.local').exists())
+
+    def test_missing_acquisition_tools_apply_cancel_failure_or_unavailable_stops(self):
+        self.env['PATH']=str(self.home/'bin')
+        for name in ('sudo','pacman'):
+            path=self.home/'bin'/name
+            path.write_text('#!/usr/bin/python3\nimport os,pathlib,sys\npathlib.Path(os.environ["HOME"],"package-argv").write_text(repr(sys.argv[1:]))\nsys.exit(int(os.environ.get("PACKAGE_EXIT","1")))\n');path.chmod(0o755)
+        for code in ('1','127','0'):
+            self.env['PACKAGE_EXIT']=code
+            result=self.run_bootstrap('--apply',ok=False)
+            self.assertIn('Missing acquisition commands: python3',result.stderr)
+            self.assertIn('pacman -Syu --needed git python',result.stderr)
+            self.assertEqual((self.home/'package-argv').read_text(),repr(['pacman','-Syu','--needed','git','python']))
+            self.assertFalse((self.home/'.local').exists())
+            if code=='0':self.assertIn('still unavailable',result.stderr)
+
+    def test_missing_acquisition_tools_apply_continues_only_after_recheck(self):
+        self.env['PATH']=str(self.home/'bin')
+        for name in ('mkdir','mktemp','rm','mv'):(self.home/'bin'/name).symlink_to('/usr/bin/'+name)
+        (self.home/'bin/pacman').write_text('fixture; never executed directly')
+        (self.home/'bin/pacman').chmod(0o755)
+        sudo=self.home/'bin/sudo'
+        sudo.write_text('''#!/usr/bin/python3
+import os,pathlib,sys
+assert sys.argv[1:]==['pacman','-Syu','--needed','git','python']
+pathlib.Path(os.environ['HOME'],'bin/python3').symlink_to('/usr/bin/python3')
+''');sudo.chmod(0o755)
+        result=self.run_bootstrap('--apply','--modules','menu')
+        self.assertIn('Prerequisite plan:',result.stderr)
+        self.assertIn('DEPLOY ["--apply", "--modules", "menu"]',result.stdout)
 
     def test_dirty_sources_stable_mislabel_and_bad_ref_refuse(self):
         self.run_bootstrap('--plan');self.env['DIRTY']=' M custom.py'
@@ -88,7 +129,7 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
 
     def test_exact_readme_one_liner_does_not_execute_partial_download(self):
         # Exercise the exact documented shell quoting, substituting curl only.
-        command=next(line for line in (ROOT/'README.md').read_text().splitlines() if line.startswith('bash -c '))
+        command=(ROOT/'README.md').read_text().split('```sh\n',1)[1].split('\n```',1)[0]
         curl=self.home/'bin/curl'
         curl.write_text('''#!/usr/bin/python3
 import os,pathlib,sys

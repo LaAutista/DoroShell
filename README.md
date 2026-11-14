@@ -12,24 +12,51 @@ desktop environment. No compositor is required. Development is ongoing.
 From your normal user account in an initialized **LXQt/X11 + Openbox** session:
 
 ```sh
-bash -c 'set -e; f=$(mktemp); trap "rm -f -- \"$f\"" EXIT; curl --fail --location --silent --show-error https://raw.githubusercontent.com/LaAutista/DoroShell/main/bootstrap.sh --output "$f"; bash "$f" --apply'
+bash -c '
+set -e
+[[ $EUID != 0 ]] || { echo "Run as your normal desktop user, not root." >&2; exit 1; }
+apply=false; allow_packages=true
+for arg; do
+    case "$arg" in --apply) apply=true ;; --no-packages) allow_packages=false ;; esac
+done
+if ! command -v curl >/dev/null; then
+    echo "Prerequisite plan: sudo pacman -Syu --needed curl" >&2
+    echo "This may update the whole system before DoroShell validation. Review pacman approval; decline to cancel." >&2
+    "$apply" && "$allow_packages" || { echo "Plan only or --no-packages; no packages changed. Use --apply or install curl separately." >&2; exit 1; }
+    command -v sudo >/dev/null && command -v pacman >/dev/null || {
+        echo "Automatic prerequisites require sudo and Arch pacman; no download performed." >&2; exit 1;
+    }
+    sudo pacman -Syu --needed curl
+    command -v curl >/dev/null || { echo "curl is still unavailable; stopping before download." >&2; exit 1; }
+fi
+f=$(mktemp)
+trap "rm -f -- \"$f\"" EXIT
+curl --fail --location --silent --show-error https://raw.githubusercontent.com/LaAutista/DoroShell/main/bootstrap.sh --output "$f"
+bash "$f" "$@"
+' doroshell --apply
 ```
 
 The repository is **public**: no GitHub account, token or GitHub CLI is needed.
-The command requires `curl`, Git and Python, downloads the complete installer before executing it,
+The command downloads the complete installer before executing it,
 and fetches a specific Git revision into a permanent user source directory, then
 verifies its source/asset inventory. It installs the core modules: Start/settings,
 native taskbar/tray, themes,
 loading cursors, snapping, a single desktop (multiple desktops off; re-enable in
-DoroShell Settings), screenshots, and update/removal commands. Missing official
-runtime/build packages are offered after layout validation through `sudo pacman -Syu --needed`; **review pacman's full-system
-update prompt**. There is no AUR helper, unattended package approval, or package removal.
-If Git or Python is missing, bootstrap stops with a separate prerequisite command.
+DoroShell Settings), screenshots, and update/removal commands. Missing prerequisites
+are offered in stages: curl for the download, Git/Python for
+source acquisition, then PySide6/GIO if needed to validate an explicit panel choice.
+Each stage prints its package command before invoking `sudo pacman -Syu --needed`;
+**review pacman's full-system update prompt, or decline to cancel**. Prerequisite
+installation may update the system before a layout can be checked; no DoroShell
+configuration is written until that check passes. Selected module/runtime/build
+packages follow validation. There is no AUR helper, unattended approval or package removal.
 
 Desktop components are staged for your **next normal login**. The installer never logs
 you out, restarts the panel/desktop, changes refresh rate/VSync, or closes applications.
 Existing custom module choices and unrelated settings are preserved; conflicts stop
-with recovery information. Preview by replacing `--apply` with `--plan`.
+with recovery information. Preview by changing the final `doroshell --apply` to
+`doroshell --plan`; missing prerequisites are reported without authentication or
+installation. Bootstrap plan can download/cache source when its tools are present.
 
 **This is a development installer, not a clean-machine-certified stable release.**
 Temporary-home install/repeat/upgrade/recovery/removal and build checks are recorded
@@ -54,8 +81,16 @@ python deploy.py --with display --apply       # optional guarded Advanced contro
 For a standard multi-panel layout, explicitly choose the existing panel ID with
 `--panel panel2` (also accepted by bootstrap). Preview first; apply retains other
 panel/plugin sections and the chosen panel's geometry. Selection validation requires
-PySide6 and GIO already installed. Repeat/recovery uses the recorded choice; no panel
+PySide6 and GIO; apply can offer their packages, then recheck the panel.
+Repeat/recovery uses the recorded choice; no panel
 is guessed or silently changed. [Selection and limits](docs/INSTALL.md#explicit-panel-selection).
+
+For package guidance from an existing checkout, without downloads, platform probes
+or user-state reads, run `python -B deploy.py --prerequisites --modules menu` (omit
+`--modules` for core). It prints separate acquisition, panel-validation and selected
+module packages. This is guidance, not an installation or readiness check. The
+normal-user flow requires working Arch `pacman` and `sudo`; it never configures
+administrative access. See [prerequisite stages](docs/INSTALL.md#prerequisite-stages).
 
 Keep the source checkout if installing directly from it; maintenance commands refer
 to it. Bootstrap stores revisions under `~/.local/share/doroshell/sources/` for you.
