@@ -106,8 +106,10 @@ needed to test this code; use fixtures and the installed private-X11 check.
 > Do not change my session, monitor/VSync settings, clipboard, locker or packages as
 > a test; no logout/reboot or desktop refresh. Do not overwrite dirty work or force-push.
 > Distinguish mocks/private checks from clean-machine and hardware acceptance. Keep
-> STATUS/HANDOFF/CHANGELOG current with exact results and remaining limits. Ask for
-> my next feature choice if none is specified; do not restart or rewrite the project.
+> STATUS/HANDOFF/CHANGELOG current with exact results and remaining limits. Continue
+> with the next well-defined unfinished roadmap item within authorized scope. Ask
+> only for genuine ambiguity or a blocker requiring my decision; do not restart or
+> rewrite the project.
 
 Future agents should fetch before publishing, reconcile newer upstream changes,
 refresh source hashes after staging intended files, review privacy/assets/notices,
