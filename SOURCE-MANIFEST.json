@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-config-root-snapping-20261114",
+  "candidate": "doroshell-recent-retention-20261114",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -31,13 +31,14 @@
     "optional_start_shortcut": "Bounded optional Alt+F1 deploy/bootstrap/setup adapter on 4e608edb6c8cc69aa5fd66eceaa75e0a1839ba43; explicit custom replacement, reviewed binding fingerprint, whole-file ownership and phased recovery, exact baseline removal/upgrade undo. No live reload; docs/INSTALL.md.",
     "explicit_config_root": "Bounded CLI single-desktop adapter on 72833d01815ea8b544f11414d8b15003ec208fb8. Explicit home-contained configuration path, existing XML ownership/backup engine, root-specific edit kinds and journal-5 captured root/pre-write snapshot, conflict-aware recovery and exact undo. No runtime/data/state migration; docs/config-roots.md.",
     "config_root_symlink_review": "Correction on unpublished 0b32202f752af49f227478ba0e3dc71a26fe4bcd: reproduce and refuse in-home symlink ancestors through module/setup/installed CLI and recovery; strict root/target/ownership component checks. Three fixtures bind their own XDG_CONFIG_HOME; real mismatch refusal retained.",
-    "config_root_snapping": "Follow-up on 63114132943c24cdd54be1b9a97de695f7a0aba3: explicit snapping/combined config paths, shared locks and conservative ownership/recovery; docs/config-roots.md"
+    "config_root_snapping": "Follow-up on 63114132943c24cdd54be1b9a97de695f7a0aba3: explicit snapping/combined config paths, shared locks and conservative ownership/recovery; docs/config-roots.md",
+    "recent_retention": "Follow-up on 09a013acad71c68943aba2b698082bd609153302: opt-in local recent-app expiry, default unchanged, policy-only portable export; docs/recent-apps.md"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 444,
+    "passed": 457,
     "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
-    "note": "Final 444 tests passed in 24.703s with disposable HOME, inherited normal fixture XDG paths, offscreen Qt, memory GSettings and no personal display/bus. 29 focused config-root tests and 16 bootstrap tests passed. Prior 6311413 reader separately refuses new snapping module apply/rollback and combined journal before writes. Package/build/platform calls mocked; installed toolkit CLI uses disposable files. Custom-root Openbox/autostart startup, login, clean OS and Alt+F1 runtime remain unverified."
+    "note": "457 tests passed in 25.284s under disposable HOME/XDG, offscreen Qt, memory GSettings and no personal display/session bus. Includes 13 new recency tests. Temporary installed Start/portable helper identity and rendered age choices, expiry, visible save-failure/retry, no new timed-history backups and timestamp-exclusion checks passed with synthetic data. No personal history access, live activation, package, login or long-session acceptance."
   },
   "source_payloads": [
     {
@@ -54,8 +55,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "57b22b751a25ca9ce169bdfda903a0bf86abff33f72b0a1335f10fd43bc218a7",
-      "size": 7389,
+      "sha256": "19bf336d06543a91e6ef6b61cf933e0bb247268f7e2383d96b5b43a6950c6558",
+      "size": 7730,
       "mode": "0o644"
     },
     {
@@ -72,20 +73,20 @@
     },
     {
       "path": "README.md",
-      "sha256": "20f8159b144797ea2687a9a3c15ddc1507fc6f34967dcf4083ccd06de7af4015",
-      "size": 10176,
+      "sha256": "3d66a20fcb90a74bb3e6eaed30bde0efb539cb0a32d3218acbd41dc6d9d9760e",
+      "size": 10402,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "f5b1303bdccbcd8b01bd1d171447fadcf98a0e00d1078b0c4e2544745b330c7c",
-      "size": 43812,
+      "sha256": "38b73c0f3ae9359009b2d3d30190cbcdf53c3d4e932675d73c1388a7535a7608",
+      "size": 44774,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "5109e26251d63ef4c93a9d37235f891c7a6cfaeb2d30ab46d5a2356b4d584a94",
-      "size": 8107,
+      "sha256": "01f30ca7f444fa0d7f5d5c150dd8e0c2bea82af37678b223be4c4daced90babb",
+      "size": 8172,
       "mode": "0o644"
     },
     {
@@ -240,8 +241,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "694ed0fc716a74699c47681ac8f03bc70bd0ca203e8767251058b9534334a788",
-      "size": 15705,
+      "sha256": "ff5e7ba817d8e70ab53312b8c04383748cabc37d7d7b2f7603c1fb0e9488500e",
+      "size": 16773,
       "mode": "0o644"
     },
     {
@@ -264,8 +265,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "f26a6acdb61ca8ae39a0a08b1985e4cfd3963527572fac0213cf0111a929bd36",
-      "size": 14557,
+      "sha256": "1f4928072ea349fe60c540d20be83499a9bb16c18e3f3d1b805f7ad386ffdeb3",
+      "size": 15625,
       "mode": "0o644"
     },
     {
@@ -336,8 +337,8 @@
     },
     {
       "path": "docs/open-shell-parity.md",
-      "sha256": "1e4cb52c942f5c6896096e4fa609da3b1f5b754116f45c5652294d6a98b65ecd",
-      "size": 10973,
+      "sha256": "a9cce83e0a3555956382ab5507b14262bd0476292c8bb28f101baa791cec42f4",
+      "size": 11073,
       "mode": "0o644"
     },
     {
@@ -354,8 +355,14 @@
     },
     {
       "path": "docs/portable-settings.md",
-      "sha256": "493e6c2cb467113176a6fdc66cb45cacc208ae03906d4ea9b030034349b20086",
-      "size": 2970,
+      "sha256": "69d6748526b6bbfef4bda8b8311bb95dda140955f02ea99de22719496fdb6e78",
+      "size": 3533,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/recent-apps.md",
+      "sha256": "7e58b28cba931af4cff1365f192a65103cf0435a98ecfc514f750f84986a742f",
+      "size": 4388,
       "mode": "0o644"
     },
     {
@@ -492,8 +499,8 @@
     },
     {
       "path": "menu/start_menu.py",
-      "sha256": "e8bacaf44afacd8607811e1052c16484761c171d2f4d5c946e92b08e4989c0b4",
-      "size": 70244,
+      "sha256": "22f60bdb032d33a352232463f97c9154f4eb611a79b540d482b3787b96b51076",
+      "size": 76049,
       "mode": "0o644"
     },
     {
@@ -624,8 +631,8 @@
     },
     {
       "path": "portable_settings.py",
-      "sha256": "dc48d73ed6e89cabc620831349f409e334dfaf278b3580d59b5b3d7835c81298",
-      "size": 16736,
+      "sha256": "8206df7a5d8d41a756c23e04c20a29a32fee0535cee55ffc83c954f37d8fa9e2",
+      "size": 16855,
       "mode": "0o644"
     },
     {
@@ -1250,6 +1257,12 @@
       "path": "tests/test_readability.py",
       "sha256": "5d2debf6f71fd07f5e22761e03b679dd803c345a6309da12a0d254481f17222e",
       "size": 5765,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_recent_retention.py",
+      "sha256": "394ec489bafa2953b9650219d095dcda70cf3acfdaee64c2d3a38b03da0cb966",
+      "size": 12263,
       "mode": "0o644"
     },
     {

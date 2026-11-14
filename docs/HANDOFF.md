@@ -224,3 +224,19 @@ bus (24.703s). The 29 focused config-root tests and 16 bootstrap tests also pass
 Two existing snapping fixtures now bind their own config directory; production
 mismatch refusal is unchanged. The prior reader at `6311413` separately refuses
 new module apply/rollback and combined journal requests before fixture writes.
+
+
+Recent-app retention follow-up on `09a013a`: optional age policy in Start Menu
+options, no age limit/timestamp collection by default. Timed successful launches
+record local integer timestamps; menu presentation/history changes expire entries,
+with count/recording/clear controls retained. Untimed or future-dated entries expire
+when enabled; malformed data refuses writes. Failed saves hide expired entries and
+show a warning. Portable export contains policy only; import leaves history alone
+until Start applies it. Older backups and private portable undo remain outside expiry.
+See recent-apps.md. No personal history/session access or live activation is needed.
+
+Retention verification: **457 tests pass** (25.284s), including 13 new clock,
+legacy/corruption, save-failure, portable privacy and offscreen resident/UI cases.
+Disposable installed Start/portable helpers pass rendered age-choice, exact expiry,
+visible failure/retry and timestamp-exclusion checks. This is offscreen fixture
+acceptance, not live login, real input or long-running-session validation.

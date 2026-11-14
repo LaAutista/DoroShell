@@ -6,12 +6,12 @@ and requires Apply; Cancel is the default. **Restore last import** restores the
 exact previous file contents only when no subsequent edits conflict.
 
 This first increment covers the primary session button, recent-program recording
-and count, and standard-folder visibility/order. It does not perform any power
+and count, optional [recent-app age retention](recent-apps.md), and standard-folder visibility/order. It does not perform any power
 or session action. Reopen Start after applying preferences.
 
 ## Privacy and compatibility
 
-The export uses a strict allowlist. It contains no app pins, history entries,
+The export uses a strict allowlist. It contains no app pins, history entries or launch timestamps,
 custom folder labels or paths, portrait/crop, wallpaper, clipboard, credentials,
 monitor configuration or installer records. These local values are not imported
 or replaced. Theme, taskbar and machine-specific configuration remain managed
@@ -47,3 +47,11 @@ configuration, clipboard, desktop process or power action is used.
 The candidate has not been installed into the personal Settings app. Native file
 picker interaction and interrupted-process recovery remain manual acceptance
 items; rollback will refuse mixed files rather than overwrite later user edits.
+
+
+The optional `retention_days` field carries only the local expiry setting (0 = no
+age limit, 1–365 = days). A legacy import without it preserves the current policy.
+Import/preview do not prune history; Start applies expiry on later use, including
+removing untimed legacy entries when enabled. Old readers refuse the new field.
+Never-configured default exports keep the original field set. Private rollback
+continues to preserve exact bytes and can therefore retain pre-expiry history.

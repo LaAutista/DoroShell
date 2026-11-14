@@ -14,9 +14,9 @@ FOLDERS = [('Home','HomeLocation','user-home'), ('Documents','DocumentsLocation'
            ('Downloads','DownloadLocation','folder-download'), ('Pictures','PicturesLocation','folder-pictures'),
            ('Music','MusicLocation','folder-music'), ('Videos','MoviesLocation','folder-videos')]
 FILES = ('session-button.json', 'recent.json', 'folders.json')
-NOTICE = ('Only portable Start preferences are included. Pins, history entries, custom folder names/paths, '
+NOTICE = ('Only portable Start preferences are included. Pins, history entries/timestamps, custom folder names/paths, '
           'portrait/crop, wallpapers, clipboard, credentials, panel and machine settings are excluded and left unchanged. '
-          'Import does not launch apps or perform session/power actions. Reopen Start to read changes.')
+          'Import does not launch apps or perform session/power actions. Reopen Start to apply history expiry; untimed entries expire when age limiting is enabled.')
 
 
 def decode(data, limit=LIMIT):
@@ -42,8 +42,10 @@ def validate(value):
     if not isinstance(prefs, dict) or set(prefs) != {'primary', 'recent', 'folders'}: raise ValueError('Invalid preferences.')
     if prefs['primary'] not in ACTIONS: raise ValueError('Invalid primary button.')
     recent = prefs['recent']
-    if not isinstance(recent, dict) or set(recent) != {'enabled', 'limit'} or type(recent['enabled']) is not bool or type(recent['limit']) is not int or not 1 <= recent['limit'] <= 50:
+    if not isinstance(recent, dict) or set(recent) not in ({'enabled', 'limit'}, {'enabled', 'limit', 'retention_days'}) or type(recent['enabled']) is not bool or type(recent['limit']) is not int or not 1 <= recent['limit'] <= 50:
         raise ValueError('Invalid recent-program preferences.')
+    if type(recent.get('retention_days', 0)) is not int or not 0 <= recent.get('retention_days', 0) <= 365:
+        raise ValueError('Invalid recent-program retention period.')
     folders = prefs['folders']
     if not isinstance(folders, list) or len(folders) != len(FOLDERS): raise ValueError('Invalid standard folders.')
     seen = set()
@@ -78,15 +80,14 @@ class Store:
         raw = {name: self.read(self.base/name) for name in FILES}
         values = {name: decode(data) if data is not None else {} for name, data in raw.items()}
         if any(not isinstance(value, dict) for value in values.values()): raise ValueError('Invalid local preferences; not overwriting.')
-        from menu.start_menu import validate_links
+        from menu.start_menu import validate_links, validate_recent
         from menu.portrait_crop import validate_crop
         for name, value in values.items():
             if raw[name] is None: continue
             if name == 'session-button.json':
                 if type(value.get('version')) is not int or value['version'] != 1 or value.get('action') not in ACTIONS: raise ValueError('Invalid local session preferences.')
             elif name == 'recent.json':
-                if type(value.get('enabled')) is not bool or type(value.get('limit',20)) is not int or not 1 <= value.get('limit',20) <= 50 or not isinstance(value.get('items'),list) or len(value['items']) > value.get('limit',20) or not all(isinstance(x,str) for x in value['items']): raise ValueError('Invalid local recent preferences.')
-                if 'version' in value and value['version'] != 1: raise ValueError('Unsupported recent preferences version.')
+                validate_recent(value)
             else:
                 if type(value.get('version')) is not int: raise ValueError('Invalid folder settings version.')
                 validate_links(value); validate_crop(value.get('portraitCrop'))
@@ -112,6 +113,8 @@ class Store:
         prefs = {'primary': values['session-button.json'].get('action', 'shutdown'),
                  'recent': {'enabled': recent.get('enabled', True), 'limit': recent.get('limit', 20)},
                  'folders': [{'standard': key, 'visible': visible.get(key, raw['folders.json'] is None)} for key in order]}
+        if 'retention_days' in recent:
+            prefs['recent']['retention_days'] = recent['retention_days']
         return validate({'format': 'DoroShell portable Start settings', 'version': 1, 'preferences': prefs})
 
     def plan(self, value):
@@ -246,7 +249,8 @@ def open_dialog(parent, home):
                 QMessageBox.information(dialog, 'Portable preferences', 'These preferences already match.'); return
             prefs = value['preferences']
             summary = ('Primary button: '+prefs['primary']+'\nRecent recording: '+str(prefs['recent']['enabled'])+
-                       '\nRecent count: '+str(prefs['recent']['limit'])+'\nStandard folders, in order:\n'+
+                       '\nRecent count: '+str(prefs['recent']['limit'])+
+                       '\nRecent age limit (days; 0 = none): '+str(prefs['recent'].get('retention_days', 'unchanged'))+'\nStandard folders, in order:\n'+
                        '\n'.join(item['standard'].removesuffix('Location')+(': shown' if item['visible'] else ': hidden') for item in prefs['folders']))
             if QMessageBox.question(dialog, 'Apply this preview?', summary+'\n\n'+NOTICE+'\n\nThe previous import rollback is replaced.', QMessageBox.StandardButton.Apply|QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Apply: return
             store.apply(changes)

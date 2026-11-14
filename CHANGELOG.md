@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add optional recent-app age retention, off by default, with local launch timestamps,
+  event-driven expiry, bounded legacy validation and visible save failures. Portable
+  preferences carry the policy only; history/timestamps stay private. No background
+  polling or new history backups for timed operations; older backups remain intact.
+
 - Extend explicit custom config roots to snapping and combined single-desktop,
   relocating only XML/autostart config. Share writer locks, preserve unrelated XML
   and exact original programs/modes, refuse root/path/ownership conflicts, and keep

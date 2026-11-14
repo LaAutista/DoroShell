@@ -55,6 +55,7 @@
     "docs/optional-installation.md",
     "docs/panel-density.md",
     "docs/portable-settings.md",
+    "docs/recent-apps.md",
     "docs/roadmap.md",
     "docs/screenshot-verification.md",
     "docs/show-desktop.md",
@@ -204,6 +205,7 @@
     "tests/test_preferred_transition.py",
     "tests/test_prerequisites.py",
     "tests/test_readability.py",
+    "tests/test_recent_retention.py",
     "tests/test_screenshot.py",
     "tests/test_settings.py",
     "tests/test_source_release.py",
@@ -229,8 +231,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 228,
-  "source_payload_count": 226,
+  "file_count": 230,
+  "source_payload_count": 228,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

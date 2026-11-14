@@ -1,3 +1,18 @@
+# Optional recent-app retention checkpoint — 2026-11-14
+
+Source follow-up to published `09a013acad71c68943aba2b698082bd609153302`.
+Start Menu options now offer optional day-based recent-app expiry. Default remains
+no age limit and no timestamp collection. Bounded local records, legacy migration,
+future-clock handling, visible atomic-save failures and portable policy-only export
+reuse existing stores. No polling, document indexing, telemetry or transmission.
+Older history backups/private portable undo remain outside active-history expiry.
+
+All **457 unit tests passed** in a disposable HOME/offscreen environment (25.284s).
+The temporary installed Start and portable helpers also passed rendered option,
+expiry, failure/retry and privacy checks with synthetic records. No personal history
+was read, no live configuration changed, and login/long-session acceptance remains
+unverified. See docs/recent-apps.md for exact semantics and compatibility limits.
+
 # Custom-root snapping checkpoint — 2026-11-14
 
 Source-only follow-up based on published `63114132943c24cdd54be1b9a97de695f7a0aba3`.

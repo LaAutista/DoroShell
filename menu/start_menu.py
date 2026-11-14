@@ -249,7 +249,7 @@ class FolderSettings:
         self.portrait_crop = crop
 
 
-def save_json(path, value, original):
+def save_json(path, value, original, *, backup=True):
     """Refuse external edits and preserve the previous valid state."""
     if path.is_symlink():
         raise ValueError('Refusing symlinked preferences')
@@ -258,7 +258,7 @@ def save_json(path, value, original):
         raise ValueError('Preferences changed elsewhere; reopen the menu.')
     data = (json.dumps(value, indent=2) + '\n').encode()
     path.parent.mkdir(parents=True, exist_ok=True)
-    if current is not None and current != data:
+    if backup and current is not None and current != data:
         backup = path.with_name(path.name + '.backup-' + str(time.time_ns()))
         backup.write_bytes(current)
         backup.chmod(0o600)
@@ -277,6 +277,26 @@ def save_json(path, value, original):
     return data
 
 
+RECENT_LIMIT_BYTES = 128 * 1024
+
+
+def validate_recent(value):
+    """Validate local history separately from the portable preferences allowlist."""
+    if (not isinstance(value, dict) or type(value.get('enabled')) is not bool
+            or not isinstance(value.get('items'), list)
+            or type(value.get('limit', 20)) is not int or not 1 <= value.get('limit', 20) <= 50
+            or len(value['items']) > value.get('limit', 20)
+            or not all(isinstance(x, str) and 0 < len(x) <= 4096 for x in value['items'])
+            or ('version' in value and (type(value['version']) is not int or value['version'] != 1))
+            or type(value.get('retention_days', 0)) is not int or not 0 <= value.get('retention_days', 0) <= 365):
+        raise ValueError('Invalid recent-program preferences')
+    stamps = value.get('launched_at', {})
+    if (not isinstance(stamps, dict) or len(stamps) > 50
+            or any(not isinstance(key, str) or not 0 < len(key) <= 4096
+                   or type(stamp) is not int or not 0 <= stamp <= 253402300799 for key, stamp in stamps.items())):
+        raise ValueError('Invalid recent-program launch timestamps')
+
+
 class RecentPrograms:
     def __init__(self, path):
         self.path = path
@@ -284,21 +304,68 @@ class RecentPrograms:
         self.value = {'enabled': True, 'items': []}
         self.error = None
         try:
-            self.original = path.read_bytes() if path.exists() else None
+            if path.exists():
+                with path.open('rb') as stream:
+                    self.original = stream.read(RECENT_LIMIT_BYTES + 1)
             if self.original is not None:
-                value = json.loads(self.original)
-                if (not isinstance(value, dict) or type(value.get('enabled')) is not bool
-                        or not isinstance(value.get('items'), list)
-                        or type(value.get('limit', 20)) is not int
-                        or not 1 <= value.get('limit', 20) <= 50
-                        or len(value['items']) > value.get('limit', 20)
-                        or not all(isinstance(x, str) for x in value['items'])):
-                    raise ValueError('Invalid recent-program preferences')
+                if len(self.original) > RECENT_LIMIT_BYTES:
+                    raise ValueError('Recent-program file is too large')
+                def unique(pairs):
+                    result = dict(pairs)
+                    if len(result) != len(pairs):
+                        raise ValueError('Duplicate recent-program key')
+                    return result
+                value = json.loads(self.original, object_pairs_hook=unique)
+                validate_recent(value)
                 self.value = value
-        except (ValueError, OSError) as error:
+        except (ValueError, OSError, RecursionError) as error:
             self.error = str(error)
 
-    def save(self, enabled=None, launched=None, clear=False, limit=None):
+    @staticmethod
+    def now():
+        stamp = time.time()
+        if type(stamp) not in (int, float) or not 0 <= stamp <= 253402300799:
+            raise ValueError('System clock is unavailable for recent-program expiry')
+        return int(stamp)
+
+    @staticmethod
+    def retained(value, now):
+        if not value['enabled']:
+            return []
+        days = value.get('retention_days', 0)
+        if not days:
+            return list(value['items'])
+        stamps = value.get('launched_at', {})
+        # Untimed/future entries cannot establish their age; never invent a launch time.
+        return [key for key in value['items'] if key in stamps and 0 <= now - stamps[key] < days * 86400]
+
+    def items(self):
+        try:
+            return self.retained(self.value, self.now() if self.value.get('retention_days', 0) else 0)
+        except ValueError:
+            return []  # An unusable clock must not expose possibly expired history.
+
+    def persist(self, value):
+        validate_recent(value)
+        if len((json.dumps(value, indent=2) + '\n').encode()) > RECENT_LIMIT_BYTES:
+            raise ValueError('Recent-program file is too large')
+        # Timed history must not be copied into a fresh, non-expiring backup.
+        backup = not (self.value.get('retention_days', 0) or value.get('retention_days', 0))
+        self.original = save_json(self.path, value, self.original, backup=backup)
+        self.value = value
+
+    def prune(self):
+        if self.error:
+            raise ValueError(self.error)
+        if not self.value.get('retention_days', 0):
+            return
+        value = copy.deepcopy(self.value)
+        value['items'] = self.retained(value, self.now() if value['enabled'] else 0)
+        value['launched_at'] = {key: value['launched_at'][key] for key in value['items']}
+        if value != self.value:
+            self.persist(value)
+
+    def save(self, enabled=None, launched=None, clear=False, limit=None, retention_days=None):
         if self.error:
             raise ValueError(self.error)
         value = copy.deepcopy(self.value)
@@ -306,15 +373,31 @@ class RecentPrograms:
             if type(limit) is not int or not 1 <= limit <= 50:
                 raise ValueError('Recent-program count must be between 1 and 50.')
             value['limit'] = limit
+        if retention_days is not None:
+            if type(retention_days) is not int or not 0 <= retention_days <= 365:
+                raise ValueError('Recent-program age must be 0 (no limit) or 1 to 365 days.')
+            value['retention_days'] = retention_days
         if enabled is not None:
+            if type(enabled) is not bool:
+                raise ValueError('Recent-program recording must be enabled or disabled.')
             value['enabled'] = enabled
-        if clear or not value['enabled']:
-            value['items'] = []
+        timed = bool(value.get('retention_days', 0))
+        now = self.now() if (timed or self.value.get('retention_days', 0)) and value['enabled'] and (not clear or launched) else 0
+        if not clear and value['enabled'] and self.value.get('retention_days', 0):
+            value['items'] = self.retained(self.value, now)
+        value['items'] = [] if clear or not value['enabled'] else self.retained(value, now)
+        stamps = value.get('launched_at', {})
         if launched and value['enabled']:
+            if not isinstance(launched, str) or len(launched) > 4096:
+                raise ValueError('Invalid recent-program ID')
             value['items'] = [launched] + [x for x in value['items'] if x != launched]
+            if timed: stamps[launched] = now
         value['items'] = value['items'][:value.get('limit', 20)]
-        self.original = save_json(self.path, value, self.original)
-        self.value = value
+        if timed:
+            value['launched_at'] = {key: stamps[key] for key in value['items']}
+        else:
+            value.pop('launched_at', None)
+        self.persist(value)
 
 
 class FolderEditor(QDialog):
@@ -703,6 +786,10 @@ class StartMenu(QWidget):
         self.recent_button = QPushButton('Recent programs')
         self.recent_button.clicked.connect(lambda: self.category.setCurrentText('Recent'))
         left.addWidget(self.recent_button)
+        self.recent_notice = QLabel()
+        self.recent_notice.setWordWrap(True)
+        self.recent_notice.hide()
+        left.addWidget(self.recent_notice)
         left.addWidget(self.programs)
         left.addWidget(self.search)
         body.addWidget(apps_panel, 3)
@@ -740,6 +827,16 @@ class StartMenu(QWidget):
             self.recent_counts.addAction(action)
             action.setChecked(count == self.recent.value.get('limit', 20))
         self.recent_counts.triggered.connect(lambda action: self.set_recent_limit(action.data()))
+        age_menu = options_menu.addMenu('Recent history age')
+        age_menu.addAction('Enabling clears entries without a launch time').setEnabled(False)
+        age_menu.addAction('Active history only; old backups remain').setEnabled(False)
+        self.recent_ages = QActionGroup(self)
+        for days in sorted({0, 1, 7, 30, 90, 365, self.recent.value.get('retention_days', 0)}):
+            action = age_menu.addAction('No age limit (default)' if days == 0 else str(days) + (' day' if days == 1 else ' days'))
+            action.setCheckable(True); action.setData(days)
+            self.recent_ages.addAction(action)
+            action.setChecked(days == self.recent.value.get('retention_days', 0))
+        self.recent_ages.triggered.connect(lambda action: self.set_recent_age(action.data()))
         options_menu.addAction('Clear recent programs', self.clear_recent)
         primary_menu = options_menu.addMenu('Primary session button')
         self.primary_choices = QActionGroup(self)
@@ -1062,6 +1159,25 @@ class StartMenu(QWidget):
             action.setChecked(action.data() == self.recent.value.get('limit', 20))
         self.refresh()
 
+    def set_recent_age(self, days):
+        try:
+            self.recent.save(retention_days=days)
+        except (OSError, ValueError) as error:
+            self.error(str(error))
+        for action in self.recent_ages.actions():
+            action.setChecked(action.data() == self.recent.value.get('retention_days', 0))
+        self.refresh()
+
+    def expire_recent(self):
+        try:
+            self.recent.prune()
+            message = ''
+        except (OSError, ValueError) as error:
+            message = 'Recent history unavailable or expiry could not be saved: ' + str(error)
+        self.recent_notice.setText(message)
+        self.recent_notice.setVisible(bool(message))
+        self.refresh()
+
     def refresh_primary_action(self):
         label, icon = SESSION_ACTIONS[self.primary_action]
         self.session_button.setText(label + ('' if self.primary_action == 'lockscreen' else '…'))
@@ -1106,7 +1222,7 @@ class StartMenu(QWidget):
         self.category.setVisible(category != 'Home')
         self.list.setAccessibleName('Pinned applications' if not back else 'Applications')
         pinned = [self.by_id[x] for x in self.favorites if x in self.by_id]
-        recent = [self.by_id[x] for x in self.recent.value['items'] if x in self.by_id] if self.recent.value['enabled'] else []
+        recent = [self.by_id[x] for x in self.recent.items() if x in self.by_id]
         self.recent_button.setVisible(not back and bool(recent))
         if query:
             apps = self.apps
@@ -1434,6 +1550,7 @@ class ResidentMenu:
 
 
 def present_menu(window):
+    window.expire_recent()
     screen = QApplication.screenAt(QCursor.pos()) or QApplication.primaryScreen()
     area = screen.availableGeometry()
     window.resize(min(MENU_SIZE.width(), area.width()), min(MENU_SIZE.height(), area.height()))

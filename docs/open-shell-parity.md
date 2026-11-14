@@ -15,7 +15,7 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | Program discovery / search | GIO application catalog, names/keywords/categories; automated and limited real search checks. | Refresh catalog after installs; test duplicate names, hidden entries and international text. |
 | Expanded search | Document/content/settings/provider search absent. | Explicit opt-in providers, cancellation and bounds; no unsolicited indexing of private files. |
 | Pins / organization | Ordered pins, Home/Pinned drag reordering and context-menu movement; conflict-safe saved order. Taskbar dragging is a separate feature. | Verified with synthetic real pointer dragging, Escape cancellation, keyboard move commands and reopening persistence; broader DPI/accessibility coverage remains. |
-| Recency / frequency | Recent apps with a configurable count, recording toggle and clear-history command. | Time-based retention, privacy controls and frequency ranking. |
+| Recency / frequency | Recent apps with count, recording toggle, clear-history and optional [time-based retention](recent-apps.md); default has no age limit. | Frequency ranking and broader privacy controls; old backups/portable undo are outside active-history expiry. |
 | Recent documents | Absent. | Opt-in desktop recent-file store, unavailable-file handling and clear-history semantics. |
 | App tasks / jump lists | New desktop actions through GIO. This is only the common-task portion; Windows jump-list data is not read. | Real action dispatch plus action-less apps; later per-app documents with explicit backend support. |
 | Folder cascades | Folder links open the configured file manager; inline nested folders absent. | Lazy listing, symlink-loop handling, inaccessible/network paths, keyboard traversal. |
@@ -28,7 +28,7 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | Skinning | Pink stylesheet and inherited desktop behavior; no Open-Shell skin-file compatibility. | Versioned native theme schema, preview/revert, metrics and contrast tests; audit any future importer. |
 | Localization / RTL | English strings; complete translation and RTL behavior unverified. | Translation catalogs, RTL layout, input-method tests. |
 | Accessibility | Qt widgets supply a foundation; no accessibility parity established. | Accessible names, focus order, high contrast and actual AT-SPI/screen-reader checks. MSAA is Windows-specific. |
-| Settings / portability | Independent opt-ins, preview, backups, repeat application and scoped rollback. No portable settings export/import or policy controls. | Versioned validated import/export; exclude private paths by default; migration/conflict tests. |
+| Settings / portability | Independent opt-ins, preview, backups, repeat application, scoped rollback and validated portable Start preferences excluding private history/paths. | Broader policy/portability coverage beyond the existing bounded Start allowlist. |
 | Taskbar appearance | LXQt native taskbar option and optional DockBarX compatibility; not upstream taskbar skinning. | Native theme controls with rollback; never refresh a live panel to apply them. |
 | Store apps / architecture | Linux desktop entries, including those exported by packaging systems; not Windows Store activation. | Test Flatpak exports. No claim of UWP, COM or 32/64-bit Windows ABI compatibility. |
 

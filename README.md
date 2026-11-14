@@ -170,3 +170,8 @@ Tests use mocks, offscreen Qt and disposable homes. Opt-in native X11 checks use
 private display. Never run tests by changing a personal monitor, clipboard, session,
 locker or power state. There is no claim of universal LXQt/Wayland compatibility,
 completed Open-Shell parity, or a finished project.
+
+
+Recent applications can optionally expire after a chosen number of days via Start →
+Menu options → Recent history age. No age limit remains the default; see
+[recent-app retention and backup limits](docs/recent-apps.md).
