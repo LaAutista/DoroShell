@@ -2,6 +2,10 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Reject invalid options and conflicting actions before prerequisite authentication
+  in bootstrap and the README downloader. Keep the downloader's option set small;
+  local bootstrap/deploy retain advanced operations. Test zero external commands
+  for malformed requests and catalog compatibility for valid module selections.
 - Restore automatic, explicitly approved prerequisite stages in the copy-paste
   installer: curl, Git/Python and missing PySide6/GIO validation imports. Print plans,
   keep normal sudo/pacman confirmation, stop on cancellation/failure and revalidate

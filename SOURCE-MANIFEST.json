@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-automatic-prerequisites-20261114",
+  "candidate": "doroshell-prerequisite-argument-order-20261114",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -26,13 +26,14 @@
     "panel_layout_recovery": "Bounded completed-native-panel recovery on c87ff151f7ca658b665d79bbc4a323461f086068; preserve later stock multi-panel layout, exact undo and output conflict refusal; no new layout/XDG adapter.",
     "panel_selection": "Bounded profile.py prepare --panel on 010af6a77040169eac7133d38d7573e9c602ec23; byte-preserved unrelated sections, selected geometry and companion targeting; prepared-plan/setup workflow only, not full deploy multi-panel support.",
     "deploy_panel_selection": "Bounded deploy/bootstrap --panel integration on df1d976666924ae4c8c3f09a581b4475f0786204; pointer-2/journal-3 recorded choice, pre-package validation and saved first-stage recovery. Legacy single-panel records retained; see docs/INSTALL.md.",
-    "automatic_prerequisites": "Follow-up on a7cbccbc10ae8e3dc8964b013831e1ced9f24cff: user-initiated automatic curl/Git/Python and explicit-panel validation prerequisite stages, ordinary pacman approval, cancellation/failure stops and mandatory revalidation before module/configuration writes. Scope and package-update boundary in docs/INSTALL.md."
+    "automatic_prerequisites": "Follow-up on a7cbccbc10ae8e3dc8964b013831e1ced9f24cff: user-initiated automatic curl/Git/Python and explicit-panel validation prerequisite stages, ordinary pacman approval, cancellation/failure stops and mandatory revalidation before module/configuration writes. Scope and package-update boundary in docs/INSTALL.md.",
+    "prerequisite_argument_order": "Review correction on unpublished 060a904ff8ffd7bb671b62549e179c2b1a60d9af: bounded Bash option/value/action checks before acquisition/authentication. README download interface restricted to install/plan/no-packages/panel; advanced options remain in local bootstrap/deploy. Published a7cbccb ancestry retained."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 387,
+    "passed": 391,
     "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
-    "note": "387 tests pass in disposable HOME/runtime without personal display/session bus. Fourteen new prerequisite/download/CLI cases; exact README command uses fake package/download tools, profile/journal adapters use mocked package/build boundaries. No actual sudo/authentication, OS packages, native UI/build, login or hardware acceptance. Source/archive hashes verified separately."
+    "note": "391 tests pass in disposable HOME/runtime without personal display/session bus. Four new argument-order/catalog tests with invalid-input matrices and zero fake-command calls, plus existing automatic prerequisite/cancellation/revalidation fixtures. No actual sudo/authentication, OS packages, native UI/build, login or hardware acceptance. Source/archive and both patches verified separately."
   },
   "source_payloads": [
     {
@@ -49,8 +50,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "c6957e094440f7f1173d78842f4c46aad5d247f5965d350b87fcad8de98a2546",
-      "size": 5727,
+      "sha256": "3b2ce540b811263ca3732e88d9a6499f513b37b31f650bfddfdb00e1644c3130",
+      "size": 6054,
       "mode": "0o644"
     },
     {
@@ -67,14 +68,14 @@
     },
     {
       "path": "README.md",
-      "sha256": "6d61fb81b7be265f489064c9a1ee9e25d4db3886e49e329858e6d4f5bc172531",
-      "size": 8780,
+      "sha256": "4ca11e291f75f38bf99f0d409aa9b09270025f752ad01b74bcec82b7e0ffc16a",
+      "size": 9631,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "1a68dbcac7b6d905046a8f635c088e17d48d28e3404c7ff521f9729cd6e4650f",
-      "size": 34020,
+      "sha256": "b8cd32781a011ed848e9b319c03ac168219295c30562b2b5c7b291c69623ff03",
+      "size": 35661,
       "mode": "0o644"
     },
     {
@@ -127,8 +128,8 @@
     },
     {
       "path": "bootstrap.sh",
-      "sha256": "e9d49fe3043c6db68837998304f0e3dbb8b47ab7a2d62fdc9c19d7a190d9d330",
-      "size": 4131,
+      "sha256": "0802bab0ebf90213eb60bb7300b3a17c2babd35bec1f66940a48ba9943e89ee2",
+      "size": 7461,
       "mode": "0o644"
     },
     {
@@ -229,14 +230,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "205b80df44c3c7882af295c0de82813601a72846fdb8e4d28989d90bb9cf1ed8",
-      "size": 11461,
+      "sha256": "c6617b78634d8499f6575c587cf8d6c01b9fe09b13f5e2aa0e74f667bceb7edf",
+      "size": 12027,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "5d4420cff25a8225c4c86b05f879c73fba3df6a3517257638304af0acd72e00c",
-      "size": 17415,
+      "sha256": "bd167704dc55c16eef942c8974927a7f7526313d200a95db85e180e33c8dcb8e",
+      "size": 18227,
       "mode": "0o644"
     },
     {
@@ -253,8 +254,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "6a219f222ffbbc2ec5263813138174a76d7afdba789f9e6732cd92851a83de03",
-      "size": 10198,
+      "sha256": "6f7dbe946f4331f91380a54963cb5a55c07e1c1ae7adcab861eda720001d6bad",
+      "size": 10787,
       "mode": "0o644"
     },
     {
@@ -1039,8 +1040,8 @@
     },
     {
       "path": "tests/test_bootstrap.py",
-      "sha256": "94bf89fab53e483c69875687ed280da21fa7d8b699b90e5c997ee2420273bc70",
-      "size": 8241,
+      "sha256": "91383642721bd4653052acbfc01939adaa5a1ce5b3d79776c68cfb6ffe6cb5ea",
+      "size": 11165,
       "mode": "0o644"
     },
     {
@@ -1213,8 +1214,8 @@
     },
     {
       "path": "tests/test_prerequisites.py",
-      "sha256": "4a49b9dc779a4508f7341b3c0195fa4d1e43b990f141b404114382e9e8f6ea97",
-      "size": 7190,
+      "sha256": "79f9dd3c9f722a393df431bfaf09d62953e35be15c5e587e45ae76c819327bb9",
+      "size": 8631,
       "mode": "0o644"
     },
     {

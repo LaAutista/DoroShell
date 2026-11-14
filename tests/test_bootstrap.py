@@ -56,11 +56,54 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
         self.assertEqual(list((self.home/'.local/share/doroshell/sources').iterdir()),[])
 
     def test_panel_selection_is_forwarded_as_one_argument(self):
-        for panel in ('panel2', 'panel2; touch '+str(self.home/'should-not-run')):
-            result=self.run_bootstrap('--apply','--modules','native-panel','--panel',panel)
-            forwarded=json.loads(next(line[7:] for line in result.stdout.splitlines() if line.startswith('DEPLOY ')))
-            self.assertEqual(forwarded,['--apply','--modules','native-panel','--panel',panel])
+        args=['--apply','--modules','native-panel','--panel','panel2','--home',str(self.home/'a space')]
+        result=self.run_bootstrap(*args)
+        forwarded=json.loads(next(line[7:] for line in result.stdout.splitlines() if line.startswith('DEPLOY ')))
+        self.assertEqual(forwarded,args)
+        result=self.run_bootstrap('--apply','--panel','panel2; touch '+str(self.home/'should-not-run'),ok=False)
+        self.assertIn('Choose an existing panelN',result.stderr);self.assertNotIn('DEPLOY',result.stdout)
         self.assertFalse((self.home/'should-not-run').exists())
+
+    def test_invalid_arguments_never_reach_acquisition_or_authentication(self):
+        self.env['PATH']=str(self.home/'bin')
+        for name in ('git','sudo','pacman'):
+            path=self.home/'bin'/name
+            path.write_text('#!/usr/bin/python3\nimport os,pathlib\npathlib.Path(os.environ["HOME"],"unexpected-command").write_text("called")\nraise SystemExit(1)\n');path.chmod(0o755)
+        invalid=[['--apply','--prerequisites'],['--apply','--unknown'],['--apply','--panel','../panel2'],
+                 ['--apply','--panel','panel2\n'],['--apply','--panel'],['--apply','--plan'],
+                 ['--apply','--modules','unknown'],['--apply','--modules'],['--apply','--with','menu'],
+                 ['--apply','--theme','unknown'],['--apply','--home'],['--apply','--channel','unknown'],
+                 ['--apply','--ref','../main'],['--apply','--undo','invalid'],['--apply','--panel=panel2'],
+                 ['--apply','--panel','panel2','--modules','menu'],['--prerequisites','--remove'],
+                 ['--apply','--help'],['--apply','positional'],
+                 ['--apply','--undo','20261114T120000-0123456789ab','--recover']]
+        for args in invalid:
+            with self.subTest(args=args):
+                result=self.run_bootstrap(*args,ok=False)
+                self.assertEqual(result.returncode,2,result.stderr)
+                self.assertIn('No prerequisites requested',result.stderr)
+                self.assertFalse((self.home/'unexpected-command').exists())
+                self.assertFalse((self.home/'.local').exists())
+        result=self.run_bootstrap('--prerequisites',ok=False)
+        self.assertEqual(result.returncode,1);self.assertIn('without --prerequisites/--no-packages',result.stderr)
+        self.assertFalse((self.home/'unexpected-command').exists());self.assertFalse((self.home/'.local').exists())
+
+    def test_shell_option_catalog_accepts_current_modules_and_optional_choices(self):
+        import deploy
+        # Keep the small pre-acquisition allowlist aligned with the real parser.
+        for module in ['core',*deploy.ORDER]:
+            result=self.run_bootstrap('--plan','--modules',module)
+            self.assertIn('DEPLOY',result.stdout)
+        for extra in deploy.OPTIONAL:
+            result=self.run_bootstrap('--plan','--modules','menu','--with',extra)
+            self.assertIn('DEPLOY',result.stdout)
+        self.run_bootstrap('--plan','--modules','menu','--with','clipboard','--panel','panel2')
+        self.run_bootstrap('--recover','--apply','--panel','panel2','--modules','menu')
+
+    def test_help_needs_no_tools_or_writes(self):
+        self.env['PATH']='/empty'
+        result=self.run_bootstrap('--help')
+        self.assertIn('Usage:',result.stdout);self.assertFalse((self.home/'.local').exists())
 
     def test_missing_acquisition_tools_plan_never_prompts_or_writes(self):
         self.env['PATH']=str(self.home/'bin')  # Fake Git exists, Python is unavailable by PATH.

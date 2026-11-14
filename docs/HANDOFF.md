@@ -115,6 +115,14 @@ is not an install/readiness check. Missing sudo/pacman requires manual administr
 not a new helper or policy. Fake-command/disposable-home evidence is separate from
 actual pacman, authentication, clean OS and login acceptance; see RELEASE-CANDIDATE.
 
+The review correction on `060a904` rejects invalid arguments before missing-tool
+acquisition can invoke sudo/pacman. Bootstrap has a bounded exact-option/value and
+action-conflict gate; its module list is checked against deploy by tests. The README
+downloader supports only apply/plan/no-packages/panel and refuses advanced options;
+use local bootstrap/deploy for those. Do not remove this early gate or infer that
+Python's later parser can protect an earlier package call. The existing valid
+automatic flow and post-prerequisite panel validation remain unchanged.
+
 Input preferences from `0cf6019` are integrated on top of `e18026e`. The helper now
 ships in the menu toolkit with declared Xlib/udev prerequisites. DoroShell Settings
 has its own Mouse & Touchpad page and a native LXQt link; this is not an LXQt UI

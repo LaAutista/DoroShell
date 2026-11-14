@@ -1,3 +1,27 @@
+# Prerequisite argument-order correction — 2026-11-14
+
+Based on unpublished `060a904ff8ffd7bb671b62549e179c2b1a60d9af`. Independent review
+found missing-tool acquisition could invoke sudo/pacman before Python rejected
+`--apply --prerequisites`, unknown options or malformed panel IDs. The failure was
+reproduced with fake command markers; no real package or authentication operation.
+
+Bootstrap now validates its documented exact options, separate values, bounded
+module choices and action conflicts in pure Bash before checking acquisition tools.
+The README downloader accepts only apply/plan, no-packages and optional panelN;
+advanced options use local bootstrap/deploy. Both entry points reject malformed
+requests before package/authentication/download operations. Saved-state, topology
+and ownership checks stay in Python. Valid automatic prerequisite staging is retained.
+
+The **391-test full suite passes**, including four added tests with invalid-argument
+matrices, missing/present curl, zero-command assertions, tool-free help/guidance and
+catalog compatibility. Thirteen bootstrap and seven prerequisite tests also passed
+as focused checks. The exact README command's successful panel forwarding and prior
+cancellation/revalidation/rollback regressions remain included. Tests used disposable
+homes, offscreen Qt and fake package/authentication/download boundaries. No real
+package, authentication, native UI, login, input/display or personal-session change.
+Source/archive inventory and incremental/cumulative patch checks accompany the new
+private bundle. Prior `060a904` evidence remains unchanged; no publication is included.
+
 # Automatic prerequisite flow checkpoint — 2026-11-14
 
 Based on `a7cbccbc10ae8e3dc8964b013831e1ced9f24cff`, preserving recorded panel choice,

@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -24,8 +25,9 @@ class PrerequisiteTests(unittest.TestCase):
         return subprocess.run([sys.executable,'-S','-B',str(ROOT/'deploy.py'),*args],
                               env=self.env,capture_output=True,text=True)
 
-    def readme(self,plan=False,no_packages=False):
+    def readme(self,plan=False,no_packages=False,args=None):
         command=(ROOT/'README.md').read_text().split('```sh\n',1)[1].split('\n```',1)[0]
+        if args is not None:command=command.removesuffix('doroshell --apply')+'doroshell '+shlex.join(args)
         if plan:command=command.removesuffix('doroshell --apply')+'doroshell --plan'
         if no_packages:command+=' --no-packages'
         return subprocess.run(['/usr/bin/bash','-c',command],env=self.env,capture_output=True,text=True)
@@ -93,6 +95,23 @@ runpy.run_module('deploy',run_name='__main__')
         self.assertNotEqual(result.returncode,0);self.assertIn('require sudo and Arch pacman',result.stderr)
         self.assertEqual(self.snapshot(),before)
 
+    def test_readme_rejects_invalid_arguments_before_curl_or_package_actions(self):
+        (self.bin/'bash').symlink_to('/usr/bin/bash')
+        for name in ('sudo','pacman'):
+            p=self.bin/name;p.write_text('#!/usr/bin/python3\nimport os,pathlib\npathlib.Path(os.environ["HOME"],"unexpected-command").write_text("called")\nraise SystemExit(1)\n');p.chmod(0o755)
+        invalid=[['--apply','--prerequisites'],['--apply','--unknown'],['--apply','--panel','../panel2'],
+                 ['--apply','--panel','panel2\n'],['--apply','--panel'],['--apply','--plan'],
+                 ['--apply','--modules','menu'],['--apply','--panel=panel2'],['--apply','positional']]
+        for curl_available in (False,True):
+            if curl_available:(self.bin/'curl').symlink_to(self.bin/'sudo')
+            for args in invalid:
+                with self.subTest(curl=curl_available,args=args):
+                    before=self.snapshot();result=self.readme(args=args)
+                    self.assertEqual(result.returncode,2,result.stderr)
+                    self.assertIn('No prerequisites requested',result.stderr)
+                    self.assertFalse((self.home/'unexpected-command').exists())
+                    self.assertEqual(self.snapshot(),before)
+
     def test_missing_curl_apply_cancel_failure_or_no_effect_cannot_download(self):
         (self.bin/'bash').symlink_to('/usr/bin/bash')
         for name in ('sudo','pacman'):
@@ -116,5 +135,5 @@ pathlib.Path(sys.argv[sys.argv.index('--output')+1]).write_text('echo EXECUTED-B
         sudo.write_text('#!/usr/bin/python3\nimport os,pathlib,sys\nassert sys.argv[1:]==["pacman","-Syu","--needed","curl"]\np=pathlib.Path(os.environ["HOME"],"bin/curl")\np.write_text('+repr(curl_script)+')\np.chmod(0o755)\n');sudo.chmod(0o755)
         (self.bin/'pacman').symlink_to('/usr/bin/false')
         temp=self.home/'downloads';temp.mkdir();self.env['TMPDIR']=str(temp)
-        result=self.readme();self.assertEqual(result.returncode,0,result.stderr)
-        self.assertIn('EXECUTED-BOOTSTRAP --apply',result.stdout);self.assertEqual(list(temp.iterdir()),[])
+        result=self.readme(args=['--apply','--panel','panel2']);self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('EXECUTED-BOOTSTRAP --apply --panel panel2',result.stdout);self.assertEqual(list(temp.iterdir()),[])

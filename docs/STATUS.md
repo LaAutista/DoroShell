@@ -64,6 +64,14 @@ or login test occurred. Pre-validation packages may update the system before a l
 is rejected; DoroShell configuration still requires successful validation. This
 supersedes the prior checkpoint's manual-only prerequisite boundary.
 
+The argument-order review correction passes **391 tests**. Bootstrap and the README
+downloader reject invalid actions/syntax before prerequisite authentication; fake
+commands prove zero calls for the reproduced guidance/apply conflict, unknown options
+and invalid panel IDs. The downloader intentionally accepts only its small install
+interface; advanced options remain in local bootstrap/deploy. Valid automatic flows,
+catalog forwarding, cancellation and post-package validation remain fixture-tested.
+Actual administrative authentication/package and clean-install gates are unchanged.
+
 The recovery follow-up to `fa8808c` adds 17 tests: completed-output content/mode
 edits cannot be adopted during recovery; unsupported/malformed journals are refused
 before request consumption or writes. Format-2 journals preserve successful-step

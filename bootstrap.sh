@@ -3,19 +3,65 @@
 set -euo pipefail
 main() (
     local channel=development ref=main apply=false allow_packages=true arg root tmp revision destination
+    local plan=false guidance=false remove=false recover=false help=false undo='' panel=''
+    local modules_set=false panel_module=false clipboard_module=false extra_clipboard=false
     local -a forwarded=() missing=()
+    invalid() { echo "Bootstrap arguments: $1. No prerequisites requested." >&2; exit 2; }
+    # Pure shell syntax/action gate: runs before acquisition tools or authentication.
+    # Layout, saved-state and ownership semantics still belong to deploy/profile.
     while (($#)); do
         case "$1" in
-            --channel) channel=${2:?Missing channel}; shift 2 ;;
-            --ref) ref=${2:?Missing revision}; shift 2 ;;
+            --channel|--ref|--home|--theme|--panel|--with|--undo)
+                (($# >= 2)) && [[ -n "$2" && "$2" != -* && ! "$2" =~ [[:cntrl:]] ]] || invalid "Missing or invalid value for $1"
+                case "$1" in
+                    --channel) channel=$2 ;;
+                    --ref) ref=$2 ;;
+                    --panel) [[ "$2" =~ ^panel[1-9][0-9]*$ ]] || invalid 'Choose an existing panelN ID with --panel'; panel=$2 ;;
+                    --theme) case "$2" in windows|polar|heretic|spring) ;; *) invalid 'Unknown theme' ;; esac ;;
+                    --with) case "$2" in clipboard) extra_clipboard=true ;; wallpaper|wallpaper-glass|display) ;; *) invalid 'Unknown optional module' ;; esac ;;
+                    --undo) [[ "$2" =~ ^[0-9]{8}T[0-9]{6}-[0-9a-f]{12}$ ]] || invalid 'Invalid undo transaction ID'; undo=$2 ;;
+                esac
+                case "$1" in --channel|--ref) ;; *) forwarded+=("$1" "$2") ;; esac
+                shift 2 ;;
+            --modules)
+                forwarded+=(--modules); shift
+                (($#)) && [[ "$1" != -* ]] || invalid 'Missing module list'
+                modules_set=true; panel_module=false; clipboard_module=false
+                while (($#)) && [[ "$1" != -* ]]; do
+                    case "$1" in
+                        core|native-panel) panel_module=true ;;
+                        clipboard) clipboard_module=true ;;
+                        menu|theme|cursor|snapping|single-desktop|screenshots|maintenance|wallpaper|wallpaper-glass|display) ;;
+                        *) invalid 'Unknown module' ;;
+                    esac
+                    forwarded+=("$1"); shift
+                done ;;
             --apply) apply=true; forwarded+=(--apply); shift ;;
             --no-packages) allow_packages=false; forwarded+=(--no-packages); shift ;;
-            --plan) shift ;;
-            *) forwarded+=("$1"); shift ;;
+            --plan) plan=true; shift ;;
+            --prerequisites) guidance=true; forwarded+=(--prerequisites); shift ;;
+            --remove) remove=true; forwarded+=(--remove); shift ;;
+            --recover) recover=true; forwarded+=(--recover); shift ;;
+            --help|-h) help=true; shift ;;
+            *) invalid 'Unknown option or positional argument (use exact long options and separate values)' ;;
         esac
     done
-    case "$channel" in development) ;; stable) ref=stable ;; *) echo 'Choose development or stable' >&2; return 2 ;; esac
-    [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$ref" != *..* ]] || { echo 'Invalid revision' >&2; return 2; }
+    "$plan" && "$apply" && invalid '--plan cannot combine with --apply'
+    if "$guidance" || "$help"; then
+        if "$apply" || "$remove" || "$recover" || [[ -n "$undo" ]]; then invalid 'Guidance/help cannot combine with an action'; fi
+    fi
+    if [[ -n "$undo" ]] && { "$remove" || "$recover" || [[ -n "$panel" ]]; }; then invalid '--undo cannot combine with remove/recover/panel'; fi
+    if [[ -n "$panel" ]] && "$modules_set" && ! "$panel_module" && ! "$recover"; then
+        if "$remove" || { ! "$clipboard_module" && ! "$extra_clipboard"; }; then invalid '--panel requires the native-panel module'; fi
+    fi
+    case "$channel" in development) ;; stable) ref=stable ;; *) invalid 'Choose development or stable' ;; esac
+    [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$ref" != *..* ]] || invalid 'Invalid revision'
+    if "$help"; then
+        echo 'Usage: bash bootstrap.sh [--plan | --apply] [--no-packages] [--panel panelN]'
+        echo 'Also: --modules NAME... --with NAME --theme NAME --home PATH --channel development|stable --ref REV'
+        echo 'Guidance: --prerequisites. Maintenance: --remove --recover --undo TRANSACTION. Use separate option values.'
+        return 0
+    fi
     [[ $EUID != 0 ]] || { echo 'Run as your normal desktop user, not root.' >&2; return 1; }
     for arg in git python3; do
         command -v "$arg" >/dev/null || missing+=("$arg")
@@ -25,7 +71,7 @@ main() (
         echo 'Prerequisite plan: sudo pacman -Syu --needed git python' >&2
         echo 'This may update the whole system before layout validation. No DoroShell configuration is written at this step.' >&2
         if ! "$apply" || ! "$allow_packages"; then
-            echo 'Plan only or --no-packages; no packages changed. Use --apply without --no-packages to review pacman approval, or run the prerequisite command separately.' >&2
+            echo 'Plan/guidance only or --no-packages; no packages changed. Run the prerequisite command separately, or choose an installation with --apply without --prerequisites/--no-packages.' >&2
             return 1
         fi
         command -v sudo >/dev/null && command -v pacman >/dev/null || {

@@ -74,6 +74,17 @@ prints each missing-prerequisite plan before invoking sudo/pacman. Authenticatio
 and pacman's ordinary confirmation remain interactive; there is no `--noconfirm`,
 credential handling, AUR helper or fallback privileged shell.
 
+Before any acquisition or authentication, a pure Bash argument check rejects
+unknown options, missing values, malformed panel/transaction IDs and conflicting
+actions. `--apply --prerequisites`, `--apply --plan`, and help combined with an action
+are refused. The README downloader intentionally supports only apply/plan,
+no-packages and an optional `--panel panelN`; use a local bootstrap script or source
+checkout for advanced options. Bootstrap accepts its documented exact long options
+and separate values (`--panel panel2`, not abbreviations or `--panel=panel2`). Its
+early module allowlist is tested against the current deploy catalog. Saved-state,
+layout and ownership validation remain in Python; this is not a second layout parser.
+`bash bootstrap.sh --help` needs no tools, downloads or authentication.
+
 | Stage | Official Arch packages | When needed |
 | --- | --- | --- |
 | Web download | `curl` | README command only; a local bootstrap script uses Git directly |

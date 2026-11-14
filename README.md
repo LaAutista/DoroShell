@@ -15,10 +15,21 @@ From your normal user account in an initialized **LXQt/X11 + Openbox** session:
 bash -c '
 set -e
 [[ $EUID != 0 ]] || { echo "Run as your normal desktop user, not root." >&2; exit 1; }
-apply=false; allow_packages=true
-for arg; do
-    case "$arg" in --apply) apply=true ;; --no-packages) allow_packages=false ;; esac
+apply=false; plan=false; allow_packages=true
+forwarded=("$@")
+invalid() { echo "Download arguments: $1. No prerequisites requested." >&2; exit 2; }
+while (($#)); do
+    case "$1" in
+        --apply) apply=true; shift ;;
+        --plan) plan=true; shift ;;
+        --no-packages) allow_packages=false; shift ;;
+        --panel)
+            (($# >= 2)) && [[ "$2" =~ ^panel[1-9][0-9]*$ ]] || invalid "Use --panel panelN"
+            shift 2 ;;
+        *) invalid "Use only --apply or --plan, --no-packages and --panel panelN; advanced options require local bootstrap/deploy" ;;
+    esac
 done
+"$apply" && "$plan" && invalid "--apply cannot combine with --plan"
 if ! command -v curl >/dev/null; then
     echo "Prerequisite plan: sudo pacman -Syu --needed curl" >&2
     echo "This may update the whole system before DoroShell validation. Review pacman approval; decline to cancel." >&2
@@ -32,9 +43,14 @@ fi
 f=$(mktemp)
 trap "rm -f -- \"$f\"" EXIT
 curl --fail --location --silent --show-error https://raw.githubusercontent.com/LaAutista/DoroShell/main/bootstrap.sh --output "$f"
-bash "$f" "$@"
+bash "$f" "${forwarded[@]}"
 ' doroshell --apply
 ```
+
+This downloader accepts only `--apply` or `--plan`, optional `--no-packages`, and
+`--panel panelN` with a separate value. Invalid/conflicting arguments stop before
+any download or prerequisite prompt. Use local `bootstrap.sh` or `deploy.py` for
+advanced module, channel, guidance or maintenance options; see below.
 
 The repository is **public**: no GitHub account, token or GitHub CLI is needed.
 The command downloads the complete installer before executing it,
