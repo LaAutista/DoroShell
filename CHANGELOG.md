@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Install the existing `single-desktop` module by default: Openbox gets one desktop, so
+  Ctrl+Alt+arrows, Win+F1–F4 and the desktop scroll wheel no longer switch desktops.
+  Re-enable in DoroShell Settings → Taskbar & Windows → One desktop → Restore previous
+  settings, or `deploy.py --modules single-desktop --remove --apply`. Existing installs
+  keep their recorded modules; add it with `deploy.py --modules single-desktop --apply`.
 - Accept LXQt's default single-panel layout, which has `[panel1]` but no `panels=` key.
   The capability check refused it, blocking updates on stock CachyOS LXQt setups.
 - Move stock Quick Launch applications into native taskbar pins on first install, so a

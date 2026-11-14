@@ -19,7 +19,7 @@ from install import atomic, safe as install_safe
 from setup import PACKAGES
 
 ROOT = Path(__file__).resolve().parent
-CORE = ['menu', 'native-panel', 'theme', 'cursor', 'snapping', 'screenshots', 'maintenance']
+CORE = ['menu', 'native-panel', 'theme', 'cursor', 'snapping', 'single-desktop', 'screenshots', 'maintenance']
 ORDER = [*CORE, 'clipboard', 'wallpaper', 'wallpaper-glass', 'display']
 OPTIONAL = ['clipboard', 'wallpaper', 'wallpaper-glass', 'display']
 POINTER = '.local/state/doroshell/deployment.json'
