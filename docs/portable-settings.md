@@ -6,7 +6,7 @@ and requires Apply; Cancel is the default. **Restore last import** restores the
 exact previous file contents only when no subsequent edits conflict.
 
 This first increment covers the primary session button, recent-program recording
-and count, optional [recent-app age retention](recent-apps.md), and standard-folder visibility/order. It does not perform any power
+and count, optional [recent-app age retention](recent-apps.md), standard-folder visibility/order and [folder-link separators](start-separators.md). It does not perform any power
 or session action. Reopen Start after applying preferences.
 
 ## Privacy and compatibility
@@ -18,10 +18,10 @@ or replaced. Theme, taskbar and machine-specific configuration remain managed
 by their existing modules, not this portable format.
 
 Absent standard links export as hidden. Custom links retain their positions and
-content while standard-link slots are reordered. Duplicate standard shortcuts
+content while standard-link/separator slots are reordered (version-1 imports leave separators alone). Duplicate standard shortcuts
 are refused without edits; resolve duplicates in Start first. A lowered recent
 count that would discard existing history is also refused. Imports cannot grow
-the folder list past the existing 100-link limit. Unknown formats, duplicate JSON
+the folder list past the existing 100-item limit, including separators. Unknown formats, duplicate JSON
 keys, malformed local data, symlinked paths and oversized files are refused.
 
 A private local rollback record stores the original and imported bytes. Unlike
@@ -55,3 +55,8 @@ Import/preview do not prune history; Start applies expiry on later use, includin
 removing untimed legacy entries when enabled. Old readers refuse the new field.
 Never-configured default exports keep the original field set. Private rollback
 continues to preserve exact bytes and can therefore retain pre-expiry history.
+
+New exports use portable version 2, including exact separator markers without
+private names or destinations. Import preview explicitly describes separator
+replacement. See [separator compatibility and bounds](start-separators.md) before
+sharing with older readers, which refuse the new version.

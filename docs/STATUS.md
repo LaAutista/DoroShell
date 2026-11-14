@@ -204,3 +204,21 @@ cases also pass against the actual temporary installed Start (0.239s). Its sourc
 hash matches, and synthetic offscreen result-focus rendering was inspected. Tests
 block real app/session/URI dispatch and use no personal catalog/history or display.
 This source candidate awaits independent review; it is not deployed or pushed.
+
+
+Folder-link separators follow up on published `474cf6c`: opt-in add/move/remove in
+the existing editor, non-focusable rendered lines, stored edge/repeated items
+preserved and visually collapsed. Local version 2 is used only with separators;
+old readers refuse it. New portable version 2 carries standard IDs/visibility and
+separator markers, excludes private labels/paths, and retains exact conflict-safe
+restore. Legacy portable imports leave local separators unchanged. Existing custom
+rows and fixed system groups remain; no general command/menu-tree format. See
+start-separators.md for migration, local 100-item bounds and portability limits.
+
+Separator validation: **481 full-suite tests pass** (25.767s), including 14 new
+fixture cases. The actual temporary installed Start/toolkit passes 24 combined
+separator/keyboard cases (0.414s), path-free UI export, preview Cancel/Apply and
+exact Restore with mocked dialogs. Synthetic editor/menu rendering at 100% and
+150% scale was inspected. Exact old readers reject the new formats. This is
+offscreen acceptance, not live X11, screen-reader, physical DPI, login or clean-OS
+verification. Source-only candidate awaits independent review before publication.

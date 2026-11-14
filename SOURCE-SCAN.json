@@ -60,6 +60,7 @@
     "docs/screenshot-verification.md",
     "docs/show-desktop.md",
     "docs/start-keyboard.md",
+    "docs/start-separators.md",
     "docs/taskbar-filters.md",
     "docs/taskbar-identity.md",
     "docs/themes.md",
@@ -188,6 +189,7 @@
     "tests/test_display_failure_record.py",
     "tests/test_display_install.py",
     "tests/test_folder_cascade.py",
+    "tests/test_folder_separators.py",
     "tests/test_folders.py",
     "tests/test_glass_edges.py",
     "tests/test_input_diagnostics.py",
@@ -233,8 +235,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 232,
-  "source_payload_count": 230,
+  "file_count": 234,
+  "source_payload_count": 232,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

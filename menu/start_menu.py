@@ -65,7 +65,7 @@ from gi.repository import Gio, GLib
 from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QRectF, Signal, QUrl
 from PySide6.QtNetwork import QLocalServer
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup, QPainterPath, QRegion, QPainter, QPalette, QPixmap
-from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
+from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QToolButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
     QTableWidgetItem, QFileDialog, QCheckBox, QAbstractItemView, QScrollArea, QStyledItemDelegate)
@@ -159,13 +159,17 @@ def default_links():
 
 
 def validate_links(value):
-    if not isinstance(value, dict) or value.get('version') != 1:
+    if not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] not in (1, 2):
         raise ValueError('Unsupported folder settings version')
     links = value.get('folders')
     if not isinstance(links, list) or len(links) > 100:
-        raise ValueError('Folder settings must contain at most 100 links')
+        raise ValueError('Folder settings must contain at most 100 links/separators')
     standards = {location for _, location, _ in FOLDERS}
     for link in links:
+        if isinstance(link, dict) and 'type' in link:
+            if value['version'] != 2 or link != {'type': 'separator'}:
+                raise ValueError('Invalid folder separator or item type')
+            continue
         if not isinstance(link, dict) or not isinstance(link.get('label'), str) or not link['label'].strip() or len(link['label']) > 100:
             raise ValueError('Every folder needs a name of 1–100 characters')
         if type(link.get('visible')) is not bool or not isinstance(link.get('icon', 'folder'), str):
@@ -176,6 +180,10 @@ def validate_links(value):
         elif not isinstance(link.get('path'), str) or not Path(link['path']).is_absolute() or '\x00' in link['path']:
             raise ValueError('Custom folders require an absolute path')
     return links
+
+
+def links_version(links):
+    return 2 if any(isinstance(link, dict) and 'type' in link for link in links) else 1
 
 
 def link_path(link):
@@ -217,7 +225,7 @@ class FolderSettings:
         hidden = self.hidden if hidden is None else hidden
         crop = validate_crop(self.portrait_crop if portrait is None and crop is None else crop)
         portrait = self.portrait if portrait is None else portrait
-        data = json.dumps({'version': 1, 'folders': links, 'hiddenSystemLinks': hidden, 'portrait': portrait, 'portraitCrop': crop}, ensure_ascii=False, indent=2).encode() + b'\n'
+        data = json.dumps({'version': links_version(links), 'folders': links, 'hiddenSystemLinks': hidden, 'portrait': portrait, 'portraitCrop': crop}, ensure_ascii=False, indent=2).encode() + b'\n'
         validate_links(json.loads(data))
         if self.path.is_symlink():
             raise ValueError('Refusing to replace a symlinked settings file')
@@ -407,7 +415,9 @@ class FolderEditor(QDialog):
         self.setWindowTitle('Folder links — DoroShell')
         self.resize(660, 460)
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel('Rename a link in the Name column. Uncheck Show to hide it.'))
+        hint = QLabel('Rename a link in the Name column. Uncheck Show to hide it. Add separators between folder groups; extra edge/repeated lines are hidden in Start.')
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(['Name', 'Folder', 'Show'])
         self.table.setAccessibleName('Folder links')
@@ -417,15 +427,16 @@ class FolderEditor(QDialog):
         self.table.setColumnWidth(0, 160)
         self.table.setColumnWidth(1, 350)
         layout.addWidget(self.table)
-        row = QHBoxLayout()
+        row = QGridLayout()
         self.buttons = {}
-        for text, callback in [('Add folder…', self.add_folder), ('Change folder…', self.change_folder), ('Move up', lambda: self.move(-1)),
+        for index, (text, callback) in enumerate([('Add folder…', self.add_folder), ('Add separator', self.add_separator), ('Change folder…', self.change_folder), ('Move up', lambda: self.move(-1)),
                                ('Move down', lambda: self.move(1)), ('Remove', self.remove),
-                               ('Restore defaults', lambda: self.populate(default_links()))]:
+                               ('Restore defaults', lambda: self.populate(default_links()))]):
             button = QPushButton(text)
             button.clicked.connect(callback)
-            row.addWidget(button)
+            row.addWidget(button, index // 4, index % 4)
             self.buttons[text] = button
+        self.table.itemSelectionChanged.connect(self.update_row_actions)
         layout.addLayout(row)
         self.system_checks = {}
         for group in SYSTEM_GROUPS:
@@ -464,15 +475,20 @@ class FolderEditor(QDialog):
         for link in links:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            label = QTableWidgetItem(link['label'])
+            separator = link.get('type') == 'separator'
+            label = QTableWidgetItem('— Separator —' if separator else link['label'])
+            if separator:
+                label.setFlags(label.flags() & ~Qt.ItemFlag.ItemIsEditable)
             label.setData(Qt.ItemDataRole.UserRole, copy.deepcopy(link))
             self.table.setItem(row, 0, label)
-            path = QTableWidgetItem(link_path(link))
+            path = QTableWidgetItem('Noninteractive line' if separator else link_path(link))
             path.setFlags(path.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 1, path)
             show = QTableWidgetItem()
-            show.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsSelectable)
-            show.setCheckState(Qt.CheckState.Checked if link['visible'] else Qt.CheckState.Unchecked)
+            show.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            if not separator:
+                show.setFlags(show.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                show.setCheckState(Qt.CheckState.Checked if link['visible'] else Qt.CheckState.Unchecked)
             self.table.setItem(row, 2, show)
         if links:
             self.table.selectRow(0)
@@ -481,10 +497,20 @@ class FolderEditor(QDialog):
         links = []
         for row in range(self.table.rowCount()):
             link = copy.deepcopy(self.table.item(row, 0).data(Qt.ItemDataRole.UserRole))
-            link['label'] = self.table.item(row, 0).text().strip()
-            link['visible'] = self.table.item(row, 2).checkState() == Qt.CheckState.Checked
+            if link.get('type') != 'separator':
+                link['label'] = self.table.item(row, 0).text().strip()
+                link['visible'] = self.table.item(row, 2).checkState() == Qt.CheckState.Checked
             links.append(link)
         return links
+
+    def update_row_actions(self):
+        item = self.table.item(self.table.currentRow(), 0)
+        self.buttons['Change folder…'].setEnabled(item is not None and item.data(Qt.ItemDataRole.UserRole).get('type') != 'separator')
+
+    def add_separator(self):
+        links = self.values() + [{'type': 'separator'}]
+        self.populate(links)
+        self.table.selectRow(len(links) - 1)
 
     def add_folder(self):
         path = QFileDialog.getExistingDirectory(self, 'Choose folder')
@@ -519,6 +545,8 @@ class FolderEditor(QDialog):
         if row < 0:
             return
         links = self.values()
+        if links[row].get('type') == 'separator':
+            return
         path = QFileDialog.getExistingDirectory(self, 'Change folder destination', link_path(links[row]))
         if path:
             links[row].pop('standard', None)
@@ -1012,15 +1040,32 @@ class StartMenu(QWidget):
         self.list.setCurrentRow(min(max(0, row), self.list.count() - 1))
         self.list.verticalScrollBar().setValue(scroll)
 
+    def add_folder_separator(self):
+        divider = QFrame()
+        divider.setObjectName('folderSeparator')
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setFixedHeight(1)
+        divider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        divider.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        divider.setStyleSheet('background: rgba(255,225,244,80); border: none;')
+        self.folder_layout.addWidget(divider)
+
     def refresh_folders(self):
         while self.folder_layout.count():
             item = self.folder_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
         self.folder_paths = {}
+        pending_separator = False
         for link in self.folder_settings.links:
+            if link.get('type') == 'separator':
+                pending_separator = True
+                continue
             if not link['visible']:
                 continue
+            if pending_separator and self.folder_layout.count():
+                self.add_folder_separator()
+            pending_separator = False
             path = link_path(link)
             self.folder_paths[link['label']] = path
             button = QPushButton(link['label'])
@@ -1037,10 +1082,7 @@ class StartMenu(QWidget):
         for group in SYSTEM_GROUPS:
             entries = [(label, ids) for label, ids in group if label not in self.folder_settings.hidden]
             if entries and self.folder_layout.count():
-                divider = QWidget()
-                divider.setFixedHeight(1)
-                divider.setStyleSheet('background: rgba(255,225,244,80);')
-                self.folder_layout.addWidget(divider)
+                self.add_folder_separator()
             for label, ids in entries:
                 button = QPushButton(label)
                 button.setObjectName('folderLink')

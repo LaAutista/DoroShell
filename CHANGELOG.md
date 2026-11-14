@@ -2,6 +2,9 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add editable Start folder-link separators, noninteractive collapsed rendering,
+  versioned path-free portability and disposable/offscreen lifecycle checks.
+
 - Complete bounded Start search/results keyboard navigation: Up enters the last
   usable result, list-edge arrows return to search, Home/End skip unusable rows,
   Tab includes results, and focused rebuilds retain selection. Preserve text editing,

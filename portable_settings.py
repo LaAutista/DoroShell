@@ -14,7 +14,7 @@ FOLDERS = [('Home','HomeLocation','user-home'), ('Documents','DocumentsLocation'
            ('Downloads','DownloadLocation','folder-download'), ('Pictures','PicturesLocation','folder-pictures'),
            ('Music','MusicLocation','folder-music'), ('Videos','MoviesLocation','folder-videos')]
 FILES = ('session-button.json', 'recent.json', 'folders.json')
-NOTICE = ('Only portable Start preferences are included. Pins, history entries/timestamps, custom folder names/paths, '
+NOTICE = ('Only portable Start preferences are included. Version 2 replaces folder separators as well as standard-link order/visibility. Legacy version 1 imports leave separators unchanged. Pins, history entries/timestamps, custom folder names/paths, '
           'portrait/crop, wallpapers, clipboard, credentials, panel and machine settings are excluded and left unchanged. '
           'Import does not launch apps or perform session/power actions. Reopen Start to apply history expiry; untimed entries expire when age limiting is enabled.')
 
@@ -36,7 +36,7 @@ def encode(value):
 
 
 def validate(value):
-    if not isinstance(value, dict) or set(value) != {'format', 'version', 'preferences'} or value['format'] != 'DoroShell portable Start settings' or type(value['version']) is not int or value['version'] != 1:
+    if not isinstance(value, dict) or set(value) != {'format', 'version', 'preferences'} or value['format'] != 'DoroShell portable Start settings' or type(value['version']) is not int or value['version'] not in (1, 2):
         raise ValueError('Unsupported portable settings format.')
     prefs = value['preferences']
     if not isinstance(prefs, dict) or set(prefs) != {'primary', 'recent', 'folders'}: raise ValueError('Invalid preferences.')
@@ -47,12 +47,15 @@ def validate(value):
     if type(recent.get('retention_days', 0)) is not int or not 0 <= recent.get('retention_days', 0) <= 365:
         raise ValueError('Invalid recent-program retention period.')
     folders = prefs['folders']
-    if not isinstance(folders, list) or len(folders) != len(FOLDERS): raise ValueError('Invalid standard folders.')
+    if not isinstance(folders, list) or len(folders) > 100 + len(FOLDERS) or (value['version'] == 1 and len(folders) != len(FOLDERS)): raise ValueError('Invalid standard folders.')
     seen = set()
     for item in folders:
+        if value['version'] == 2 and item == {'type': 'separator'}:
+            continue
         if not isinstance(item, dict) or set(item) != {'standard', 'visible'} or not isinstance(item['standard'], str) or item['standard'] not in {x[1] for x in FOLDERS} or item['standard'] in seen or type(item['visible']) is not bool:
             raise ValueError('Invalid standard folders.')
         seen.add(item['standard'])
+    if seen != {x[1] for x in FOLDERS}: raise ValueError('Missing standard folders.')
     return value
 
 
@@ -103,19 +106,22 @@ class Store:
         order = []; visible = {}
         for item in folder_data:
             if not isinstance(item, dict): raise ValueError('Invalid local folder preferences.')
+            if item.get('type') == 'separator':
+                order.append({'type': 'separator'})
+                continue
             standard = item.get('standard')
             if standard in {x[1] for x in FOLDERS}:
                 if standard in visible: raise ValueError('Duplicate standard folder.')
-                order.append(standard); visible[standard] = item.get('visible', True)
+                order.append({'standard': standard, 'visible': item['visible']}); visible[standard] = item['visible']
         for _, standard, _ in FOLDERS:
-            if standard not in order: order.append(standard)
+            if standard not in visible: order.append({'standard': standard, 'visible': raw['folders.json'] is None})
         # Absent source standard links export as hidden, except in a fresh configuration.
         prefs = {'primary': values['session-button.json'].get('action', 'shutdown'),
                  'recent': {'enabled': recent.get('enabled', True), 'limit': recent.get('limit', 20)},
-                 'folders': [{'standard': key, 'visible': visible.get(key, raw['folders.json'] is None)} for key in order]}
+                 'folders': order}
         if 'retention_days' in recent:
             prefs['recent']['retention_days'] = recent['retention_days']
-        return validate({'format': 'DoroShell portable Start settings', 'version': 1, 'preferences': prefs})
+        return validate({'format': 'DoroShell portable Start settings', 'version': 2, 'preferences': prefs})
 
     def plan(self, value):
         prefs = validate(value)['preferences']; raw, values = self.snapshot(); after = copy.deepcopy(values)
@@ -132,6 +138,9 @@ class Store:
         standards = {x.get('standard'): x for x in links if x.get('standard') in {f[1] for f in FOLDERS}}
         replacements = []
         for item in prefs['folders']:
+            if item.get('type') == 'separator':
+                replacements.append({'type': 'separator'})
+                continue
             key = item['standard']
             if key in standards:
                 link = standards[key]; link['visible'] = item['visible']; replacements.append(link)
@@ -140,12 +149,13 @@ class Store:
                 replacements.append(dict(label=label, standard=key, icon=icon, visible=True))
         merged = []; remaining = iter(replacements)
         for link in links:
-            if link.get('standard') in standards:
+            if link.get('standard') in standards or (value['version'] == 2 and link.get('type') == 'separator'):
                 replacement = next(remaining, None)
                 if replacement is not None: merged.append(replacement)
             else: merged.append(link)
         merged.extend(remaining)
-        folders.update(version=1, folders=merged)
+        from menu.start_menu import links_version
+        folders.update(version=links_version(merged), folders=merged)
         folders.setdefault('hiddenSystemLinks', []); folders.setdefault('portrait', '')
         from menu.start_menu import validate_links
         validate_links(folders)
@@ -250,8 +260,8 @@ def open_dialog(parent, home):
             prefs = value['preferences']
             summary = ('Primary button: '+prefs['primary']+'\nRecent recording: '+str(prefs['recent']['enabled'])+
                        '\nRecent count: '+str(prefs['recent']['limit'])+
-                       '\nRecent age limit (days; 0 = none): '+str(prefs['recent'].get('retention_days', 'unchanged'))+'\nStandard folders, in order:\n'+
-                       '\n'.join(item['standard'].removesuffix('Location')+(': shown' if item['visible'] else ': hidden') for item in prefs['folders']))
+                       '\nRecent age limit (days; 0 = none): '+str(prefs['recent'].get('retention_days', 'unchanged'))+'\nStandard folders/separators, in order:\n'+
+                       '\n'.join(('— Separator —' if item.get('type') == 'separator' else item['standard'].removesuffix('Location')+(': shown' if item['visible'] else ': hidden')) for item in prefs['folders']))
             if QMessageBox.question(dialog, 'Apply this preview?', summary+'\n\n'+NOTICE+'\n\nThe previous import rollback is replaced.', QMessageBox.StandardButton.Apply|QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Apply: return
             store.apply(changes)
             QMessageBox.information(dialog, 'Imported', 'Portable preferences saved. Reopen Start. Restore last import is available here.')

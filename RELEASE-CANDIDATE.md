@@ -1,3 +1,37 @@
+# Start folder-link separators checkpoint — 2026-11-14
+
+Source follow-up to published `474cf6c67aae58050d9427b0f742c55667058846`.
+Baseline source and synthetic rendering confirmed only fixed system-group dividers;
+the existing folder editor had no separator item. A new opt-in **Add separator**
+row reuses Move up/down, Remove, Save/Cancel and the existing conflict/backup path.
+Rendered leading/trailing/repeated lines collapse without changing stored rows.
+Lines are non-focusable/noninteractive; nested folder browsing and Start keys remain.
+Fixed system groups and the default folder list are preserved.
+
+Local lists with separators save version 2; folder-only saves retain version 1.
+Exact baseline readers reject version 2. Portable version 2 projects separator
+markers among standard IDs/visibility without private labels/paths. New imports
+replace standard/separator slots, preserving custom data/order and exact local undo;
+legacy version-1 imports leave local separators alone. Resulting local lists remain
+bounded to 100 items. See docs/start-separators.md and docs/portable-settings.md for
+migration, projection and refusal boundaries. No arbitrary commands or menu tree.
+
+**481 tests passed** in 25.767s with disposable HOME/XDG, offscreen Qt, memory
+GSettings and no personal display/session bus, including 14 new separator cases.
+Actual temporary installed Start/toolkit passed 24 separator/keyboard cases
+(0.414s), exact source identity, portable UI export/preview Cancel/Apply/Restore
+with mocked file/confirmation dialogs, and rendered controls at 100%/150% scale.
+All screenshots contain synthetic/disposable data and are excluded from source.
+No actual app/session/URI dispatch, personal catalog/history or settings were used.
+These are not live X11, AT-SPI/screen-reader, physical DPI, login or clean-OS tests.
+The blocked Xvfb capability was not retried; no packages or global inputs changed.
+
+Source inventory/checksums, complete Git bundle/archive and scoped patch round-trip
+are verified for this increment. Only Start, portable preferences, tests, docs and
+metadata change. Existing artwork/licenses, installers and disabled helper remain
+untouched, as do the original dirty workspace and previous evidence. This local
+candidate awaits independent review before publication; no push or deployment.
+
 # Start keyboard navigation checkpoint — 2026-11-14
 
 Source follow-up to published `baa0a23b7c1c1c506bdac46f934136c5f94f1076`,

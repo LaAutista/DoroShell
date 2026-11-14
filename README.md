@@ -178,3 +178,6 @@ Menu options → Recent history age. No age limit remains the default; see
 
 [Start keyboard navigation](docs/start-keyboard.md) documents search/results arrows,
 Home/End, focus order and the boundaries of offscreen acceptance.
+
+Start folder links support [opt-in separators](docs/start-separators.md) in the
+existing editor, with keyboard skipping and path-free portable import/export.
