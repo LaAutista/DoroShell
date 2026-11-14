@@ -1,3 +1,27 @@
+# Explicit native-panel selection checkpoint — 2026-11-14
+
+Based on published `010af6a77040169eac7133d38d7573e9c602ec23`, preserving completed-step
+recovery and public bootstrap. `profile.py prepare --panel panelN` adds bounded
+first-time multi-panel preparation through the existing setup/Settings plan workflow.
+No selection is guessed. Unrelated sections remain byte-identical, selected geometry
+is retained, and shared widget IDs/ambiguous syntax are refused. The installed layout
+helper also routes sizing, clipboard and Quick Launch changes to the unique owned panel.
+
+The **360-test full suite passes**, including ten new selection/lifecycle tests.
+The suite used offscreen Qt, disposable HOME/runtime and no personal display/session
+bus. Real installed-toolkit CLI preview/apply/repeat/rollback passed with a synthetic
+package-query command; an installed Settings page was rendered offscreen and its
+prepared-plan command inspected without executing it. Exact mode/byte restoration,
+interrupted staging/retry, upgrade undo and conflict refusals are covered. The first
+full run found an eager Qt import breaking missing-dependency diagnostics; the final
+run includes the corrected lazy dependency boundary and all prior regressions.
+
+Source/hash and archive round-trip checks accompany the private review bundle. No
+binary build, native process launch, physical multi-monitor, login, package mutation,
+device/session change or new authentication test occurred. Full bootstrap/deploy
+multi-panel support and custom XDG roots remain unsupported; use the documented
+prepared-plan workflow. Source publication/deployment is separate from this evidence.
+
 # Completed native-panel recovery checkpoint — 2026-11-14
 
 Based on `c87ff151f7ca658b665d79bbc4a323461f086068`, preserving public bootstrap and

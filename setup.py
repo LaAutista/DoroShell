@@ -22,7 +22,7 @@ PACKAGES={
  'kate-dark':['kate','breeze'], 'dolphin-dark':['dolphin','breeze'],
  'single-desktop':['openbox'], 'taskbar':['lxqt-panel'],
  'cursor':['python-pillow','breeze-cursors'],
- 'taskbar-drag':['python-gobject'], 'taskbar-size':['lxqt-panel'],
+ 'taskbar-drag':['python-gobject'], 'taskbar-size':['lxqt-panel','pyside6'],
 }
 DEFAULT=['menu']
 

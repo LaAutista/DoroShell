@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def plans(home):
     from modules import ini_value
+    from panel.layout import installed_panel
     home = Path(home)
     edits = []
     def file(name, data, mode=0o644):
@@ -19,7 +20,8 @@ def plans(home):
         text = (home/panel).read_text()
     except FileNotFoundError as error:
         raise PlanError('Stage the DoroShell native panel before adding DoroClipboard.') from error
-    plugins = ini_value(text, 'panel1', 'plugins')
+    selected = installed_panel(text)
+    plugins = ini_value(text, selected, 'plugins')
     if not plugins: raise PlanError('Stage the DoroShell native panel before adding DoroClipboard.')
     parts = [p.strip() for p in plugins.split(',')]
     notifier = next((p for p in parts if ini_value(text,p,'type') == 'statusnotifier' or p == 'statusnotifier'), None)
@@ -30,7 +32,7 @@ def plans(home):
             raise PlanError('Existing doroClipboard widget differs; preserve personal settings.')
         parts.remove(name)
     parts.insert(parts.index(notifier), name)
-    ini(panel,'panel1','plugins',', '.join(parts))
+    ini(panel,selected,'plugins',', '.join(parts))
     ini(panel,name,'type','quicklaunch'); ini(panel,name,'alignment','Right')
     ini(panel,name,'apps\\1\\desktop',str(home/'.local/share/applications/doroshell-clipboard.desktop'))
     ini(panel,name,'apps\\size','1')

@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-panel-layout-recovery-20261114",
+  "candidate": "doroshell-explicit-panel-selection-20261114",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -23,13 +23,14 @@
     "deployment_recovery": "Follow-up to fa8808c75f4d6d1d639432d95f093d20a1497459: format-2 completed output evidence and shared recovery/undo validation; see RELEASE-CANDIDATE.md",
     "input_preferences": "Feature 0cf6019a0e4d5e32d1e81df4f2f495075b1f4694 integrated on e18026e166c96382f24843cdb3467ffe989c5568; installed helper lifecycle/ownership/restoration; docs/input-preferences.md",
     "input_diagnostics": "Read-only diagnostic follow-up on d84b39272b7a45efd51751a7a6b5b97da767f95c: bounded configuration intent, runtime capability and explicit unverified initialization; no logs/privileged reader",
-    "panel_layout_recovery": "Bounded completed-native-panel recovery on c87ff151f7ca658b665d79bbc4a323461f086068; preserve later stock multi-panel layout, exact undo and output conflict refusal; no new layout/XDG adapter."
+    "panel_layout_recovery": "Bounded completed-native-panel recovery on c87ff151f7ca658b665d79bbc4a323461f086068; preserve later stock multi-panel layout, exact undo and output conflict refusal; no new layout/XDG adapter.",
+    "panel_selection": "Bounded profile.py prepare --panel on 010af6a77040169eac7133d38d7573e9c602ec23; byte-preserved unrelated sections, selected geometry and companion targeting; prepared-plan/setup workflow only, not full deploy multi-panel support."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 350,
+    "passed": 360,
     "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
-    "note": "350 full-suite tests passed in a disposable HOME with personal display/session bus unavailable. Four new completed-panel layout recovery regressions; package inventory/native builds mocked, real file/journal adapters exercised. No new private X11, authentication, physical device, login or clean-OS acceptance. Source/archive inventory and hashes verified separately."
+    "note": "360 tests pass in disposable HOME/offscreen Qt without personal display/session bus; ten new explicit panel-selection/lifecycle cases. Installed setup preview/apply/repeat/rollback with fake package query and installed offscreen Settings plan routing/rendering pass. No native process, physical monitor, login, system package or authentication acceptance. Source/archive hashes verified separately."
   },
   "source_payloads": [
     {
@@ -46,8 +47,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "00202a9cc34081ca5c61cc2d7e305599bedede1699b0ec398443a938528db61c",
-      "size": 4496,
+      "sha256": "a78bc29184216274dc9dd7429a07c0ebceeb263a2e6740ba0712da1a0c8802a3",
+      "size": 4916,
       "mode": "0o644"
     },
     {
@@ -70,14 +71,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "545d03c00938780c66eb5685caf16b4e1055a0fb7d5279ec200399be13c094f7",
-      "size": 28139,
+      "sha256": "21d70ccae0f0d7902afbf44036d69656e0f1e7dc95399be2f5e2f2dcb437e1df",
+      "size": 29798,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "c19174bd774a79d04415361402f6245b3b153b5e9eca304bad1e1c0b021334fc",
-      "size": 7816,
+      "sha256": "92ee9a172498067439294bc3bac8fff4654aa7150e96e390dcfeeb278ab4b843",
+      "size": 7876,
       "mode": "0o644"
     },
     {
@@ -154,8 +155,8 @@
     },
     {
       "path": "clipboard/install.py",
-      "sha256": "4a4dca36e47626e4d9297c4a670acea067e07ff183c2f76b00d25f884b075a24",
-      "size": 2962,
+      "sha256": "37157e9717ad753e37d23cdcfaa628653e04d6a300fabda1a7d1d6a3f2a09528",
+      "size": 3044,
       "mode": "0o644"
     },
     {
@@ -226,14 +227,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "e07f26ad77116596d95db406b59e9005d80f9cbfbd0aa8fe6fa154fe335ba476",
-      "size": 9141,
+      "sha256": "dd193579973097a07d03320df241d8f29ecfe7b0b1714eb52dbd6d74865188a9",
+      "size": 9887,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "36249ae6c255e5f23a45e14a0ceb6f052b953e6fa040df871f8c8db3c327354f",
-      "size": 11741,
+      "sha256": "7c2ad39e1c1e619be7203d8a956d89b9df352a56dce98606af94900b3041540c",
+      "size": 12282,
       "mode": "0o644"
     },
     {
@@ -244,14 +245,14 @@
     },
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "965443ae472a0aff221897568369ce70f6f187858ed943f7513121cc947274ec",
-      "size": 2092,
+      "sha256": "02d632ca249e40c1f46321906e086798c67cf9d0ebb5d003541f084c5ee4ae77",
+      "size": 2253,
       "mode": "0o644"
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "dbebaea5c0ba7c7133df4abd9fff1737a41a75d287c5f285d214e782985ceac3",
-      "size": 7662,
+      "sha256": "329fa611c86b7600373d438575d711e177a8064c11d3bc49c5fc0e5fd3198299",
+      "size": 8426,
       "mode": "0o644"
     },
     {
@@ -436,8 +437,8 @@
     },
     {
       "path": "install.py",
-      "sha256": "c9219c34fce193071e0d129778bf3605bdc001c6e1a9ae6d827776c012b9c356",
-      "size": 17454,
+      "sha256": "b4f9c967c00c966f49620d091ec7189b73818b3364ab0f0231f7ca77daf2716e",
+      "size": 17472,
       "mode": "0o644"
     },
     {
@@ -484,14 +485,14 @@
     },
     {
       "path": "modules.py",
-      "sha256": "5e53d5dc4371982ef88b7fecd5f1e5344ed9d7888916946fa903d3217bb27d74",
-      "size": 32300,
+      "sha256": "c3a6434c8d950114e5f30f9dec26a47f7b9a07da95e79ba27cc7d699a406d82f",
+      "size": 32381,
       "mode": "0o644"
     },
     {
       "path": "panel/README.md",
-      "sha256": "d96973978c48dbe34b664ce9b8a41b590c3dc322ce477e2fff8f47e76b0d0879",
-      "size": 13175,
+      "sha256": "8eeae1f6113efa10a7bafd55e0d3448084c67d8b5092c5d7fdecc45e1c2d56a9",
+      "size": 15362,
       "mode": "0o644"
     },
     {
@@ -516,6 +517,12 @@
       "path": "panel/check_x11.py",
       "sha256": "cea9ca6db94b0ee6b41e1a26a9e0faeafcc3d8c2da421028c5869e2a220201b1",
       "size": 15285,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/layout.py",
+      "sha256": "39e4dfed5a7ebcd807b7aa0b1658b2579d3c76822eff56e47fc37f1799270fc9",
+      "size": 6142,
       "mode": "0o644"
     },
     {
@@ -592,8 +599,8 @@
     },
     {
       "path": "panel/profile.py",
-      "sha256": "d11465764d8fe8b046a596fb8e88bb9c88bd2cbc147c0c2853a14c0ec2030809",
-      "size": 22497,
+      "sha256": "75167582e8384de9fa5105a5e670a50e74dd0e1ef41d463c045f7f93db6e03a8",
+      "size": 23911,
       "mode": "0o644"
     },
     {
@@ -658,14 +665,14 @@
     },
     {
       "path": "settings.py",
-      "sha256": "9162cfcc89725a1b8621321fcabcf293bf43be4a3fbb3ea35244a57f8b1f3a06",
-      "size": 21008,
+      "sha256": "bba4133d6c7aeba837fb9884fa483fc6243c2f7df91afd28bbf79faab3be91f9",
+      "size": 21197,
       "mode": "0o644"
     },
     {
       "path": "setup.py",
-      "sha256": "05907fc60daff1b6d7b3ced02df429e60ff33f2f2d6fefd71d7722a2d9b8d47d",
-      "size": 7215,
+      "sha256": "f04343be744df989ae7fdcaac68a304abe0f502bb8afa32090eb6cb5c1d26130",
+      "size": 7225,
       "mode": "0o644"
     },
     {
@@ -1170,6 +1177,12 @@
       "path": "tests/test_panel_layout_recovery.py",
       "sha256": "260f861128eb2bd5175e3a6cbfcfd4122044f7e3bf4da3ff16ecd728847a0b7b",
       "size": 6102,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_panel_selection.py",
+      "sha256": "33a47036d1bfe25ba5e49d6de8dace06719f649e86e3492433325723ed64e14b",
+      "size": 12249,
       "mode": "0o644"
     },
     {

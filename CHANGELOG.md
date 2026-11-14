@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add explicit `panel/profile.py prepare --panel panelN` for standard multi-panel
+  profiles through the existing prepared-plan/setup workflow. Preserve other INI
+  sections and selected geometry; refuse shared/ambiguous widgets instead of guessing.
+  Package the layout helper and target sizing, clipboard and Quick Launch changes
+  to the unique DoroShell panel. Full bootstrap/deploy multi-panel support stays gated.
 - Recover a completed native-panel step after the unrelated stock LXQt layout gains
   a second panel. Verify the recorded output bytes/modes first and retain the stock
   layout; unfinished native-panel work still needs the supported single-panel layout.

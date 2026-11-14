@@ -10,6 +10,13 @@ custom layouts produce a specific refusal. DoroShell does not install a display
 manager, switch desktop environments, or claim Wayland support. Custom XDG roots
 remain unsupported by the older installation adapters and are refused explicitly.
 
+For first-time native-panel preparation only, the [explicit panel-selection workflow](../panel/README.md#explicit-selection-in-a-multi-panel-profile)
+can preserve other standard panels while adapting a named `panelN`. Use its prepared
+plan with `setup.py native-panel --prepared` or the Settings plan picker. Full
+bootstrap/deploy still refuses multi-panel layouts; it does not choose or normalize
+a panel automatically. Existing rollback and conflict checks apply to the complete
+staged profile, while the stock profile remains unchanged.
+
 The repository is public. The bootstrap command in [README](../README.md) uses
 `curl` and requires no GitHub account, token or GitHub CLI. Git fetch uses anonymous
 HTTPS with credential helpers disabled for that command; persistent Git configuration

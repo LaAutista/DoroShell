@@ -34,7 +34,43 @@ python panel/profile.py prepare \
   --prepared /absolute/new/private-profile-directory
 ```
 
-This reads the current single-panel configuration and, if DockBarX is present, its pinned launchers, then creates a private candidate and validation record. Nothing starts, stops or changes in the current session. Missing launchers, multiple panels and conflicting widget identifiers are refused. Review the candidate before enabling. These files contain personal paths and must not be committed.
+This reads the current configuration and, if DockBarX is present on the selected panel, its pinned launchers, then creates a private candidate and validation record. Nothing starts, stops or changes in the current session. Missing launchers and conflicting widget identifiers are refused. Review the candidate before enabling. These files contain personal paths and must not be committed.
+
+### Explicit selection in a multi-panel profile
+
+For a standard profile with more than one panel, select the panel by its existing
+INI ID; no panel is chosen automatically:
+
+```sh
+python panel/profile.py prepare --panel panel2 \
+  --binary /absolute/build-directory/runtime/bin/lxqt-panel \
+  --prepared /absolute/new/private-profile-directory
+python setup.py native-panel --prepared /absolute/new/private-profile-directory
+python setup.py native-panel --prepared /absolute/new/private-profile-directory --apply
+```
+
+Alternatively choose that `plan.json` in **Settings → Taskbar & Windows → Prepared
+taskbar plan**, then preview before applying. The CLI preview reports the selected
+panel. Selection is made during preparation, not changed while enabling a plan.
+The selected panel receives the DoroShell taskbar/Start/tray/clock widgets; explicit
+selection retains its position, size, icon size and line count. Unselected panel
+and plugin sections, global settings and unrelated sections are copied byte-for-byte.
+The original stock file is never written. Later taskbar sizing, clipboard placement
+and Quick Launch merging locate the selected DoroShell panel rather than assuming panel1.
+
+This bounded adapter requires an explicit `panels=` list for multiple `panelN`
+sections, distinct plugin identifiers and explicit plugin types on unselected panels.
+Shared widgets, duplicate/encoded/ambiguous section names, missing panel/plugin lists,
+or DoroShell identifiers owned elsewhere are refused. It does not infer which physical
+monitor a panel occupies. Omit `--panel` only for the existing single-panel1 workflow;
+that legacy workflow retains its existing default geometry changes.
+
+The full `deploy.py`/bootstrap layout gate remains single-panel-only. This addition
+uses the prepared-profile/setup workflow; it does not enable automatic multi-panel
+deployment or migrate installed layouts. Restore before selecting a different plan.
+Custom XDG roots, arbitrary INI grammars, actual multi-monitor/login behavior and
+native runtime acceptance remain unverified or unsupported. Toolkit imports and the
+new panel-selection helper are installed together; multi-panel sizing requires PySide6.
 
 ## Reversible next-login switch
 

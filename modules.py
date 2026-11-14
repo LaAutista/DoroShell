@@ -125,13 +125,14 @@ def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_pre
         edits.append({'file':'.config/openbox/rc.xml','kind':'desktop','after':'1'})
         edits.append({'file':'.config/openbox/rc.xml','kind':'firstdesk','after':'1'})
     elif module=='taskbar-size':
+        from panel.layout import installed_panel
         if not (home/'.local/state/doroshell/native-panel.json').is_file():
             raise RuntimeError('Stage the DoroShell taskbar before changing its icon size.')
         name = '.config/doroshell/panel.conf'
         if ini_value((home/name).read_text(), 'doroshellTasks', 'type') != 'taskbar':
             raise RuntimeError('The configured DoroShell task widget could not be found.')
         icon, width = TASKBAR_SIZES[taskbar_size]
-        ini(name, 'panel1', 'iconSize', str(icon))
+        ini(name, installed_panel((home/name).read_text()), 'iconSize', str(icon))
         ini(name, 'doroshellTasks', 'buttonWidth', str(width))
     elif module=='taskbar':
         name='.config/lxqt/panel.conf'

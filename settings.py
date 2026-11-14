@@ -150,6 +150,7 @@ class Settings(QWidget):
                 if module=='taskbar-size':
                     self.panel_plan = self.file_row(form,'Prepared taskbar plan','Panel plan (plan.json)')
                     self.panel_plan.setPlaceholderText('Default prepared profile')
+                    self.panel_plan.setToolTip('For multiple panels, prepare an explicit panel selection first. This plan is staged for next login; it does not restart the running panel.')
                 if module=='single-desktop':
                     self.live = QCheckBox('Start edge snapping now')
                     self.live.setToolTip('Start the snapping helper in this session when applying the snapping module.')

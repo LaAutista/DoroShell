@@ -83,6 +83,7 @@
     "panel/check_pins_editor.cpp",
     "panel/check_pins_editor.py",
     "panel/check_x11.py",
+    "panel/layout.py",
     "panel/licenses/LGPL-2.1.txt",
     "panel/licenses/LXQt-AUTHORS",
     "panel/patches/0001-hidden-tray-popup.patch",
@@ -192,6 +193,7 @@
     "tests/test_native_panel.py",
     "tests/test_panel_build.py",
     "tests/test_panel_layout_recovery.py",
+    "tests/test_panel_selection.py",
     "tests/test_portable_settings.py",
     "tests/test_portrait_crop.py",
     "tests/test_preferred_transition.py",
@@ -220,8 +222,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 219,
-  "source_payload_count": 217,
+  "file_count": 221,
+  "source_payload_count": 219,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

@@ -84,6 +84,16 @@ or writes. First/unfinished native-profile work and custom XDG roots remain unsu
 this is not a general multi-panel adapter. Recovery still requires its creating source
 revision; do not edit an old pending journal's source hash to force migration.
 
+The next bounded adapter, based on `010af6a`, adds `panel/profile.py prepare --panel
+panelN`. Only explicit selection allows multiple source panels. It preserves
+unrelated INI sections byte-for-byte and selected geometry, refusing shared widgets,
+foreign reserved IDs and ambiguous syntax. Settings already accepts the prepared
+plan; no second selector was added. Toolkit packaging includes `panel/layout.py`,
+and sizing/clipboard/Quick Launch lookup use the unique owned taskbar panel. Full
+bootstrap/deploy remains single-panel-only: do not remove that gate without its own
+adapter/journal tests. Private setup repeat/restoration, interrupted staging/retry,
+upgrade undo and installed offscreen UI checks pass; no native/login/hardware claim.
+
 Input preferences from `0cf6019` are integrated on top of `e18026e`. The helper now
 ships in the menu toolkit with declared Xlib/udev prerequisites. DoroShell Settings
 has its own Mouse & Touchpad page and a native LXQt link; this is not an LXQt UI

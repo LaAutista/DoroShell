@@ -164,7 +164,7 @@ def targets(home, icon=None):
         files[icon_path] = (start_tile(custom_data), 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
     for name in ['clipboard/__init__.py','clipboard/clipboard.py','clipboard/install.py','clipboard/clipboard.svg','wallpaper/control.py','wallpaper/install.py','settings.py','input_preferences.py','input_diagnostics.py','portable_settings.py','setup.py','themes.py','modules.py','cursor.py','install.py','integrate.py',
-                 'panel/profile.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/app_search.py','menu/portrait_crop.py','menu/folder_cascade.py','menu/wallpaper_glass.py','menu/start.svg']:
+                 'panel/profile.py','panel/layout.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/app_search.py','menu/portrait_crop.py','menu/folder_cascade.py','menu/wallpaper_glass.py','menu/start.svg']:
         files[toolkit/name] = ((SOURCE/name).read_bytes(), 0o644)
     settings_launcher = home / '.local/bin/doroshell-settings'
     files[settings_launcher] = (('#!/usr/bin/python\nimport runpy\nrunpy.run_path('+repr(str(toolkit/'settings.py'))+', run_name="__main__")\n').encode(), 0o755)

@@ -15,23 +15,25 @@ import tempfile
 from PySide6.QtCore import QSettings
 from gi.repository import Gio
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from install import safe, validate_backup
+from install import PlanError, safe, validate_backup
 from modules import atomic
+from panel.layout import installed_panel, preserve_sections, sections, select_panel
 
 
 def digest(data):
     return hashlib.sha256(data).hexdigest() if data is not None else None
 
 
-def profile(original, home, launchers, hidden):
+def profile(original, home, launchers, hidden, panel=None):
     """Keep unknown widgets and settings; replace DockBarX in its original slot."""
     with tempfile.TemporaryDirectory() as tmp:
         config_path=Path(tmp)/'panel.conf';config_path.write_text(original)
         cfg=QSettings(str(config_path),QSettings.Format.IniFormat)
-        panels=cfg.value('panels',['panel1'])
-        if isinstance(panels,str):panels=[panels]
-        if panels!=['panel1']:raise ValueError('Only a single panel1 layout is supported')
-        plugins=cfg.value('panel1/plugins',[])
+        selected=select_panel(cfg,panel)
+        bounded = panel is not None
+        if bounded: sections(original)
+        before={key:cfg.value(key) for key in cfg.allKeys()}
+        plugins=cfg.value(selected+'/plugins',[])
         if isinstance(plugins,str):plugins=[plugins]
         if not plugins:raise ValueError('Missing panel1 plugin list')
         if launchers is None:
@@ -121,10 +123,18 @@ def profile(original, home, launchers, hidden):
         result.append(desktop)
         cfg.setValue(desktop+'/alignment','Right')
         cfg.setValue(desktop+'/doroshellEdge',True)
-        cfg.setValue('panel1/plugins',result)
-        for key,value in {'doroshellTheme':True,'position':'Bottom','panelSize':40,'iconSize':cfg.value('panel1/iconSize', 28),'lineCount':1}.items():cfg.setValue('panel1/'+key,value)
+        cfg.setValue(selected+'/plugins',result)
+        style={'doroshellTheme':True,'position':'Bottom','panelSize':40,'iconSize':cfg.value(selected+'/iconSize', 28),'lineCount':1}
+        # Explicit selection keeps the chosen panel's geometry; only its DoroShell widgets/theme change.
+        if bounded: style={'doroshellTheme':True}
+        for key,value in style.items():cfg.setValue(selected+'/'+key,value)
         cfg.sync()
         if cfg.status()!=QSettings.Status.NoError:raise RuntimeError('Profile serialization failed')
+        if bounded:
+            after={key:cfg.value(key) for key in cfg.allKeys()}
+            changed={key.split('/',1)[0] for key in before.keys()|after.keys() if before.get(key)!=after.get(key)}
+            content=preserve_sections(original,config_path.read_text(),changed)
+            return content.encode()
         return config_path.read_bytes()
 
 
@@ -203,12 +213,13 @@ def merge_existing(home, preview=False):
     for path in (state,config,manifest):safe(path,home)
     if not config.is_file():raise ValueError('DoroShell panel profile is not installed')
     original=config.read_bytes()
+    selected=installed_panel(original.decode())
     with tempfile.TemporaryDirectory() as tmp:
         work=Path(tmp)/'panel.conf';work.write_bytes(original)
         cfg=QSettings(str(work),QSettings.Format.IniFormat)
-        plugins=cfg.value('panel1/plugins',[])
+        plugins=cfg.value(selected+'/plugins',[])
         if isinstance(plugins,str):plugins=[plugins]
-        if 'doroshellTasks' not in plugins:raise ValueError('DoroShell taskbar is not in panel1')
+        if 'doroshellTasks' not in plugins:raise ValueError('DoroShell taskbar is not in '+selected)
         pins=cfg.value('doroshellTasks/doroshellPinned',[])
         if isinstance(pins,str):pins=[pins]
         pins=[p for p in (pins or []) if isinstance(p,str)]
@@ -223,10 +234,12 @@ def merge_existing(home, preview=False):
             print('Nothing to merge: no Quick Launch applications next to the taskbar');return
         for path in pins[len(before):]:print('Pin in taskbar:',path)
         if preview:return
-        cfg.setValue('panel1/plugins',result);cfg.setValue('doroshellTasks/doroshellPinned',pins)
+        cfg.setValue(selected+'/plugins',result);cfg.setValue('doroshellTasks/doroshellPinned',pins)
         cfg.sync()
         if cfg.status()!=QSettings.Status.NoError:raise RuntimeError('Profile serialization failed')
-        content=work.read_bytes()
+        after={k:cfg.value(k) for k in cfg.allKeys()}
+        changed={key.split('/',1)[0] for key in snapshot.keys()|after.keys() if snapshot.get(key)!=after.get(key)}
+        content=preserve_sections(original.decode(),work.read_text(),changed).encode()
     record=entry=None
     if manifest.is_file():
         record=json.loads(manifest.read_text());validate_record(record)
@@ -256,16 +269,17 @@ def launchers_from_dockbarx():
     return result
 
 
-def prepare(home, output, binary, hidden=None, launchers=None):
+def prepare(home, output, binary, hidden=None, launchers=None, panel=None):
     binary=binary.resolve()
     if not binary.is_file() or not os.access(binary,os.X_OK):raise ValueError('Build the native panel first')
     if output.exists() and any(output.iterdir()):raise ValueError('Preparation directory must be empty')
     source=home/'.config/lxqt/panel.conf'
     original=source.read_bytes()
-    content=profile(original.decode(),home,launchers,hidden)
+    content=profile(original.decode(),home,launchers,hidden,panel)
+    print('Prepare DoroShell widgets on:', panel or 'panel1')
     output.mkdir(parents=True,exist_ok=True);output.chmod(0o700)
     atomic(output/'panel.conf',content)
-    atomic(output/'plan.json',json.dumps({'binary':str(binary),'binary_hash':digest(binary.read_bytes()),'source_hash':digest(original),'profile_hash':digest(content)},indent=2).encode())
+    atomic(output/'plan.json',json.dumps({'binary':str(binary),'binary_hash':digest(binary.read_bytes()),'source_hash':digest(original),'profile_hash':digest(content),'panel':panel or 'panel1'},indent=2).encode())
     print('Prepared:',output,'— current panel and autostart unchanged')
 
 
@@ -326,6 +340,7 @@ def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=
             raise RuntimeError('Panel or prepared profile changed; prepare again')
         if not binary.is_file() or not os.access(binary,os.X_OK):raise ValueError('Prepared panel binary is unavailable')
         if digest(binary.read_bytes())!=plan['binary_hash']:raise RuntimeError('Panel binary changed; prepare again')
+        print('Prepared DoroShell panel:', installed_panel(content.decode()))
         config=home/'.config/doroshell/panel.conf';wrapper=home/'.local/bin/doroshell-native-panel'
         # File-backed output avoids breaking launched applications when a parent exits.
         script=launcher(binary, config)
@@ -380,17 +395,24 @@ def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=
     print('Saved for your next normal login. No process stopped or started.')
 
 
-if __name__=='__main__':
+def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['prepare','preview-next-login','enable-next-login','restore-next-login','merge-quicklaunch','preview-merge-quicklaunch'])
     p.add_argument('--home',type=Path,default=Path.home());p.add_argument('--prepared',type=Path);p.add_argument('--binary',type=Path);p.add_argument('--hide',action='append',default=None)
+    p.add_argument('--panel',help='Explicit panel ID to adapt during prepare; other panels are preserved')
     p.add_argument('--keep-panel-edits', action='store_true', help='Save changed panel settings privately before restoring the previous panel')
     a=p.parse_args()
+    if a.panel is not None and a.action!='prepare':p.error('--panel is only valid for prepare; later actions use the prepared profile')
     if a.action=='prepare':
         if not a.prepared or not a.binary:p.error('prepare needs --prepared and --binary')
-        prepare(a.home,a.prepared,a.binary,a.hide)
+        prepare(a.home,a.prepared,a.binary,a.hide,panel=a.panel)
     elif a.action in ('preview-next-login', 'enable-next-login'):
         if not a.prepared:p.error('enable-next-login needs --prepared')
         switch(a.home,a.prepared,preview=a.action=='preview-next-login')
     elif a.action in ('merge-quicklaunch','preview-merge-quicklaunch'):
         merge_existing(a.home,preview=a.action.startswith('preview'))
     else:switch(a.home,rollback=True,keep_panel_edits=a.keep_panel_edits)
+
+
+if __name__=='__main__':
+    try:main()
+    except PlanError as error:sys.exit('profile.py: '+str(error))

@@ -13,7 +13,7 @@ separate from this pass. Source publication does not imply live activation.
 | Panel/tray | Ten-patch native panel, profile-preserving updates, Quick Launch apps merged into taskbar pins (opt-in command for existing installs) | Read-only running path confirms ten-patch runtime. New upgrade tests preserve config and baseline and cover interrupted writes. No panel refresh performed. |
 | Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
 | Installer | Bootstrap, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and missing-capability/fault tests; see release evidence for final counts. Existing adapters remain the persistence engines. |
-| Compatibility | Arch lineage/pacman, LXQt/X11, single panel1 (including LXQt's default file without `panels=`)/Openbox capability gates; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/new multi-panel profiles/Wayland refused; completed-step recovery exception below. |
+| Compatibility | Arch lineage/pacman, LXQt/X11, single panel1/Openbox full-deploy gates; bounded explicit multi-panel preparation via setup; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/Wayland refused. Explicit panelN selection preserves other standard panels; shared widgets/ambiguous layouts and full multi-panel deployment remain unsupported. |
 | Lock-screen animation | Design only | [Separate design](animated-lock-screen-design.md); no authentication/locker changes or claim of implementation. |
 
 The inherited 262-test suite passed before installer edits; the portable installer
@@ -32,6 +32,15 @@ managed outputs remain verified and unchanged; exact undo preserves the new stoc
 layout and restores the prior managed bytes/modes. Content, chmod and symlink conflicts,
 unfinished native-panel work and custom XDG roots still refuse. This does not enable
 first-time multi-panel installation or broaden hardware/login acceptance.
+
+The subsequent explicit-selection adapter passes **360 tests**, including ten new
+panel-selection tests. Temporary homes cover selecting either panel, untouched INI
+sections and geometry, wrong/missing/shared selection, repeat and interrupted staging,
+conflict refusal, exact upgrade undo, sizing/clipboard placement and later Quick Launch
+merging. The installed toolkit's real CLI passes preview/apply/repeat/rollback with a
+fake package query; installed Settings renders offscreen and routes the prepared plan
+without executing a command. A suite-detected eager Qt import regression was fixed;
+legacy missing-prerequisite diagnostics remain covered. No native panel was launched.
 
 The recovery follow-up to `fa8808c` adds 17 tests: completed-output content/mode
 edits cannot be adopted during recovery; unsupported/malformed journals are refused
