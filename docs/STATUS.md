@@ -9,6 +9,7 @@ separate from this pass. Source publication does not imply live activation.
 | Source/art baseline | Complete current published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Baseline `dee97b4`; incorporates upstream `36929b2`. Shared older dirty checkout retained without overwriting it. Installed Start helper bytes match the published source. |
 | Artwork reproduction | Portable relative source paths and exact catalog hashes | Bundled Start image matches installed pixels. APNG regenerates installed wait/progress cursor bytes exactly. Native binaries/caches/private configs excluded. |
 | Start/search/folders/portable preferences | Implemented | Existing unit/private UI coverage; installed file comparison in this pass. No new live interaction or login test. |
+| Mouse & Touchpad | DoroShell Settings page, installed opt-in X11 helper, login intent, restoration and guarded removal/undo | 24 input unit/lifecycle tests and private rendered installed-toolkit acceptance; evdev profile support only when exposed. Native LXQt is linked, not patched. No physical input or login acceptance. |
 | Panel/tray | Ten-patch native panel and profile-preserving updates | Read-only running path confirms ten-patch runtime. New upgrade tests preserve config and baseline and cover interrupted writes. No panel refresh performed. |
 | Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
 | Installer | Bootstrap, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and missing-capability/fault tests; see release evidence for final counts. Existing adapters remain the persistence engines. |
@@ -16,8 +17,8 @@ separate from this pass. Source publication does not imply live activation.
 | Lock-screen animation | Design only | [Separate design](animated-lock-screen-design.md); no authentication/locker changes or claim of implementation. |
 
 The inherited 262-test suite passed before installer edits; the portable installer
-checkpoint passed 285 tests. After the recovery follow-up, the full suite passes
-**302 tests**. New targeted tests cover
+checkpoint passed 285 tests and the recovery follow-up passed 302. After input
+integration, the full suite passes **326 tests**. New targeted tests cover
 real temporary-home menu/toolkit installation, combined panel/theme/snapping/capture/
 clipboard staging, repeats, first-baseline restoration, exact prior-upgrade undo,
 injected partial failure/recovery, invalid records, byte/mode/symlink conflicts and

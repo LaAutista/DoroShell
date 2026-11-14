@@ -278,3 +278,50 @@ Interrupted overlapping writes or changed active target inventories require manu
 inspection. Preserve journals and originals instead of deleting them to bypass
 conflicts. The same-source recovery rule remains. These tests simulate exceptions,
 not actual power loss, clean-machine install, login or physical hardware acceptance.
+
+### Installed input-preferences integration — 2026-11-14
+
+Integrates feature `0cf6019a0e4d5e32d1e81df4f2f495075b1f4694` with main
+`e18026e166c96382f24843cdb3467ffe989c5568`, retaining the recovery fixes above.
+The feature's helper, DoroShell Settings page and original tests are retained.
+Installer integration adds the helper to toolkit payloads, declares Xlib/udev
+dependencies, pins autostart to the installed location, records ownership before
+creation/removal, and refuses program removal/changed-helper undo while restoration
+is pending. Stop managing and restore includes absent saved choices without
+discarding their unresolved receipts. Ended-session evidence is archived privately
+before retirement; no old-session property is forced onto a new session.
+
+Validation for this increment:
+
+- **326 tests passed**: `python -m unittest discover -s tests -v`, display/session
+  buses unset and Qt offscreen. This retains all 17 recovery regressions and includes
+  24 input tests (12 feature + 12 installer/lifecycle tests).
+- Disposable homes cover actual install/repeat/older-toolkit upgrade/removal/exact
+  undo, unchanged-helper undo with active choices, preflight refusal before any
+  module removal, input/helper byte/mode conflicts, retained lock inode, missing
+  helpers, malformed records, absent/unsupported restoration, archive failure,
+  interrupted autostart creation/removal and explicit safe retry.
+- `python tests/check_installed_input_x11.py --xvfb /path/to/private/Xvfb --output
+  /path/to/private/evidence` passed on authenticated private X11. It imports the
+  installed toolkit, renders actual Settings, uses keyboard/pointer events against
+  mocked devices, verifies saved opt-in/restoration and last-mouse refusal, checks
+  narrow/large-font scrolling, and removes the fixture installation safely. Both
+  private screenshots were visually inspected; neither is published.
+- Exported source inventory/checksums are verified; program/test/docs/metadata only.
+  Existing artwork, licenses, display/panel implementations and the dirty original
+  workspace are preserved. No live activation, device assignment or packages.
+
+Read-only host evidence: a matching evdev system rule and Xorg initialization log
+select scheme `none/0`, while the pointer exposes no `Device Accel Profile`.
+This is configured/initialization evidence, not a motion-response test. A future
+system-scheme rule change requires separately approved device reinitialization or
+a new Xorg session to reread the configuration; refreshing Settings/panel/desktop
+is not that operation. No restart is performed or required merely to publish this
+source. Physical evdev/touchpad changes, normal login ordering, hotplug, clean OS
+installation and Wayland remain unverified/unsupported as documented. The reference
+UI was native LXQt; this implementation is a DoroShell page plus native link.
+
+Compatibility: unintegrated feature autostart entries without recorded ownership
+are not guessed/adopted. Active or unresolved input state must be resolved before
+helper replacement by undo/removal; inactive choices, archived evidence and locks
+are retained. No installer automatically changes input to make removal succeed.

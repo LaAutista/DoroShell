@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-portable-development-20261114-recovery",
+  "candidate": "doroshell-portable-development-20261114-input-integrated",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -20,13 +20,14 @@
     "portable_installer": "bootstrap/deploy over existing adapters; legacy cursor recovery; profile-preserving native upgrade; docs/HANDOFF.md",
     "private_bootstrap": "Authenticated GitHub CLI acquisition after real raw-URL 404; repository remains private",
     "independent_qa": "Private screenshot acceptance on dee97b4; unmerged lock probe f81d5d5 fails final stacking assertion. See docs/STATUS.md; probe excluded.",
-    "deployment_recovery": "Follow-up to fa8808c75f4d6d1d639432d95f093d20a1497459: format-2 completed output evidence and shared recovery/undo validation; see RELEASE-CANDIDATE.md"
+    "deployment_recovery": "Follow-up to fa8808c75f4d6d1d639432d95f093d20a1497459: format-2 completed output evidence and shared recovery/undo validation; see RELEASE-CANDIDATE.md",
+    "input_preferences": "Feature 0cf6019a0e4d5e32d1e81df4f2f495075b1f4694 integrated on e18026e166c96382f24843cdb3467ffe989c5568; installed helper lifecycle/ownership/restoration; docs/input-preferences.md"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 302,
+    "passed": 326,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Recovery follow-up: 302 full-suite tests passed, including 17 new disposable-home recovery tests. Existing repeat, partial retry, exact upgrade undo and removal tests passed. Source inventory/checksum archive round-trip checked. Earlier native build/bootstrap evidence retained in RELEASE-CANDIDATE.md; no new UI, packages, personal deployment, clean OS, login, power-loss or hardware claim."
+    "note": "Integrated full suite: 326 passed, including all 17 deployment recovery regressions and 24 input tests. Private authenticated X11 installed-toolkit Settings rendering and mocked input persistence/restoration/removal passed; screenshots inspected. Source inventory/checksum export round-trip checked. No personal deployment, packages, physical input, login, clean OS or hardware claim; earlier build evidence is historical."
   },
   "source_payloads": [
     {
@@ -43,8 +44,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "a4129b66120264853dc2b2787748ec991553e431b1625d3cd92b179f92dd2882",
-      "size": 1962,
+      "sha256": "57ab566fe5e6b155875dbddd62658026b246ab81a12cfeaddbd3e1aaa42ee023",
+      "size": 2380,
       "mode": "0o644"
     },
     {
@@ -61,20 +62,20 @@
     },
     {
       "path": "README.md",
-      "sha256": "94e16006584293721b82aee3d121b3cb0e4c2db8b638ea8dc117e2839511f27e",
-      "size": 6191,
+      "sha256": "867f62654cb0d35516540327e87a2e7c41bb1a6d3938ba32669f1cafb9ffdd2d",
+      "size": 6438,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "934251ed10bc5f8ab5b0a67138026a1377ee721b0b88bdfa90b989a3513cf6c7",
-      "size": 20380,
+      "sha256": "ecff3d082468f8bfabe61064d5997e6d74ac758f2810eac59800f484507f4be1",
+      "size": 23583,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "a5ef6a6d6ec93c96b7fbf2f489464eef9024e23a8fffb98f66dedaec23f12c78",
-      "size": 7527,
+      "sha256": "5b1801a5c5f0aa657a67e0e07eacca55bb763b81757b07170f39dc202972057a",
+      "size": 7706,
       "mode": "0o644"
     },
     {
@@ -169,8 +170,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "2fb5fe0f2b3ce0d2f8456b50ddc2cc3d6cd3f24a5ca82773e62c8d435baccdc5",
-      "size": 25101,
+      "sha256": "ecdc8ac0c2717e29125c40118453e96ef6675913c7c490a9569177fe40af7e2f",
+      "size": 25929,
       "mode": "0o644"
     },
     {
@@ -205,8 +206,8 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "b1492b8ef1d5b95e4e31d495a1c880f3898cb12a3a5c1e6d3558d3160e9da348",
-      "size": 4379,
+      "sha256": "f8a901341d6849ffe713b6584c5a7a91e345b1e94089a0f40adfb89e4b5371be",
+      "size": 4750,
       "mode": "0o644"
     },
     {
@@ -223,20 +224,20 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "65202863c11395da388659fa4e18bdf5180fc4475a597c9e3f77d85eb9713c16",
-      "size": 6493,
+      "sha256": "8092876853e11db63e193c974fae0ac92bda193173977700a4cc157e2b2800e0",
+      "size": 7152,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "984b5aaba4874ae04cc41d20f13daed979ef24999fe66ccaf4e065a7dc559556",
-      "size": 8935,
+      "sha256": "1b6ce7a9c4d90b90e450766f325725dc949db6f2d7b68430d5166a3cebc4b9cb",
+      "size": 9588,
       "mode": "0o644"
     },
     {
       "path": "docs/MODULES.md",
-      "sha256": "8e5446a9f0a303d7365e4f938db37023545095131819f34807066119ecf09b79",
-      "size": 3551,
+      "sha256": "860d066361b896c81c974e60453d13de91036921b4254b6c946ae74da484edb9",
+      "size": 3618,
       "mode": "0o644"
     },
     {
@@ -247,8 +248,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "0cde888fbca574643818d6c7bdb4274f2b9e185f2353aed43012b5fad856d8c0",
-      "size": 5674,
+      "sha256": "76952bf91b3864e94e03df611c2f6355bf4ceb2c40ba931a8436b78d8d0bfa0b",
+      "size": 6034,
       "mode": "0o644"
     },
     {
@@ -297,6 +298,12 @@
       "path": "docs/folder-editor.md",
       "sha256": "46e0c90faf9607b2c6b9612a2e52cf3efa99f4a13e93eafb6a0c735f1bd24b7c",
       "size": 1871,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/input-preferences.md",
+      "sha256": "c15b534dec21c54b6077f5cba563589eb3ca726f9c5a4a84e47999ba703a7adf",
+      "size": 8649,
       "mode": "0o644"
     },
     {
@@ -414,9 +421,15 @@
       "mode": "0o644"
     },
     {
+      "path": "input_preferences.py",
+      "sha256": "505b247cd93c50a23f5d12a8e6ec0feee08d4b5fe5645aec17f00e588dbc1e79",
+      "size": 21593,
+      "mode": "0o644"
+    },
+    {
       "path": "install.py",
-      "sha256": "5dd44601e7dc78d4fee24bfc40ea5596904d7550fb1dd01c070011bbdfc4a530",
-      "size": 17076,
+      "sha256": "bb733b5370481f998fe691c49c6e890ad15cffdc979ab4b25af7b423db495b03",
+      "size": 17431,
       "mode": "0o644"
     },
     {
@@ -637,14 +650,14 @@
     },
     {
       "path": "settings.py",
-      "sha256": "fa8805100d10821bdf63348e380031d02a908d05574c697fdbd0a8eb132d22d5",
-      "size": 20425,
+      "sha256": "dbe0a5ca6a99bf221c931e745f2c8fd6d83b4a37fcf284c03c1049283a02cc1c",
+      "size": 20943,
       "mode": "0o644"
     },
     {
       "path": "setup.py",
-      "sha256": "c85fd64696c5488e31364d331168351d1d68af1aed6e2df1c1a91d71c5ec40e8",
-      "size": 7191,
+      "sha256": "05907fc60daff1b6d7b3ced02df429e60ff33f2f2d6fefd71d7722a2d9b8d47d",
+      "size": 7215,
       "mode": "0o644"
     },
     {
@@ -729,6 +742,12 @@
       "path": "tests/check_glass_edges_x11.py",
       "sha256": "8d491a6a238f3eab1c0ea69d4d2fd1840433597b13a2a70fb331ef1785b0c5ed",
       "size": 6398,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/check_installed_input_x11.py",
+      "sha256": "4a79965683e2f115a8fbb4af7bdfdf168d7d378f99bf34377ff47facfa97a3e8",
+      "size": 4080,
       "mode": "0o644"
     },
     {
@@ -1009,8 +1028,8 @@
     },
     {
       "path": "tests/test_clean_environment.py",
-      "sha256": "a79aea3a4b8811256cb059f7883c2bcff1868204cdf6d06ede3c078ca817807f",
-      "size": 9569,
+      "sha256": "1d5f47da7863c42caa670357eac05284d5101f6ae0d7ee5dbcd69dbea1f26371",
+      "size": 9876,
       "mode": "0o644"
     },
     {
@@ -1083,6 +1102,18 @@
       "path": "tests/test_glass_edges.py",
       "sha256": "c4048773589bea307fddabb3de15ec6ef39e2fdad011b32197ffc089ab797dcc",
       "size": 4749,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_input_lifecycle.py",
+      "sha256": "689a41ff1de5b4254ec6cef33bd9991c92fe97c73791c0f557686548a613b1ac",
+      "size": 10964,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_input_preferences.py",
+      "sha256": "be74ec7859ba114396f7ff1d70dc7658de900ca9c9625eebd1d6ab6ef3933d04",
+      "size": 7252,
       "mode": "0o644"
     },
     {

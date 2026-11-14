@@ -76,6 +76,15 @@ hardware rollback reliability from fake-driver tests. See [display diagnostics](
 
 ## Recovery
 
+Mouse & Touchpad preferences are opt-in after installing the menu/toolkit. The
+installer does not change input devices or enable login reapplication. Before
+menu/toolkit removal or an undo replacing its input helper, use **Stop managing
+and restore** on that DoroShell Settings page. Enabled choices, unresolved
+restoration receipts or remaining owned autostart block removal. Missing devices,
+unsupported restoration or external edits require inspection; the helper and
+evidence stay available. Inactive saved choices, archived previous-session receipts
+and the retained input lock survive removal. [Input lifecycle and limits](input-preferences.md).
+
 Each deployment prints a transaction ID. Its private journal lives under
 `~/.local/state/doroshell/deployments/ID/`. Backups can contain private configuration;
 do not upload them. Exact undo for a completed upgrade:

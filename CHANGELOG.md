@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Integrate the DoroShell Mouse & Touchpad page with the installed toolkit, declared
+  Xlib/udev dependencies, stable opt-in login helper, recorded autostart ownership,
+  explicit stop/restoration and guarded program removal/undo. Preserve inactive
+  preferences and archive ended-session receipts before retirement. No native LXQt
+  UI patch, driver/system-rule change, physical input or login acceptance is claimed.
 - Fix recovery adopting user edits to completed modules and then overwriting them
   on undo. Persist and verify completed-step bytes/modes in format-2 journals.
 - Validate journal versions, progress, requests and snapshots before CLI recovery,

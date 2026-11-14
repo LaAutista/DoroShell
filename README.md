@@ -66,6 +66,9 @@ though it contains this installer.
 
 - Ranked installed-app search, keyboard navigation, safe GIO launching, pins, folder
   cascades, portrait cropping and path-free preference export/import.
+- Opt-in [Mouse & Touchpad preferences](docs/input-preferences.md) in DoroShell
+  Settings: supported evdev acceleration profiles, guarded touchpad disabling,
+  login persistence and conflict-checked restoration, with a native LXQt settings link.
 - Native grouped tasks, drag-to-pin, notification overflow, calendar, Show Desktop,
   density controls and an unbound configurable tray shortcut.
 - Editable screenshots, annotations, window/area capture and cancellable delayed recapture.

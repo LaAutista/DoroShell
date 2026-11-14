@@ -66,6 +66,15 @@ Legacy pending journals and ambiguous interrupted shared-file writes require
 inspection, not guessed migration. Completed legacy undo remains supported.
 See INSTALL's recovery limits and RELEASE-CANDIDATE's targeted regression evidence.
 
+Input preferences from `0cf6019` are integrated on top of `e18026e`. The helper now
+ships in the menu toolkit with declared Xlib/udev prerequisites. DoroShell Settings
+has its own Mouse & Touchpad page and a native LXQt link; this is not an LXQt UI
+patch. Program removal/changed-helper undo must refuse enabled choices, unresolved
+receipts or remaining autostart. Use the page's Stop managing and restore action;
+keep absent/unsupported-device receipts until resolved. Ended-session evidence is
+archived privately before retirement, and inactive choices/locks survive removal.
+See input-preferences.md for ownership/migration and system-scheme limitations.
+
 ## Ready-to-paste agent prompt
 
 > Work on DoroShell at https://github.com/LaAutista/DoroShell.git. Clone it into a new

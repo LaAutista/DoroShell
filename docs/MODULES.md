@@ -6,7 +6,7 @@ The shared interface is preview → apply/update → conflict-checked restoratio
 
 | Module | Runtime and configuration | Dependency/lifecycle |
 | --- | --- | --- |
-| `menu` | `.local/share/lxqt-comfort/`, installed toolkit/settings, launchers; Start preferences under `.config/lxqt-comfort/` | Python/PySide6/GIO; search, folder cascade and portable preferences ship with it. Favorites/history/paths are retained. `menu-install.json` records originals. |
+| `menu` | `.local/share/lxqt-comfort/`, installed toolkit/settings, launchers; Start preferences under `.config/lxqt-comfort/` | Python/PySide6/GIO/Xlib + udev; search, folder cascade, portable and opt-in input preferences ship with it. User choices are retained. `menu-install.json` records originals. Active input choices/receipts block helper removal. |
 | `native-panel` | Separate `.config/doroshell/panel.conf`, launcher and user LXQt autostart override | Start + private pinned LXQt build. Next-login staging. Upgrades retain panel config; `native-panel.json` keeps first baseline. |
 | `theme` | Four generated palettes, Openbox/KDE styles and selected LXQt palette keys | Openbox/Qt/Breeze icons. Existing selection retained on deployment updates. `theme.json`; unrelated settings preserved. |
 | `cursor` | Inherited `DoroShell-Loading` Xcursor theme, LXQt/default cursor selection | Pillow + Breeze cursors. GIF/APNG sources included; ordinary pointer inherited. Legacy `cursor-install.json` retained. |

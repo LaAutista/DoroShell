@@ -13,7 +13,7 @@ PACKAGES={
  'wallpaper-glass':['pyside6','python-pillow'],
  'wallpaper':['pcmanfm-qt','qt6-multimedia','qt6-multimedia-ffmpeg','pyside6'],
  'theme':['pyside6','openbox','breeze-icons'],
- 'menu':['python','pyside6','python-gobject','lxqt-panel','lxqt-session','lxqt-globalkeys','lxqt-config','xdg-user-dirs','procps-ng'],
+ 'menu':['python','pyside6','python-gobject','python-xlib','systemd','lxqt-panel','lxqt-session','lxqt-globalkeys','lxqt-config','xdg-user-dirs','procps-ng'],
  'native-panel':['lxqt-panel','python-gobject','pyside6'],
  'panel':['lxqt-panel','lxqt-globalkeys','procps-ng'],
  'snapping':['openbox','python-xlib','pyside6'],

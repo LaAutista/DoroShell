@@ -176,6 +176,19 @@ def recovery_journal(home, previous):
 
 def undo(home, identifier):
     path, journal = load_journal(home, identifier)
+    if journal['status'] in ('pending', 'undone'): return _undo(home, identifier)
+    helper = '.local/share/doroshell/toolkit/input_preferences.py'
+    if helper in journal['before'] and journal['before'][helper] != journal['after'].get(helper):
+        from input_preferences import Preferences
+        store = Preferences(home)
+        with store.locked():
+            store.require_inactive()
+            return _undo(home, identifier)
+    return _undo(home, identifier)
+
+
+def _undo(home, identifier):
+    path, journal = load_journal(home, identifier)
     if journal['status'] not in ('complete', 'undoing', 'undone'):
         raise ValueError('Incomplete transaction: use --recover first; original module backups are retained')
     if journal['status'] == 'undone': return
@@ -281,6 +294,9 @@ def step(home, name, binaries, theme, remove=False, job=None):
 
 
 def deploy(home, selected, binaries, theme='windows', remove=False, recover=False):
+    if remove and 'menu' in selected:
+        from input_preferences import Preferences
+        Preferences(home).require_inactive()
     state = home/'.local/state/doroshell'
     pointer = state/'deployment.json'
     safe(pointer, home)
@@ -383,6 +399,9 @@ def main(argv=None):
     selected = select_modules(args.modules if args.modules is not None else defaults, args.extras, not args.remove)
     if args.recover and selected != request['modules']:
         raise ValueError('Recovery needs the recorded module set; no prerequisites or files were changed')
+    if args.remove and 'menu' in selected:
+        from input_preferences import Preferences
+        Preferences(home).require_inactive()
     report = compatibility.inspect(home, selected)
     packages = packages_for(selected); versions = compatibility.package_versions(packages)
     print(json.dumps(dict(platform=report, package_versions=versions, modules=selected), indent=2))
