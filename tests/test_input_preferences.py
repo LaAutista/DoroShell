@@ -109,7 +109,7 @@ class InputPreferencesTests(unittest.TestCase):
     def test_ui_render_and_apply_mock_only(self):
         from PySide6.QtWidgets import QApplication,QPushButton,QComboBox,QCheckBox,QLabel
         app=QApplication.instance() or QApplication([])
-        with patch.object(ip,'XInput',return_value=self.backend):
+        with patch.object(ip,'XInput',return_value=self.backend), patch('input_diagnostics.read_configuration',return_value=([],set())):
             widget=ip.page(self.store.home);widget.resize(650,500);widget.show();app.processEvents()
             buttons=widget.findChildren(QPushButton)
             next(b for b in buttons if b.text()=='Refresh devices').click()

@@ -287,6 +287,7 @@ class Preferences:
 
 
 def page(home):
+    import input_diagnostics
     from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton, QCheckBox
     widget = QWidget(); layout = QVBoxLayout(widget)
     note = QLabel('Mouse & Touchpad (X11)\nDisable velocity-dependent acceleration on supported evdev mice, or disable a selected touchpad.\nSaved choices are retried once at LXQt login. Reconnects require Refresh / Reapply. No drivers or system rules are changed.')
@@ -294,6 +295,8 @@ def page(home):
     devices = QComboBox(); devices.setAccessibleName('Input device'); layout.addWidget(devices)
     enabled = QCheckBox('Disable selected option'); layout.addWidget(enabled)
     status = QLabel('Choose Refresh to inspect devices. No input changes occur while inspecting.'); status.setWordWrap(True); layout.addWidget(status)
+    evidence = QLabel(); evidence.setWordWrap(True); evidence.setAccessibleName('Read-only input capability evidence')
+    evidence.hide(); layout.addWidget(evidence)
     refresh = QPushButton('Refresh devices'); apply = QPushButton('Save and apply'); apply.setEnabled(False)
     layout.addWidget(refresh); layout.addWidget(apply)
     restore = QPushButton('Stop managing and restore')
@@ -314,18 +317,26 @@ def page(home):
         dev = devices.currentData(); cap = capability(dev) if dev else None
         apply.setEnabled(bool(cap))
         enabled.setEnabled(bool(cap))
-        if not dev: return
+        if not dev:
+            evidence.clear(); evidence.hide(); return
         rule = context['data']['rules'].get(dev['key'], {})
         enabled.setChecked(rule.get('enabled',False))
         enabled.setText('Disable touchpad' if dev['kind']=='touchpad' else 'Disable acceleration')
         value = dev['props'].get(cap[1],{}).get('values') if cap else None
-        observed = ('disabled' if value == ([0] if dev['kind']=='touchpad' else [0xffffffff]) else 'enabled / other profile' if value is not None else 'not exposed')
-        status.setText('Configured: '+('disable' if rule.get('enabled',False) else 'unmanaged')+'; observed now: '+observed+'; driver properties: '+dev['driver']+'. '+('Uncheck to restore the saved current-session property.' if cap else 'Unsupported property or device. An existing system AccelerationScheme none rule may remove the profile property; its absence does not verify the scheme.'))
+        observed = ('touchpad disabled' if dev['kind']=='touchpad' and value == [0] else
+                    'profile -1 (no velocity-dependent acceleration)' if value == [0xffffffff] else
+                    'enabled / other profile' if value is not None else 'not exposed')
+        status.setText('User preference: '+('disable' if rule.get('enabled',False) else 'unmanaged')+'; observed property: '+observed+'; driver properties: '+dev['driver']+'. '+('Uncheck to restore the saved current-session property.' if cap else 'Unsupported property or device.'))
+        if dev['kind'] == 'mouse':
+            evidence.setText(input_diagnostics.describe(dev, context['configuration'], bool(cap and cap[0]=='acceleration')))
+            evidence.show()
+        else: evidence.clear(); evidence.hide()
     def inspect_devices():
         backend = None
         try:
             context['raw'], context['data'] = store.read()
             backend = XInput(); values = backend.devices()
+            context['configuration'] = input_diagnostics.read_configuration()
             devices.blockSignals(True); devices.clear()
             for dev in values:
                 devices.addItem(dev['name']+' — '+dev['kind'], dev)
@@ -333,7 +344,7 @@ def page(home):
             if not values: status.setText('No identified input devices available. No changes made.')
             elif not any(d['kind']=='touchpad' for d in values): status.setText(status.text()+' No touchpad detected.')
         except Exception as exc:
-            apply.setEnabled(False); enabled.setEnabled(False); status.setText(str(exc))
+            apply.setEnabled(False); enabled.setEnabled(False); evidence.clear(); evidence.hide(); status.setText(str(exc))
         finally:
             if backend: backend.close()
     def save(stop=False):

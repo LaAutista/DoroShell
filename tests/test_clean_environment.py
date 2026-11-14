@@ -70,13 +70,14 @@ class CleanEnvironmentTests(unittest.TestCase):
         toolkit=self.home/'.local/share/doroshell/toolkit'
         self.run_cli(toolkit/'install.py','menu','--apply','--home',self.home,no_site=False,cwd=self.home)
         self.assertEqual(installed,self.files())
-        code="import sys; sys.path.insert(0,sys.argv[1]); import menu.start_menu, menu.app_search, menu.folder_cascade, portable_settings, input_preferences, settings, modules, wallpaper.install; print('imports passed')"
+        code="import sys; sys.path.insert(0,sys.argv[1]); import menu.start_menu, menu.app_search, menu.folder_cascade, portable_settings, input_preferences, input_diagnostics, settings, modules, wallpaper.install; print('imports passed')"
         self.run_cli('-c',code,toolkit,no_site=False,cwd=self.home)
         manifest=json.loads((self.home/'.local/state/lxqt-comfort/menu-install.json').read_text())
         self.assertTrue(any(n.endswith('/app_search.py') for n in manifest))
         self.assertTrue(any(n.endswith('/folder_cascade.py') for n in manifest))
         self.assertTrue(any(n.endswith('/portable_settings.py') for n in manifest))
         self.assertTrue(any(n.endswith('/input_preferences.py') for n in manifest))
+        self.assertTrue(any(n.endswith('/input_diagnostics.py') for n in manifest))
         # Rollback needs no GUI bindings on this no-native-panel baseline.
         self.run_cli(toolkit/'install.py','menu','--rollback','--home',self.home,cwd=self.home)
         restored=self.files()

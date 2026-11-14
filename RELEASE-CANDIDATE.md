@@ -325,3 +325,45 @@ Compatibility: unintegrated feature autostart entries without recorded ownership
 are not guessed/adopted. Active or unresolved input state must be resolved before
 helper replacement by undo/removal; inactive choices, archived evidence and locks
 are retained. No installer automatically changes input to make removal succeed.
+
+### Read-only input capability diagnostics — 2026-11-14
+
+Based on integrated `d84b39272b7a45efd51751a7a6b5b97da767f95c`. Current main and
+worker activity were checked before editing the clean integration checkout; the
+original dirty workspace and personal installation remain untouched.
+
+The installed Mouse & Touchpad page now separates user preference/observed profile,
+runtime profile control, and matching standard-system-rule intent. The read-only
+scan is limited to 64 files, 64 KiB per file, 256 KiB total, with explicit malformed,
+unreadable, unsupported, changed, bounded and conflicting evidence. No files are
+written by Refresh. Current Xorg initialization remains **unverified** because the
+available XInput data cannot bind a historical log to the current server/device
+initialization. Logs and privileged sources are deliberately not read or promoted
+to proof. No physical motion-response or effective-system-scheme claim is made.
+
+- `python -m unittest discover -s tests -v`: **337 passed**, with display/session
+  buses unset and Qt offscreen. Includes 11 new diagnostic tests, all 24 previous
+  input/lifecycle tests, and all 17 deployment recovery regressions.
+- Fixtures cover absent/malformed/truncated/conflicting/unsupported rules,
+  unreadable/changing evidence, byte/file-count limits, symlink/nonregular refusal,
+  stale or matching logs not read/promoted, and Refresh without device, preference
+  or session-marker writes. Product/path/type match behavior is fixture-tested.
+- The installed-toolkit private-X11 check passed with mocked devices and rules:
+  available/unavailable runtime controls, separate `none` intent/unverified status,
+  existing opt-in/restoration/last-mouse behavior, narrow/large-font scrolling,
+  helper packaging and removal. Private screenshots were visually inspected and
+  excluded from the source archive.
+- A read-only current-device check found evdev properties, no exposed acceleration
+  profile and a matching system `none` request. It made no property/session-marker
+  writes; the new UI correctly leaves initialization unverified. Raw device
+  identity, logs and system configuration are not copied into published fixtures.
+- Source inventory/checksums and archive round-trip are verified for this increment.
+  Existing artwork, component licensing, apply/restore behavior and program rollback
+  remain intact. This is source/private-test evidence, not personal deployment,
+  physical input testing, login, hotplug or clean-OS acceptance.
+
+The scope is a DoroShell status page with a native LXQt link. It cannot change the
+system acceleration scheme and adds no daemon, privileged reader or diagnostic log.
+Custom Xorg config sources/overrides and reliable current-initialization provenance
+remain outside this conservative diagnostic. Publication is held for independent
+review of the prepared commit; no session action or deployment is part of this pass.

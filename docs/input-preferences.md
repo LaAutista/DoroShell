@@ -15,6 +15,32 @@ not silently converted. An evdev device with no profile property is also reporte
 unsupported. A system `AccelerationScheme none` rule may remove that property,
 but absence alone does not establish the effective scheme.
 
+Refresh now shows **runtime profile capability**, **system-rule intent**, and
+**current-initialization evidence** separately from your saved preference. Profile
+-1 is described as no velocity-dependent acceleration, not a universal statement
+that all acceleration/deceleration is disabled. The system scheme is read-only on
+this page.
+
+The diagnostic reads `/etc/X11/xorg.conf` and `*.conf` files in the standard
+`/etc/X11/xorg.conf.d` and `/usr/share/X11/xorg.conf.d` directories as the current
+user, only on Refresh/reload. It reads at most 64 files, 64 KiB per file and 256 KiB
+total; symlinks/nonregular files are refused. It recognizes a conservative subset
+of InputClass product/path/type selectors. Unsupported selectors, malformed,
+unreadable, changed or oversized evidence are reported as incomplete. Different
+matching scheme requests are reported as conflicting; precedence is not guessed.
+Custom configuration locations, command-line overrides and runtime overrides are
+not inferred. This is configuration intent, even when a matching `none` rule exists.
+Selector semantics follow the [Xorg InputClass manual](https://man.archlinux.org/man/xorg.conf.5#INPUTCLASS_SECTION);
+this bounded diagnostic is not a replacement for Xorg's configuration parser.
+
+**Current Xorg initialization remains unverified by this page.** The available
+XInput inventory exposes no trustworthy binding between a log entry, the current
+server and this device's initialization instance. The diagnostic deliberately does
+not read historical logs, `/proc`, privileged sources or session markers, and never
+promotes an absent profile, log/name match or old configuration timestamp to a
+verified status. It performs no physical motion test and writes no diagnostic log.
+The existing apply/restoration controls retain their separate explicit lifecycle.
+
 Touchpads are classified using udev's `ID_INPUT_TOUCHPAD`, not names. Only the
 selected touchpad's `Device Enabled` property changes. An enabled, identified USB
 or Bluetooth mouse outside the virtual-device tree is required; keyboard consumer

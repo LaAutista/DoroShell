@@ -75,6 +75,15 @@ keep absent/unsupported-device receipts until resolved. Ended-session evidence i
 archived privately before retirement, and inactive choices/locks survive removal.
 See input-preferences.md for ownership/migration and system-scheme limitations.
 
+The diagnostic follow-up on `d84b392` adds a read-only bounded standard-config scan
+to the installed page. Keep system-rule intent separate from runtime profile and
+user preference state. Current Xorg initialization is deliberately unverified:
+XInput lacks a trustworthy current-device/session provenance binding, and this
+implementation does not read or promote historical logs. Unknown selectors,
+conflicting requests and unreadable/malformed/oversized files remain explicit.
+No hardware changes, system-rule edits, session refresh or reinitialization are
+needed to test this code; use fixtures and the installed private-X11 check.
+
 ## Ready-to-paste agent prompt
 
 > Work on DoroShell at https://github.com/LaAutista/DoroShell.git. Clone it into a new

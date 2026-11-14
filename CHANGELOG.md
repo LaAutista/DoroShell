@@ -2,6 +2,9 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Separate read-only runtime profile capability, bounded system-rule intent and
+  unverified current initialization on Mouse & Touchpad. Flag incomplete/conflicting
+  evidence; never infer disabled acceleration from a missing property or stale log.
 - Integrate the DoroShell Mouse & Touchpad page with the installed toolkit, declared
   Xlib/udev dependencies, stable opt-in login helper, recorded autostart ownership,
   explicit stop/restoration and guarded program removal/undo. Preserve inactive
