@@ -28,6 +28,12 @@ class ProbeContract(unittest.TestCase):
             with self.assertRaises(ValueError):
                 probe.validate_media(str(media), home)
 
+    def test_refresh_override_is_fixture_specific_and_reproducible(self):
+        default = probe.command('/usr/bin/mpv', 42, '/fixture/a.gif')
+        baseline = probe.command('/usr/bin/mpv', 42, '/fixture/a.gif', comparison='baseline')
+        self.assertEqual([x for x in default if x not in baseline], ['--display-fps-override=60'])
+        self.assertEqual(default[-2:], baseline[-2:])
+
     def test_no_shell_and_control_options(self):
         media = '/fixture/$(touch sentinel); name.gif'
         argv = probe.command('/usr/bin/mpv', 42, media)

@@ -30,7 +30,7 @@ path validation are not a decoder sandbox or protection against hostile media.
 The fixture reads pixels only from its private server and never reads clipboard
 contents. The 24-bit Xvfb image conversion is fixture-specific.
 
-## Verified checkpoint — 2026-11-14
+## Initial checkpoint — 2026-11-14
 
 Two isolated runs passed; the second strengthened restart verification to require
 a new child and fresh pixels, and checked that unsupported output leaves no mapped
@@ -72,6 +72,54 @@ Synthetic screenshot inspection confirmed both children beneath the explicit
 “NOT A LOCK SCREEN” label. Logs, screenshot and generated media are private test
 artifacts and are not source files.
 
+## CPU follow-up — 2026-11-14
+
+The high CPU cost reproduced after a two-second warm-up: 5.62 CPU seconds over
+8.164 seconds, so startup alone did not explain it. A diagnostic run's mpv log
+repeated `Assuming -nan FPS for display sync` in the X11 output. Its thread counters
+put the work in the main/output/logging threads; the GIF demux thread accumulated
+no measurable CPU ticks. Verbose logging itself adds cost, so that diagnostic run
+is excluded from the performance comparison.
+
+The smallest effective change is `--display-fps-override=60` **only for this private
+Xvfb fixture**. The installed mpv manual documents this as an override when detected
+refresh is wrong. It is not a physical refresh measurement, display-setting change,
+GIF frame-rate change, or recommendation to override a real monitor's refresh.
+Default `--comparison fixture60` enables it; pass `--comparison baseline` to rerun
+the original command. No decoder, media, scaling or synchronization-mode change
+is retained. Both cases still use the exact generated eight-frame GIF.
+
+Controlled alternatives, each with the full lifecycle/rejection checks passing:
+
+| Variant | CPU seconds / sampled seconds | Transitions / distinct hashes | RSS kB | First pixels ms | SIGTERM / target-destroy ms |
+| --- | --- | --- | --- | --- | --- |
+| Original, longer sample | 5.62 / 8.164 | 80 / 8 | 84,916 | 94.7 | 7.2 / 25.3 |
+| Single decoder thread | 5.54 / 8.173 | 80 / 8 | 85,172 | 92.9 | 7.3 / 25.2 |
+| `video-sync=desync` | 5.03 / 8.385 | 81 / 8 | 84,968 | 94.3 | 7.3 / 25.4 |
+| Disable zimg scaling | 5.53 / 8.195 | 81 / 8 | 84,944 | 93.1 | 7.3 / 76.0 |
+| Fixture refresh override | 0.07 / 8.195 | 81 / 8 | 84,880 | 93.2 | 15.4 / 25.4 |
+| Final baseline repeat | 5.52 / 8.170 | 80 / 8 | 84,756 | 94.9 | 7.2 / 75.7 |
+| Final fixed repeat | 0.08 / 8.178 | 81 / 8 | 84,616 | 98.1 | 15.3 / 75.9 |
+
+Final repeat: decoder usage fell from approximately 67.6% to 1.0% of one CPU
+(about 98.6% less), with effectively unchanged memory and observed animation
+cadence. These are short synthetic measurements, not hardware power/latency claims.
+The two-second warm-up occurs before 160 pixel samples at 50 ms intervals; CPU
+counters cover that sample only, not startup. First-frame and teardown retain the
+original measurement method. No verbose log was enabled in comparison runs.
+
+The final baseline and fixed runs each passed **34 assertions**, including a new
+8–12 observed-transitions/second check around the intended 10 fps. All original
+rejection, hierarchy, focus/grab, resize, restart and cleanup checks remain intact.
+All 263 repository tests and four probe unit tests passed. The latter checks that
+the reproducible baseline and default command differ only by the fixture override.
+There is no hard CPU assertion that could conflate host contention with correctness.
+
+The evidence supports a fixture/mpv invalid-refresh interaction; it does not prove
+an upstream root cause in source code or generalize to real X servers. GIF looping
+and decoding are unchanged and inexpensive in the fixed run. This resolves the
+observed fixture cost without broadening the experiment into a renderer framework.
+
 ## Limits and integration decision
 
 No failed assertion remains in the final run. Untested: actual XScreenSaver host
@@ -87,7 +135,7 @@ the concurrent release owner. Integration must refresh and validate source
 inventories/archive metadata; this topic is not a release-ready source archive.
 
 Next decision: review whether mpv child embedding satisfies the real host's
-contract and whether its resource cost is acceptable, before designing an adapter.
+contract and whether its resource cost on the intended host is acceptable, before designing an adapter.
 No install or registration is proposed by this checkpoint. Any later selection
 requires an exact command/settings diff and rollback review. Real lock/unlock
 remains separately authorized at a safe point; this result supplies no such

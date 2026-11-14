@@ -59,18 +59,20 @@ def validate_target(connection, window_id, token):
         raise ValueError('Stale or unavailable target') from exc
 
 
-def command(mpv, target, media, output='x11'):
-    # No shell, scripts, audio, player control, IPC server or screen-saver inhibition.
+def command(mpv, target, media, output='x11', comparison='fixture60'):
+    # No shell, user scripts, audio, player control, IPC or screen-saver inhibition.
+    # This mpv build detects invalid refresh on Xvfb; override in fixture only.
+    extra = {'baseline': [], 'fixture60': ['--display-fps-override=60']}[comparison]
     return [str(mpv), '--no-config', '--load-scripts=no', '--ytdl=no', '--osc=no',
             '--osd-level=0', '--no-terminal', '--input-terminal=no',
             '--input-default-bindings=no', '--input-builtin-bindings=no',
             '--input-builtin-dragging=no', '--input-vo-keyboard=no', '--input-cursor=no',
             '--stop-screensaver=no', '--no-audio', '--sid=no', '--sub-auto=no',
             '--audio-file-auto=no', '--cover-art-auto=no', '--hwdec=no', '--vo='+output,
-            '--loop-file=inf', '--keepaspect=yes', '--wid='+str(target), '--', str(media)]
+            '--loop-file=inf', '--keepaspect=yes', '--wid='+str(target)]+extra+['--', str(media)]
 
 
-def worker(mpv, evidence):
+def worker(mpv, evidence, comparison='fixture60'):
     home = fixture_home()
     from PIL import Image, ImageDraw
     from Xlib import X, display
@@ -109,7 +111,8 @@ def worker(mpv, evidence):
         target = validate_target(connection, window_id, token)
         media = validate_media(str(media), home)
         log = open(evidence/('decoder-%d.log' % len(logs)), 'wb'); logs.append(log)
-        process = subprocess.Popen(command(executable or mpv, target.id, media, output),
+        argv = command(executable or mpv, target.id, media, output, comparison)
+        process = subprocess.Popen(argv,
                                    stdin=subprocess.DEVNULL, stdout=log, stderr=log,
                                    cwd=home, start_new_session=True)
         processes.append(process)
@@ -193,15 +196,21 @@ def worker(mpv, evidence):
         pointer=frame.grab_pointer(False,0,X.GrabModeAsync,X.GrabModeAsync,X.NONE,X.NONE,X.CurrentTime)
         connection.ungrab_pointer(X.CurrentTime);connection.sync()
         check(grabbed==X.GrabSuccess and pointer==X.GrabSuccess,'renderer holds no keyboard/pointer grab')
+        time.sleep(2)  # Exclude startup before measuring steady-state looping.
+        results['measurements']['comparison']=comparison
+        results['measurements']['warmup_seconds']=2
+        results['measurements']['decoder_thread_count']=len(list(Path('/proc/%s/task'%process.pid).iterdir()))
         hashes=[];start_ticks=int(Path('/proc/%s/stat'%process.pid).read_text().split()[13])+int(Path('/proc/%s/stat'%process.pid).read_text().split()[14])
         sample_start=time.monotonic()
-        for _ in range(30):
+        for _ in range(160):
             hashes.append(hashlib.sha256(image(first).tobytes()).hexdigest());time.sleep(.05)
         elapsed=time.monotonic()-sample_start
         ticks=Path('/proc/%s/stat'%process.pid).read_text().split()
         rss=next(line for line in Path('/proc/%s/status'%process.pid).read_text().splitlines() if line.startswith('VmRSS:'))
         results['measurements'].update(sample_seconds=elapsed,observed_frame_transitions=sum(a!=b for a,b in zip(hashes,hashes[1:])),unique_sample_hashes=len(set(hashes)),decoder_cpu_seconds=(int(ticks[13])+int(ticks[14])-start_ticks)/os.sysconf('SC_CLK_TCK'),decoder_rss=rss)
         check(len(set(hashes))>=4,'animation changes across sampled frames')
+        transitions = results['measurements']['observed_frame_transitions']
+        check(8 <= transitions/elapsed <= 12,'sampled cadence remains near synthetic 10 fps')
         first.configure(width=360,height=200);connection.sync()
         check(wait_for(lambda:any(w.get_geometry().width==360 and w.get_geometry().height==200 for w in first.query_tree().children)),'renderer follows parent resize')
         second=target(frame,410);other=spawn(second.id,media)
@@ -248,12 +257,13 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run',action='store_true');parser.add_argument('--worker',action='store_true')
     parser.add_argument('--xvfb',type=Path);parser.add_argument('--mpv',type=Path,required=True)
+    parser.add_argument('--comparison',choices=('baseline','fixture60'),default='fixture60')
     parser.add_argument('--evidence',type=Path,required=True)
     args=parser.parse_args()
     if args.worker:
-        worker(args.mpv.resolve(),args.evidence.resolve())
+        worker(args.mpv.resolve(),args.evidence.resolve(),args.comparison)
     elif args.run and args.xvfb:
         sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'tests'))
         from x11_isolation import isolated
-        isolated(args.xvfb.resolve(),[sys.executable,str(Path(__file__).resolve()),'--worker','--mpv',str(args.mpv.resolve()),'--evidence',str(args.evidence.resolve())],geometry='800x600x24')
+        isolated(args.xvfb.resolve(),[sys.executable,str(Path(__file__).resolve()),'--worker','--mpv',str(args.mpv.resolve()),'--evidence',str(args.evidence.resolve()),'--comparison',args.comparison],geometry='800x600x24')
     else:parser.error('Opt in with --run --xvfb PATH; never supply a real display/window')
