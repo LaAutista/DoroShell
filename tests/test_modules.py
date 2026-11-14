@@ -27,7 +27,7 @@ class ModulesTests(unittest.TestCase):
         return home
 
     def test_single_desktop_plan_repeat_restore_and_conflict(self):
-        with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ,{'XDG_CONFIG_HOME':str(Path(d)/'.config')}):
             home=self.home(d)
             path=home/'.config/openbox/rc.xml'
             original='<openbox_config><desktops><number>4</number><firstdesk>3</firstdesk></desktops><other><number>7</number></other></openbox_config>'
@@ -53,7 +53,7 @@ class ModulesTests(unittest.TestCase):
                 self.assertEqual(path.stat().st_mode & 0o777,0o600)
 
     def test_all_modules_repeat_and_independent_rollback(self):
-        with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ,{'XDG_CONFIG_HOME':str(Path(d)/'.config')}):
             home=self.home(d)
             (home/'.config/doroshell').mkdir()
             (home/'.config/doroshell/panel.conf').write_text('[panel1]\niconSize=24\n[doroshellTasks]\ntype=taskbar\nbuttonWidth=40\n')

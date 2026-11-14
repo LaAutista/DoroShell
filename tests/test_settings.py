@@ -175,7 +175,7 @@ class SettingsTests(unittest.TestCase):
             self.assertEqual(panel.read_text(),original)
 
     def test_desktop_count_scoped_and_firstdesk_restored(self):
-        with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ,{'XDG_CONFIG_HOME':str(Path(d)/'.config')}):
             home=Path(d); path=home/'.config/openbox/rc.xml';path.parent.mkdir(parents=True)
             original='<openbox_config><desktops><number>4</number><firstdesk>3</firstdesk></desktops><other><number>7</number></other></openbox_config>'
             path.write_text(original)

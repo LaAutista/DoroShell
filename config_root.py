@@ -2,7 +2,16 @@
 import json
 import os
 from pathlib import Path
-from install import safe
+from install import safe as install_safe
+
+
+def safe_path(path, home):
+    install_safe(path,home)
+    # An in-home alias can still redirect a config path into reserved storage.
+    for part in (path,*path.parents):
+        if part.is_symlink():
+            raise RuntimeError('Refusing symlink component in configuration path: '+str(part))
+        if part==home:break
 
 
 def validate(home, value):
@@ -13,7 +22,7 @@ def validate(home, value):
     if (not root.is_absolute() or str(root) != raw or any(ord(c)<32 or ord(c)==127 for c in raw)
             or '..' in root.parts or root == home or not root.is_relative_to(home)):
         raise ValueError('Configuration root must be a canonical absolute directory inside the selected home')
-    safe(root,home)
+    safe_path(root,home)
     if root.exists() and not root.is_dir():
         raise ValueError('Configuration root must be a directory')
     if root != home/'.config':
@@ -24,6 +33,7 @@ def validate(home, value):
         for other in reserved:
             if root.is_relative_to(other) or other.is_relative_to(root):
                 raise ValueError('Configuration root overlaps a default config/data/state/cache/runtime path')
+    safe_path(root/'openbox/rc.xml',home)
     return root
 
 
@@ -40,7 +50,7 @@ def choose(home, selected, requested=None):
     home=Path(home).absolute()
     root=validate(home,requested) if requested is not None else home/'.config'
     if 'single-desktop' in selected:
-        manifest=home/'.local/state/doroshell/single-desktop.json';safe(manifest,home)
+        manifest=home/'.local/state/doroshell/single-desktop.json';safe_path(manifest,home)
         if manifest.exists():
             saved=json.loads(manifest.read_text())
             if not isinstance(saved,dict):raise ValueError('Invalid module manifest')
@@ -65,4 +75,5 @@ def choose(home, selected, requested=None):
         env=os.environ.get('XDG_CONFIG_HOME')
         if env and Path(env)!=root:
             raise ValueError('XDG_CONFIG_HOME differs from the selected/recorded configuration root; no implicit relocation')
+    if 'single-desktop' in selected:safe_path(root/'openbox/rc.xml',home)
     return validate(home,str(root)) if root!=home/'.config' else root

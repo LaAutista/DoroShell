@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Fix custom config-root symlink-ancestor refusal in module/setup paths: an in-home
+  alias could redirect XML writes into reserved storage. Check root, target and
+  ownership path components before writes; retain strict environment mismatch checks.
+  Make three temporary-home fixtures bind their own config environment.
+
 - Add bounded explicit config-root support for the config-only single-desktop adapter
   through deploy/setup/local bootstrap, with recorded choice, root/path conflict refusal,
   phased recovery and exact undo. Preserve default configs and unrelated XML; no

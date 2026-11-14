@@ -195,3 +195,15 @@ ownership and journal 5, reused for repeat/recovery/removal; changed roots, meta
 pre-ownership config and managed values/modes refuse. Old schemas remain supported.
 Use scoped source/installed CLI, not Settings GUI or core presets, for this adapter.
 Actual Openbox startup with the custom root is unverified. No live/package changes.
+
+
+Independent review correction on unpublished `0b32202`: install.safe checks the
+leaf and resolved home containment, so in-home symlink ancestors bypassed lexical
+root overlap checks through direct modules/setup. config_root now walks components
+through the selected home for roots, XML targets and ownership records, and rechecks
+before a custom target write. New tests reproduce the original bug and cover aliases
+to reserved/ordinary paths, descendant links, installed CLI and pending recovery.
+Three legacy temporary-home fixtures set their own XDG_CONFIG_HOME. The production
+mismatch refusal stays strict. Both unset-XDG and inherited-disposable-XDG full runs
+pass 431 tests; no live action or publication occurred. Prior 0b32202 artifacts remain
+immutable; use the correction for independent verification, not the superseded bundle.

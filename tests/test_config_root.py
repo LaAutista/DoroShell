@@ -232,3 +232,56 @@ class ConfigRootTests(unittest.TestCase):
             self.cli('--apply','--recover')
             self.assertEqual(json.loads((self.home/deploy.POINTER).read_text())['status'],'complete')
         self.assertEqual(self.file.read_bytes(),self.xml);self.assertFalse(self.record.exists())
+
+    def test_symlink_ancestors_and_descendants_refuse_module_setup_and_installed_cli(self):
+        for case in ('root-to-state','root-to-ordinary','openbox-directory','xml-file'):
+            with self.subTest(case=case):
+                home=self.home/case;home.mkdir()
+                actual=home/('.local' if case=='root-to-state' else 'ordinary')/'config'
+                file=actual/'openbox/rc.xml';file.parent.mkdir(parents=True);file.write_bytes(self.xml)
+                if case.startswith('root-'):
+                    (home/'alias').symlink_to(actual.parent,target_is_directory=True);root=home/'alias/config'
+                else:
+                    root=home/'selected';root.mkdir()
+                    if case=='openbox-directory':(root/'openbox').symlink_to(file.parent,target_is_directory=True)
+                    else:
+                        (root/'openbox').mkdir();(root/'openbox/rc.xml').symlink_to(file)
+                install.install(home,True)
+                with patch.dict(os.environ,{'HOME':str(home)},clear=True):
+                    before=self.snapshot()
+                    for kwargs in ({},{'apply':True},{'rollback':True}):
+                        with self.assertRaisesRegex((RuntimeError,ValueError),'symlink'):
+                            modules.run(home,'single-desktop',config_root=root,**kwargs)
+                        self.assertEqual(self.snapshot(),before)
+                    for action in ('--apply','--rollback'):
+                        args=['setup.py','single-desktop','--config-root',str(root),'--home',str(home),action]
+                        with patch.object(sys,'argv',args),patch.object(setup.subprocess,'run') as commands,self.assertRaisesRegex((RuntimeError,ValueError),'symlink'):
+                            setup.main()
+                        commands.assert_not_called();self.assertEqual(self.snapshot(),before)
+                    program=home/'.local/share/doroshell/toolkit/modules.py'
+                    env={'HOME':str(home),'PATH':'/empty','PYTHONDONTWRITEBYTECODE':'1'}
+                    result=subprocess.run([sys.executable,'-S','-B',str(program),'single-desktop','--config-root',str(root),'--apply'],env=env,capture_output=True,text=True)
+                    self.assertNotEqual(result.returncode,0);self.assertIn('symlink',result.stderr)
+                    self.assertEqual(self.snapshot(),before);self.assertEqual(file.read_bytes(),self.xml)
+                    self.assertFalse((home/'.local/state/doroshell/single-desktop.json').exists())
+                    self.assertFalse((home/'.local/state/doroshell/single-desktop.lock').exists())
+
+    def test_pending_owned_target_directory_symlink_refuses_retry_restore_and_recovery(self):
+        real=modules.atomic
+        def crash(path,*args):
+            if path==self.file:raise Crash()
+            return real(path,*args)
+        with patch.object(modules,'atomic',side_effect=crash),self.assertRaises(Crash):self.opt('--apply')
+        moved=self.home/'.local/moved-openbox';self.file.parent.rename(moved)
+        self.file.parent.symlink_to(moved,target_is_directory=True)
+        before=self.snapshot()
+        for kwargs in ({'apply':True},{'rollback':True}):
+            with self.assertRaisesRegex((RuntimeError,ValueError),'symlink'):modules.run(self.home,'single-desktop',**kwargs)
+            self.assertEqual(self.snapshot(),before)
+        for action in ('--apply','--rollback'):
+            args=['setup.py','single-desktop','--home',str(self.home),action]
+            with patch.object(sys,'argv',args),patch.object(setup.subprocess,'run') as commands,self.assertRaisesRegex((RuntimeError,ValueError),'symlink'):
+                setup.main()
+            commands.assert_not_called();self.assertEqual(self.snapshot(),before)
+        with self.assertRaisesRegex((RuntimeError,ValueError),'symlink'):self.cli('--apply','--recover')
+        self.assertEqual(self.snapshot(),before);self.assertEqual((moved/'rc.xml').read_bytes(),self.xml)

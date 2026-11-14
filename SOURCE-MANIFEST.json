@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-explicit-config-root-20261114",
+  "candidate": "doroshell-config-root-symlink-review-20261114",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -29,13 +29,14 @@
     "automatic_prerequisites": "Follow-up on a7cbccbc10ae8e3dc8964b013831e1ced9f24cff: user-initiated automatic curl/Git/Python and explicit-panel validation prerequisite stages, ordinary pacman approval, cancellation/failure stops and mandatory revalidation before module/configuration writes. Scope and package-update boundary in docs/INSTALL.md.",
     "prerequisite_argument_order": "Review correction on unpublished 060a904ff8ffd7bb671b62549e179c2b1a60d9af: bounded Bash option/value/action checks before acquisition/authentication. README download interface restricted to install/plan/no-packages/panel; advanced options remain in local bootstrap/deploy. Published a7cbccb ancestry retained.",
     "optional_start_shortcut": "Bounded optional Alt+F1 deploy/bootstrap/setup adapter on 4e608edb6c8cc69aa5fd66eceaa75e0a1839ba43; explicit custom replacement, reviewed binding fingerprint, whole-file ownership and phased recovery, exact baseline removal/upgrade undo. No live reload; docs/INSTALL.md.",
-    "explicit_config_root": "Bounded CLI single-desktop adapter on 72833d01815ea8b544f11414d8b15003ec208fb8. Explicit home-contained configuration path, existing XML ownership/backup engine, root-specific edit kinds and journal-5 captured root/pre-write snapshot, conflict-aware recovery and exact undo. No runtime/data/state migration; docs/config-roots.md."
+    "explicit_config_root": "Bounded CLI single-desktop adapter on 72833d01815ea8b544f11414d8b15003ec208fb8. Explicit home-contained configuration path, existing XML ownership/backup engine, root-specific edit kinds and journal-5 captured root/pre-write snapshot, conflict-aware recovery and exact undo. No runtime/data/state migration; docs/config-roots.md.",
+    "config_root_symlink_review": "Correction on unpublished 0b32202f752af49f227478ba0e3dc71a26fe4bcd: reproduce and refuse in-home symlink ancestors through module/setup/installed CLI and recovery; strict root/target/ownership component checks. Three fixtures bind their own XDG_CONFIG_HOME; real mismatch refusal retained."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 429,
+    "passed": 431,
     "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
-    "note": "429 tests in disposable HOME/runtime with offscreen Qt and no personal display/session bus. 15 new config-root tests plus one bootstrap forwarding test; installed-toolkit CLI and real fixture XML/bytes/modes, mock package/build transport. Actual baseline module engine separately refuses new edit kinds without writes. No native UI/build, login/custom-root Openbox startup, OS packages/authentication or hardware acceptance."
+    "note": "431 tests pass twice in disposable HOME/runtime: XDG config/data/state/cache unset, and normal inherited paths under the disposable home. Offscreen Qt, memory GSettings, no personal display/session bus. 17 focused root tests pass; new symlink matrix/pending recovery tests fail on prior source. Installed CLI and setup zero-command refusal covered. No live/package/login/hardware acceptance."
   },
   "source_payloads": [
     {
@@ -52,8 +53,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "3902b070c8a8fafb7af767f726608d1c96207d28509b681bbb18a7803f433402",
-      "size": 6733,
+      "sha256": "2bce51e0ac345f07a78a352df7a51f1c205d69c4183d01777ebef461762813cc",
+      "size": 7056,
       "mode": "0o644"
     },
     {
@@ -76,8 +77,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "6a16b904836f62259ea3817a0a03174997717ecd68f942b97580bb54c56e6a89",
-      "size": 40280,
+      "sha256": "44892b1363822bec5f7b6b48e67f77b065d279393d1bb8cbc29eff73da278016",
+      "size": 42298,
       "mode": "0o644"
     },
     {
@@ -172,8 +173,8 @@
     },
     {
       "path": "config_root.py",
-      "sha256": "63f4df7fa8e1a580541f1dfc5591c249b713f4a72e95ce68968acfbfe1583818",
-      "size": 3759,
+      "sha256": "e54b74517afe37900df481dfba717ecf2888027748e13382149bf95980310b2b",
+      "size": 4228,
       "mode": "0o644"
     },
     {
@@ -238,8 +239,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "1f619dc11ffa3a08a51e0b2a16da9dad5fad82c81ad00145f817609ec78681c9",
-      "size": 13724,
+      "sha256": "b00156155b9623182c854092f4d04d23791800466ccb515bae196d56c08c5bb9",
+      "size": 14565,
       "mode": "0o644"
     },
     {
@@ -262,8 +263,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "cf8ca5dfedcdf2fa41c3ef3627e24185acef5b97ff72cb4c8ef2e39884ebb1d4",
-      "size": 12830,
+      "sha256": "7ece7ec40e7b6f2793ed1262136b87070ad4439a424ee2a6a2f2a62b7afa6ff1",
+      "size": 13406,
       "mode": "0o644"
     },
     {
@@ -298,8 +299,8 @@
     },
     {
       "path": "docs/config-roots.md",
-      "sha256": "504a2306bec6f59c6fa1b104a6ddc152e829ef816eaf1aa056f931a20e8dad3a",
-      "size": 6485,
+      "sha256": "7018954df4c6ce9681d2f6ee7faf4ec05fc69fbc4c58db3cb022051ecdf9d5a5",
+      "size": 6722,
       "mode": "0o644"
     },
     {
@@ -502,8 +503,8 @@
     },
     {
       "path": "modules.py",
-      "sha256": "b419c518abc72455c5bbfcf15560831225d920d44da8b9fd772e0df8be0c7597",
-      "size": 38935,
+      "sha256": "b7e58d1d2f475df4dee0f93b21cb827bd3d44f117b63ef6de46f6bca2aeca292",
+      "size": 39062,
       "mode": "0o644"
     },
     {
@@ -1072,8 +1073,8 @@
     },
     {
       "path": "tests/test_config_root.py",
-      "sha256": "4a117253ea019855ef69a4f80a6cd18c8b1625d08a211311006876edaf886d55",
-      "size": 16190,
+      "sha256": "5dae74a25f4f2c643dfd0de94a14ebc80abd43cacbde30aee5350a530725ae68",
+      "size": 20177,
       "mode": "0o644"
     },
     {
@@ -1186,8 +1187,8 @@
     },
     {
       "path": "tests/test_modules.py",
-      "sha256": "6a988da3761c878ee6b4e6b9a8856361bea2f396db395733fbe3605ffeed6e13",
-      "size": 7627,
+      "sha256": "1fa69bf2986cdbacac3de60712a0399b3754a5a16025a91875016e9f7c339d83",
+      "size": 7761,
       "mode": "0o644"
     },
     {
@@ -1252,8 +1253,8 @@
     },
     {
       "path": "tests/test_settings.py",
-      "sha256": "b99eabca37f9746d9c65b1d779010b6e7c8b79c7688c847af9d8862fa197f163",
-      "size": 11252,
+      "sha256": "b37e2f24069f79d22ec54b5a708e82d990e1ea1c0059ea7509f5d0f4d7715fc0",
+      "size": 11319,
       "mode": "0o644"
     },
     {

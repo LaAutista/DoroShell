@@ -545,7 +545,10 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
             update_print()
         for path,data in changed.items():
             if custom or module=='start-shortcut':
-                safe(path,home)
+                if custom:
+                    from config_root import safe_path
+                    safe_path(path,home)
+                else:safe(path,home)
                 if (path.read_bytes() if path.exists() else None)!=original[path] or (path.exists() and path.stat().st_mode & 0o777 != modes[path]):
                     raise RuntimeError('Concurrent managed-file edit; recovery evidence retained')
             if path == shortcuts and update_print:

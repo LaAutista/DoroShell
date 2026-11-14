@@ -1,3 +1,33 @@
+# Config-root symlink review correction — 2026-11-14
+
+Independent review of unpublished `0b32202f752af49f227478ba0e3dc71a26fe4bcd` found
+that `HOME/alias -> HOME/.local` with root `HOME/alias/alias-config` passed the
+lexical overlap check and direct module apply changed the real reserved-path XML.
+This was reproduced in a disposable home before fixing it. Deployment's stronger
+ancestor check did not protect direct module/setup paths.
+
+A small shared component check now rejects in-home symlink aliases on root, fixed
+XML target and ownership paths through the selected home, before module/setup/CLI
+writes. Custom target writes recheck the components. Existing home containment,
+reserved-path overlap, root ownership, environment mismatch, rollback and journal
+checks remain intact. No shared install.safe behavior or live session is changed.
+
+**431 full-suite tests pass in each of two disposable environments**: XDG variables
+unset, and normal XDG config/data/state/cache inherited under the disposable home.
+Seventeen root tests pass, including two new matrix/pending-recovery tests. The new
+regressions failed on the reviewed source. They cover reserved and ordinary ancestor
+aliases, symlinked Openbox directories/XML files, module preview/apply/restore,
+setup with zero subprocess calls, installed CLI, and pending deployment recovery.
+Targets and ownership/journal evidence remain unchanged on refusal. Three existing
+module/settings fixtures now set their own XDG_CONFIG_HOME; no production mismatch
+check was weakened. Code was tested before documentation/metadata refresh.
+
+The previous candidate source and artifacts are preserved. This correction is local,
+unpublished and awaiting independent review. Source/archive integrity and preservation
+checks are recorded in the new durable evidence directory. Actual Openbox startup,
+login, clean OS and adversarial concurrent filesystem replacement remain unverified;
+this remains bounded path validation, not a dirfd-based atomic filesystem transaction.
+
 # Explicit config-root checkpoint — 2026-11-14
 
 Based on published `72833d01815ea8b544f11414d8b15003ec208fb8`. The source inventory

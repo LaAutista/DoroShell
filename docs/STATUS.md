@@ -145,3 +145,12 @@ completed finalization, removal and exact upgrade undo. Existing module code fro
 `72833d0` separately refuses the new edit kinds for apply/rollback without changing
 fixture bytes/modes. No native UI/build, actual custom-root Openbox startup, clean OS,
 packages/authentication or live session acceptance occurred. See [path inventory](config-roots.md).
+
+
+The independent-review symlink correction passes **431 tests twice**: with XDG
+config/data/state/cache unset and with normal inherited paths under a disposable
+home. The prior 429-test run did not exercise the reproduced in-home ancestor alias.
+Two new matrix/recovery tests prove module/setup/installed CLI refusal without target
+or ownership changes; inherited-config fixture errors are fixed by binding the three
+fixtures to their own temporary config paths. Real environment mismatch refusal is
+unchanged. No live, login, package or native hardware acceptance is added.

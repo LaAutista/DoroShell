@@ -36,8 +36,11 @@ argument. The smaller README download wrapper does not accept this advanced opti
 Settings GUI, core/mixed module presets, native-panel selection and custom roots
 outside the selected home are unsupported. No existing config is copied or moved.
 
-The root must be absolute, canonical, home-contained and free of symlink components;
-its `openbox/rc.xml` must exist and validate. Missing paths refuse without creating
+The root must be absolute, canonical and home-contained. Root, ownership-record and
+`openbox/rc.xml` path components through the selected home are checked for symlinks,
+including aliases that resolve elsewhere inside the same home. The XML must exist
+and validate. Module/setup preflight shares these checks, with another component
+check before a custom target write. Missing paths refuse without creating
 config directories. A custom root cannot overlap `.config`, `.local`, `.cache` or
 `.icons`, or the configured cache/runtime directory; choosing the exact default `.config` retains legacy behavior. Alternate
 data/state roots remain refused. A set `XDG_CONFIG_HOME` must match the explicitly
