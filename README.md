@@ -12,10 +12,12 @@ desktop environment. No compositor is required. Development is ongoing.
 From your normal user account in an initialized **LXQt/X11 + Openbox** session:
 
 ```sh
-bash -c 'set -e; f=$(mktemp); trap "rm -f -- \"$f\"" EXIT; curl --fail --location --proto "=https" --tlsv1.2 https://raw.githubusercontent.com/LaAutista/DoroShell/main/bootstrap.sh -o "$f"; bash "$f" --apply'
+bash -c 'set -e; command -v gh >/dev/null || sudo pacman -Syu --needed github-cli; gh auth status --hostname github.com >/dev/null 2>&1 || gh auth login --hostname github.com --git-protocol https --web; f=$(mktemp); trap "rm -f -- \"$f\"" EXIT; gh api repos/LaAutista/DoroShell/contents/bootstrap.sh -H "Accept: application/vnd.github.raw+json" > "$f"; bash "$f" --apply'
 ```
 
-This downloads the complete installer before executing it, fetches a specific Git
+The repository is currently **private**: sign in with a GitHub account that has
+access when prompted. The command installs GitHub CLI if missing, then downloads
+the complete installer before executing it. It fetches a specific Git
 revision into a permanent user source directory, and verifies its source/asset
 inventory. It installs the core modules: Start/settings, native taskbar/tray, themes,
 loading cursors, snapping, screenshots, and update/removal commands. Missing official
@@ -37,7 +39,7 @@ apply to other Arch derivatives. [Full installation and troubleshooting](docs/IN
 ## Clone, choose modules, update or remove
 
 ```sh
-git clone https://github.com/LaAutista/DoroShell.git
+gh repo clone LaAutista/DoroShell
 cd DoroShell
 python deploy.py                              # inspect platform/packages/modules
 python deploy.py --apply                      # same core installer as bootstrap

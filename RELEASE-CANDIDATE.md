@@ -180,7 +180,7 @@ Verification boundaries:
 
 - Inherited full suite: 262 tests before changes. An intermediate complete suite
   passed 277 tests. Final suite: **285 tests passed** (`python -m unittest discover -s tests -v`).
-- Targeted bootstrap: five tests with fake Git/curl transport, including the exact
+- Targeted bootstrap: five tests with fake Git/GitHub-CLI transport, including the exact
   README shell command, failed-download non-execution, source reuse/dirty refusal,
   stable-label refusal, and symlink refusal. No remote write by these tests.
 - Targeted deployment: 15 temporary-home tests, including actual menu installation,
@@ -204,3 +204,12 @@ process inspection still found the ten-patch panel, schema-2 desktop and clipboa
 helper; no session process was refreshed. The hardware NVIDIA mismatch remains
 unknown. `release.json` declares development; no stable portable release is invented.
 See README and docs/INSTALL.md, STATUS.md and HANDOFF.md for installation and limits.
+
+### Private-repository bootstrap correction
+
+The real unauthenticated raw-GitHub download returned HTTP 404 after publication.
+Read-only repository metadata confirms PRIVATE visibility. README now uses GitHub
+CLI authentication and the authorized contents endpoint, with download completion
+checked before execution. Bootstrap fetch uses a per-command CLI credential helper
+and does not change repository visibility or persistent Git configuration. Five
+bootstrap tests cover the corrected command and failed-download non-execution.

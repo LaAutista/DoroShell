@@ -5,7 +5,7 @@ Read [AGENTS](../AGENTS.md), [STATUS](STATUS.md), [ARCHITECTURE](ARCHITECTURE.md
 a dirty workspace with a newer source snapshot or force-push a shared branch.
 
 ```sh
-git clone https://github.com/LaAutista/DoroShell.git
+gh repo clone LaAutista/DoroShell
 cd DoroShell
 git switch -c work/describe-change
 python source_release.py

@@ -15,13 +15,13 @@ main() (
     done
     case "$channel" in development) ;; stable) ref=stable ;; *) echo 'Choose development or stable' >&2; return 2 ;; esac
     [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$ref" != *..* ]] || { echo 'Invalid revision' >&2; return 2; }
+    [[ $EUID != 0 ]] || { echo 'Run as your normal desktop user, not root.' >&2; return 1; }
     if ! command -v git >/dev/null || ! command -v python3 >/dev/null; then
         if ! "$apply"; then echo 'Install prerequisites with sudo pacman -Syu --needed git python, or use --apply.'; return 1; fi
         command -v pacman >/dev/null || { echo 'Arch/pacman required' >&2; return 1; }
         echo 'Git/Python are missing. pacman will show a full-system update for approval.'
         sudo pacman -Syu --needed git python
     fi
-    [[ $EUID != 0 ]] || { echo 'Run as your normal desktop user, not root.' >&2; return 1; }
     # Existing installers use the default XDG layout; do not silently install elsewhere.
     root="$HOME/.local/share/doroshell/sources"
     python3 - "$root" <<'PY'
@@ -36,7 +36,12 @@ PY
     trap '[[ -z ${tmp:-} ]] || rm -rf -- "$tmp"' EXIT
     git -C "$tmp" init -q
     git -C "$tmp" remote add origin https://github.com/LaAutista/DoroShell.git
-    git -C "$tmp" fetch --depth=1 origin "$ref"
+    if command -v gh >/dev/null && gh auth status --hostname github.com >/dev/null 2>&1; then
+        # Private repository: use the authorized CLI without changing Git configuration.
+        git -C "$tmp" -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --depth=1 origin "$ref"
+    else
+        git -C "$tmp" fetch --depth=1 origin "$ref"
+    fi
     git -C "$tmp" checkout --detach -q FETCH_HEAD
     revision=$(git -C "$tmp" rev-parse HEAD)
     [[ -f "$tmp/deploy.py" ]] || { echo 'This revision predates the portable installer; choose development or a newer release.' >&2; return 1; }

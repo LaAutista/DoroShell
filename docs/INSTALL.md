@@ -9,7 +9,12 @@ custom layouts produce a specific refusal. DoroShell does not install a display
 manager, switch desktop environments, or claim Wayland support. Custom XDG roots
 remain unsupported by the older installation adapters and are refused explicitly.
 
-The exact bootstrap command is in [README](../README.md). It downloads to a temporary
+The repository is private. The exact authenticated bootstrap command in [README](../README.md)
+installs GitHub CLI if missing and guides sign-in when needed. Use an account granted
+repository access. No token is placed in a URL or saved in the repository; Git fetch
+uses the CLI credential helper per command without changing persistent Git config.
+An unauthenticated raw-GitHub curl URL returns 404 and is not an installation route.
+The command downloads to a temporary
 file before execution, fetches the complete Git revision, checks its inventory and
 keeps the source at `~/.local/share/doroshell/sources/COMMIT`. About 80 MB of bundled
 artwork/video is included. No runtime binaries are downloaded. A direct clone works

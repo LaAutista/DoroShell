@@ -7,7 +7,8 @@ pins, histories, monitor settings, credentials and backups are intentionally abs
 
 ## Start here
 
-Clone the existing repository, read AGENTS → STATUS → ARCHITECTURE → INSTALL →
+The repository is private: use an authorized GitHub account (`gh auth login`), then
+`gh repo clone LaAutista/DoroShell`. Clone the existing repository, read AGENTS → STATUS → ARCHITECTURE → INSTALL →
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen

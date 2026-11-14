@@ -5,6 +5,7 @@
 - Preserve complete current source and owner-requested Doro artwork, original GIF,
   transparent APNG and selected wallpapers in a hash-catalogued baseline (`dee97b4`).
   Retain newer upstream provenance and design work (`36929b2`).
+- Use authenticated GitHub CLI acquisition for the existing private repository; no visibility change or tokens in URLs.
 - Add a download-first bootstrap and capability-aware Arch/LXQt/X11 orchestration
   over existing installers, official package checks, versioned native builds,
   scoped updates/removal and explicit development/stable distinction.

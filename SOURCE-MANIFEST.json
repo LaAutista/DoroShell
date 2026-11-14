@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-portable-development-20261114",
+  "candidate": "doroshell-portable-development-20261114-private-github",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -17,13 +17,14 @@
     "screenshot_window_capture": "0e66e29179051a5eb7459afe003e5a2e9ca19958",
     "display_diagnostic_phases": "Private schema-2 phase/property diagnostics; exact state equivalence retained; see RELEASE-CANDIDATE.md",
     "native_tray_shortcut": "d7279a62921cb3fb7e6a4907a4c3e40e1b919736",
-    "portable_installer": "bootstrap/deploy over existing adapters; legacy cursor recovery; profile-preserving native upgrade; docs/HANDOFF.md"
+    "portable_installer": "bootstrap/deploy over existing adapters; legacy cursor recovery; profile-preserving native upgrade; docs/HANDOFF.md",
+    "private_bootstrap": "Authenticated GitHub CLI acquisition after real raw-URL 404; repository remains private"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
     "passed": 285,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Final full suite: 285 passed. Actual panel and paired wallpaper/display builds passed; disposable-home complete-module install/repeat/undo/removal and installed toolkit imports passed. Bootstrap shell/transport tests passed. No packages/live settings/clean OS/login/hardware tests."
+    "note": "Final full suite: 285 passed. Actual panel and paired wallpaper/display builds passed; disposable-home complete-module install/repeat/undo/removal and installed toolkit imports passed. Bootstrap shell/transport tests passed. No packages/live settings/clean OS/login/hardware tests. Private repository correction: authenticated CLI bootstrap and targeted tests; remote preview verification follows publication."
   },
   "source_payloads": [
     {
@@ -40,8 +41,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "548608a3fe46c19fee8f2b98a191abd51156914ec1f659a56b111aec80f41926",
-      "size": 1438,
+      "sha256": "40ee55dd79888ed9474a0311f076a2cf52d94c5910ec47d25acf1b88000c75da",
+      "size": 1558,
       "mode": "0o644"
     },
     {
@@ -58,14 +59,14 @@
     },
     {
       "path": "README.md",
-      "sha256": "309277f60032ab98abce2309f0362a33ded40f1d9e28e4b80b509385d1c3c0a8",
-      "size": 5898,
+      "sha256": "94e16006584293721b82aee3d121b3cb0e4c2db8b638ea8dc117e2839511f27e",
+      "size": 6191,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "5cfabf2df9c8451e762bc6a77febef92502fce5adb9955f6043fcadf12884cb3",
-      "size": 15580,
+      "sha256": "69b753537f68d307a7a4cc4793c89d9807d0dcd4aaf49e563bc6e1b267b6ab21",
+      "size": 16120,
       "mode": "0o644"
     },
     {
@@ -118,8 +119,8 @@
     },
     {
       "path": "bootstrap.sh",
-      "sha256": "54fd2329799c1887942539af6ca3573f5671cf1cfa9b4978bcdc2a61fb3a72c5",
-      "size": 3098,
+      "sha256": "d718301daf082a72de1c0296799e41e63e7cd3ea93f66375c3b13647eaa56e96",
+      "size": 3422,
       "mode": "0o644"
     },
     {
@@ -208,8 +209,8 @@
     },
     {
       "path": "docs/DEVELOPMENT.md",
-      "sha256": "3d89f9e6462af63576beb82d152c6ed2b2354447c715e49c21797614ff0fd416",
-      "size": 3272,
+      "sha256": "52ec66cb286d6cd5a8b5b5c248e1eb3ce088247c571290b2571c4da64f89d3ca",
+      "size": 3253,
       "mode": "0o644"
     },
     {
@@ -220,14 +221,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "e19426bfc54df38aa4da69df0bb67695acecd5f3c8502e42c18dfa4e5c15a6b2",
-      "size": 5243,
+      "sha256": "bc7c97f3563a0d54d7a1bf13b5fdbc46ad3352c28bac1f7ae335baf0f8060f91",
+      "size": 5364,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "a38e05dedb0a2157ddc53361b7a89dcdacacc6f4af8f9d60cb347517a51cbd1c",
-      "size": 7726,
+      "sha256": "0423ca6295a04b5a13fd14a42a17f64d63a71e0e292a894d9154db2456f5f598",
+      "size": 8111,
       "mode": "0o644"
     },
     {
@@ -1000,8 +1001,8 @@
     },
     {
       "path": "tests/test_bootstrap.py",
-      "sha256": "a09bb0ccc890ded203201190f484e87d9df9f594790d581bd74cec1f7c2a6d15",
-      "size": 4079,
+      "sha256": "79aae52b9be4ca8423c43e2bb1834f4df0785e958e2b972e0dadfdc6d381b4a6",
+      "size": 4214,
       "mode": "0o644"
     },
     {
