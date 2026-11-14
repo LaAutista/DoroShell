@@ -147,6 +147,32 @@ class NativePanelTests(unittest.TestCase):
                 self.assertEqual({k: cfg.value(k) for k in cfg.allKeys() if k.startswith('quicklaunch/apps')},
                                  {k: original.value(k) for k in original.allKeys() if k.startswith('quicklaunch/apps')})
 
+    def test_merge_respects_array_size_and_saves_duplicate_only_cleanup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp); apps = self.quicklaunch_fixture(home)
+            # Stale entry 2 lies past apps/size=1 and must not be resurrected as a pin.
+            raw = ('[panel1]\nplugins=quicklaunch, taskbar\n[quicklaunch]\napps\\1\\desktop='+str(apps/'alpha.desktop')+
+                   '\napps\\2\\desktop='+str(apps/'beta.desktop')+'\napps\\size=1\n')
+            out = home/'out.conf'; out.write_bytes(profile.profile(raw, home, [], None))
+            cfg = QSettings(str(out), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('doroshellTasks/doroshellPinned'), str(apps/'alpha.desktop'))
+            # Missing apps/size: leave the widget alone.
+            raw = '[panel1]\nplugins=quicklaunch, taskbar\n[quicklaunch]\napps\\1\\desktop='+str(apps/'alpha.desktop')+'\n'
+            out.write_bytes(profile.profile(raw, home, [], None))
+            cfg = QSettings(str(out), QSettings.Format.IniFormat)
+            self.assertIn('quicklaunch', cfg.value('panel1/plugins'))
+            self.assertEqual(cfg.value('quicklaunch/apps/1/desktop'), str(apps/'alpha.desktop'))
+            # Only a duplicate is removed (folder link stays): the change must still be saved.
+            config = home/'.config/doroshell/panel.conf'; config.parent.mkdir(parents=True)
+            config.write_text('[panel1]\nplugins=quicklaunch, doroshellTasks\n[quicklaunch]\ntype=quicklaunch\n'
+                              'apps\\1\\desktop='+str(apps/'folder.desktop')+'\napps\\2\\desktop='+str(apps/'alpha.desktop')+
+                              '\napps\\size=2\n[doroshellTasks]\ntype=taskbar\ndoroshellPinned='+str(apps/'alpha.desktop')+'\n')
+            config.chmod(0o600)
+            profile.merge_existing(home)
+            cfg = QSettings(str(config), QSettings.Format.IniFormat)
+            self.assertEqual(cfg.value('quicklaunch/apps/size', type=int), 1)
+            self.assertEqual(cfg.value('quicklaunch/apps/1/desktop'), str(apps/'folder.desktop'))
+
     def test_merge_refuses_symlinked_state(self):
         with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as outside:
             home = Path(tmp)

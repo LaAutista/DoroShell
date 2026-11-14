@@ -591,8 +591,8 @@
     },
     {
       "path": "panel/profile.py",
-      "sha256": "e5b0a589a9d135f011e37b243821e89232020deef92998ca255fa755d9a98e82",
-      "size": 22138,
+      "sha256": "d11465764d8fe8b046a596fb8e88bb9c88bd2cbc147c0c2853a14c0ec2030809",
+      "size": 22497,
       "mode": "0o644"
     },
     {
@@ -1155,8 +1155,8 @@
     },
     {
       "path": "tests/test_native_panel.py",
-      "sha256": "6885865f2c739fdc3a2ff11c7940921a5910dfa6108e392c2f6ae5cb8b2791b5",
-      "size": 18775,
+      "sha256": "65d835dcefffddfe1f2b2f7cc64591a83d96bf6cb15b650153bcefd4075edf7d",
+      "size": 20878,
       "mode": "0o644"
     },
     {

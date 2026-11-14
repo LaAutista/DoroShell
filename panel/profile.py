@@ -150,14 +150,18 @@ def merge_quicklaunch(cfg, plugins, pins, identities, home=None):
         if name=='doroshellStart' or cfg.value(name+'/type',name)!='quicklaunch':
             result.append(name);continue
         prefix=name+'/apps/'
-        entries={};unknown=False
+        size=cfg.value(prefix+'size')
+        size=int(size) if isinstance(size,str) and size.isdigit() else None
+        entries={};unknown=size is None
         for key in cfg.allKeys():
+            if unknown:break
             if not key.startswith(prefix) or key==prefix+'size':continue
             index,_,field=key[len(prefix):].partition('/')
             value=cfg.value(key)
             if not index.isdigit() or not field or '/' in field or not isinstance(value,str):
                 unknown=True;break
-            entries.setdefault(int(index),{})[field]=value
+            if 1<=int(index)<=size:  # QSettings arrays may keep stale entries past apps/size
+                entries.setdefault(int(index),{})[field]=value
         if unknown or not entries:
             result.append(name);continue
         moved=[];leftover=[]
@@ -213,8 +217,9 @@ def merge_existing(home, preview=False):
             app=app_info(path)
             identities.add(((app.get_startup_wm_class() if app else None) or Path(path).stem).casefold())
         before=list(pins)
+        snapshot={k:cfg.value(k) for k in cfg.allKeys()}
         result=merge_quicklaunch(cfg,plugins,pins,identities,home)
-        if result==plugins and pins==before:
+        if result==plugins and pins==before and {k:cfg.value(k) for k in cfg.allKeys()}==snapshot:
             print('Nothing to merge: no Quick Launch applications next to the taskbar');return
         for path in pins[len(before):]:print('Pin in taskbar:',path)
         if preview:return
