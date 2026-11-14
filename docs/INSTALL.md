@@ -10,11 +10,10 @@ custom layouts produce a specific refusal. DoroShell does not install a display
 manager, switch desktop environments, or claim Wayland support. Custom XDG roots
 remain unsupported by the older installation adapters and are refused explicitly.
 
-The repository is private. The exact authenticated bootstrap command in [README](../README.md)
-installs GitHub CLI if missing and guides sign-in when needed. Use an account granted
-repository access. No token is placed in a URL or saved in the repository; Git fetch
-uses the CLI credential helper per command without changing persistent Git config.
-An unauthenticated raw-GitHub curl URL returns 404 and is not an installation route.
+The repository is public. The bootstrap command in [README](../README.md) uses
+`curl` and requires no GitHub account, token or GitHub CLI. Git fetch uses anonymous
+HTTPS with credential helpers disabled for that command; persistent Git configuration
+is unchanged. Install `curl` first if it is unavailable, or use the documented Git clone.
 The command downloads to a temporary
 file before execution, fetches the complete Git revision, checks its inventory and
 keeps the source at `~/.local/share/doroshell/sources/COMMIT`. About 80 MB of bundled
@@ -61,6 +60,19 @@ Alt+F1 mappings are not silently replaced: the new orchestration provides the St
 button; use the existing reviewed shortcut-integration workflow separately if needed.
 Screenshots configure Print on disk; running shortcut daemons may require the next
 normal login to pick up changes. No process is restarted by `deploy.py`.
+
+## One desktop and restoring multiple desktops
+
+Fresh `core` installs include `single-desktop`; existing deployments keep their
+recorded module selection. A scoped install such as `--modules menu` does not add it.
+To opt in separately, use `python deploy.py --modules single-desktop --apply`.
+Restore with `python deploy.py --modules single-desktop --remove --apply`, or
+Settings → Taskbar & Windows → One desktop → Restore previous settings.
+These commands save Openbox's desktop count and first desktop for the next normal
+login. They do not migrate live windows or change the running desktop count;
+`modules.py single-desktop --live` is explicitly refused. Conflicting personal edits
+stop restoration. Disposable-file tests cover repeat, scoped XML edits and exact
+restoration, not login or live keyboard/scroll-wheel behavior.
 
 ## Optional media and display controls
 

@@ -18,7 +18,7 @@ separate from this pass. Source publication does not imply live activation.
 
 The inherited 262-test suite passed before installer edits; the portable installer
 checkpoint passed 285 tests and the recovery follow-up passed 302. Input integration
-passed 326; after read-only diagnostics, the full suite passes **337 tests**. New targeted tests cover
+passed 326; read-only diagnostics passed 337 tests. The public-bootstrap follow-up passes **346 tests**. New targeted tests cover
 real temporary-home menu/toolkit installation, combined panel/theme/snapping/capture/
 clipboard staging, repeats, first-baseline restoration, exact prior-upgrade undo,
 injected partial failure/recovery, invalid records, byte/mode/symlink conflicts and
@@ -40,7 +40,16 @@ No package installation, personal deployment, session refresh or hardware mode
 write was performed during this work. Artwork authorship/redistribution terms remain
 the owner's review responsibility; no new third-party license is asserted.
 
-The authenticated private-GitHub bootstrap was tested against published `5c0baba`: real
+Public-access follow-up: anonymous raw download and candidate bootstrap plan/repeat
+passed against published `870bdac4` in a disposable HOME with Git global config,
+credential helpers and interactive prompts disabled, no tokens, and no display/session
+bus. Source inventory passed; no configuration or deployment state was created.
+The exact README command also passed a synthetic partial-download refusal check.
+This is download/plan acceptance, not a package install or clean-machine test.
+Single-desktop fixture coverage includes plan/no write, repeat, count/firstdesk scope,
+conflict refusal and byte/mode restoration, without launching live commands.
+
+Historically, the authenticated private-GitHub bootstrap was tested against published `5c0baba`: real
 download/plan, scoped menu apply with `--no-packages`, repeat and removal all passed
 in a disposable home. It used development-host dependencies, not a clean OS. The
 new full source archive also passed inventory/hash round-trip checks.

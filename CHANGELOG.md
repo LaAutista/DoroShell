@@ -2,6 +2,12 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Update bootstrap and handoff instructions for the public repository: curl/Git need
+  no GitHub CLI, account or token. Anonymous fetch disables credential helpers and
+  terminal prompts per command. Preserve complete-download-before-execution checks.
+- Document single-desktop's next-login boundary and verify repeat, scoped XML edits,
+  conflict refusal and exact restoration in disposable files.
+
 - Install the existing `single-desktop` module by default: Openbox gets one desktop, so
   Ctrl+Alt+arrows, Win+F1–F4 and the desktop scroll wheel no longer switch desktops.
   Re-enable in DoroShell Settings → Taskbar & Windows → One desktop → Restore previous

@@ -36,12 +36,8 @@ PY
     trap '[[ -z ${tmp:-} ]] || rm -rf -- "$tmp"' EXIT
     git -C "$tmp" init -q
     git -C "$tmp" remote add origin https://github.com/LaAutista/DoroShell.git
-    if command -v gh >/dev/null && gh auth status --hostname github.com >/dev/null 2>&1; then
-        # Private repository: use the authorized CLI without changing Git configuration.
-        git -C "$tmp" -c credential.helper= -c 'credential.helper=!gh auth git-credential' fetch --depth=1 origin "$ref"
-    else
-        git -C "$tmp" fetch --depth=1 origin "$ref"
-    fi
+    # Public source needs no account, CLI authentication or credential helper.
+    GIT_TERMINAL_PROMPT=0 git -C "$tmp" -c credential.helper= fetch --depth=1 origin "$ref"
     git -C "$tmp" checkout --detach -q FETCH_HEAD
     revision=$(git -C "$tmp" rev-parse HEAD)
     [[ -f "$tmp/deploy.py" ]] || { echo 'This revision predates the portable installer; choose development or a newer release.' >&2; return 1; }

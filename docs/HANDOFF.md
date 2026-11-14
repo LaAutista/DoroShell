@@ -7,8 +7,8 @@ pins, histories, monitor settings, credentials and backups are intentionally abs
 
 ## Start here
 
-The repository is private: use an authorized GitHub account (`gh auth login`), then
-`gh repo clone LaAutista/DoroShell`. Clone the existing repository, read AGENTS → STATUS → ARCHITECTURE → INSTALL →
+The repository is public: no GitHub authentication is required. Use
+`git clone https://github.com/LaAutista/DoroShell.git`. Clone the existing repository, read AGENTS → STATUS → ARCHITECTURE → INSTALL →
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen
@@ -19,6 +19,11 @@ New work was reconciled in a separate checkout instead of copying it over curren
 main. Installed Start/search/folder/theme helpers matched published source. A stale
 installed toolkit wallpaper controller lacked volume support; current source retains
 the newer controller. Do not downgrade it from an old local toolkit or archive.
+
+Public-access follow-up replaces the obsolete GitHub CLI sign-in bootstrap with
+anonymous HTTPS download/fetch. Disposable-home plan/repeat and partial-download
+refusal pass; no new installation or login acceptance is claimed. Single-desktop
+next-login and restoration boundaries are documented in INSTALL.
 
 ## Decisions and constraints
 

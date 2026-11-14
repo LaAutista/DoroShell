@@ -14,11 +14,14 @@ class BootstrapTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.home=Path(self.tmp.name);bin_dir=self.home/'bin';bin_dir.mkdir()
         self.env=dict(os.environ,HOME=str(self.home),PATH=str(bin_dir)+':'+os.environ['PATH'])
-        gh=bin_dir/'gh';gh.write_text('#!/bin/sh\nexit 0\n');gh.chmod(0o755)
+        gh=bin_dir/'gh';gh.write_text('#!/bin/sh\ntouch "$HOME/gh-invoked"\nexit 1\n');gh.chmod(0o755)
         git=bin_dir/'git'
         git.write_text('''#!/usr/bin/python3
 import json,os,pathlib,sys
 a=sys.argv[1:];root=pathlib.Path(a[1]);a=a[2:]
+if 'fetch' in a:
+ assert a[:2]==['-c','credential.helper='], a
+ assert os.environ.get('GIT_TERMINAL_PROMPT')=='0'
 while a and a[0]=='-c':a=a[2:]
 if a[0]=='init':(root/'.git').mkdir()
 elif a[0]=='fetch':
@@ -34,6 +37,7 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
         result=subprocess.run(['/usr/bin/bash',str(ROOT/'bootstrap.sh'),*args],env=self.env,capture_output=True,text=True)
         if ok:self.assertEqual(result.returncode,0,result.stderr)
         else:self.assertNotEqual(result.returncode,0)
+        self.assertFalse((self.home/"gh-invoked").exists())
         return result
 
     def test_complete_download_plan_and_apply_forwarding_and_repeat(self):
@@ -66,16 +70,16 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
         self.assertEqual(list(target.iterdir()),[])
 
     def test_exact_readme_one_liner_does_not_execute_partial_download(self):
-        # Exercise the exact documented shell quoting, substituting GitHub CLI only.
+        # Exercise the exact documented shell quoting, substituting curl only.
         command=next(line for line in (ROOT/'README.md').read_text().splitlines() if line.startswith('bash -c '))
-        curl=self.home/'bin/gh'
+        curl=self.home/'bin/curl'
         curl.write_text('''#!/usr/bin/python3
 import os,pathlib,sys
-if sys.argv[1:3]==['auth','status']:sys.exit(0)
-if sys.argv[1:2]==['api']:
- print('echo EXECUTED-BOOTSTRAP "$@"')
- sys.exit(22 if os.environ.get('FAIL_FETCH') else 0)
-sys.exit(1)
+args=sys.argv[1:]
+assert '--fail' in args and '--location' in args
+assert 'https://raw.githubusercontent.com/LaAutista/DoroShell/main/bootstrap.sh' in args
+pathlib.Path(args[args.index('--output')+1]).write_text('echo EXECUTED-BOOTSTRAP "$@"')
+sys.exit(22 if os.environ.get('FAIL_FETCH') else 0)
 ''');curl.chmod(0o755)
         result=subprocess.run(['/usr/bin/bash','-c',command],env=self.env,capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr);self.assertIn('EXECUTED-BOOTSTRAP --apply',result.stdout)

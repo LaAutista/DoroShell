@@ -26,6 +26,32 @@ class ModulesTests(unittest.TestCase):
         (home/'.config/lxqt/globalkeyshortcuts.conf').write_text('[Print.30]\nExec=old-shot\nEnabled=true\n')
         return home
 
+    def test_single_desktop_plan_repeat_restore_and_conflict(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=self.home(d)
+            path=home/'.config/openbox/rc.xml'
+            original='<openbox_config><desktops><number>4</number><firstdesk>3</firstdesk></desktops><other><number>7</number></other></openbox_config>'
+            path.write_text(original); path.chmod(0o600)
+            with patch.object(modules.subprocess,'run',side_effect=AssertionError('No live commands')), patch.object(modules.subprocess,'Popen',side_effect=AssertionError('No live processes')):
+                modules.run(home,'single-desktop')
+                self.assertEqual(path.read_text(),original)
+                self.assertFalse((home/'.local/state/doroshell/single-desktop.json').exists())
+                modules.run(home,'single-desktop',apply=True)
+                applied=path.read_bytes()
+                self.assertIn(b'<desktops><number>1</number><firstdesk>1</firstdesk>',applied)
+                self.assertIn(b'<other><number>7</number></other>',applied)
+                modules.run(home,'single-desktop',apply=True)
+                self.assertEqual(path.read_bytes(),applied)
+                path.write_bytes(applied.replace(b'<number>1</number>',b'<number>2</number>'))
+                edited=path.read_bytes()
+                with self.assertRaisesRegex(RuntimeError,'Personal edit'):
+                    modules.run(home,'single-desktop',rollback=True)
+                self.assertEqual(path.read_bytes(),edited)
+                path.write_bytes(applied)
+                modules.run(home,'single-desktop',rollback=True)
+                self.assertEqual(path.read_text(),original)
+                self.assertEqual(path.stat().st_mode & 0o777,0o600)
+
     def test_all_modules_repeat_and_independent_rollback(self):
         with tempfile.TemporaryDirectory() as d:
             home=self.home(d)
