@@ -47,8 +47,8 @@ and recovery checkpoints are intentionally excluded from public source.
 The user chose lightweight wallpaper-derived glass and dropped true moving-window
 Aero/compositor work. Wallpaper glass samples the configured static backdrop; it
 is not transparency through moving application windows or video frames. No live
-Aero experiments, compositor changes or further Aero work are scheduled. Neutral
-artwork ships; personal artwork and media do not.
+Aero experiments, compositor changes or further Aero work are scheduled. The owner-requested artwork and wallpaper source bundle now ships separately from
+private desktop settings; see assets.md.
 
 ## Recovery and genuinely remaining acceptance
 

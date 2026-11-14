@@ -17,7 +17,7 @@ from xml.parsers import expat
 
 ROOT = Path(__file__).resolve().parent
 TASKBAR_SIZES = {'small': (20, 36), 'medium': (28, 48), 'large': (36, 56)}
-MODULES = ('clipboard', 'wallpaper-glass', 'wallpaper', 'theme', 'taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
+MODULES = ('maintenance', 'clipboard', 'wallpaper-glass', 'wallpaper', 'theme', 'taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
 
 
 def ini_value(text, section, key):
@@ -57,6 +57,13 @@ def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_pre
         edits.append({'file':name,'kind':'file','after':base64.b64encode(data).decode(),'mode':mode})
     def ini(name, section, key, value):
         edits.append({'file':name,'kind':'ini','section':section,'key':key,'after':value})
+    if module == 'maintenance':
+        if not all((ROOT/name).is_file() for name in ('bootstrap.sh', 'deploy.py')):
+            raise PlanError('Install maintenance commands from the complete source checkout, not the reduced Settings toolkit.')
+        for name, argv in [('doroshell-update', ['/usr/bin/bash', str(ROOT/'bootstrap.sh'), '--apply']),
+                           ('doroshell-remove', ['/usr/bin/python3', str(ROOT/'deploy.py'), '--remove', '--apply'])]:
+            file('.local/bin/'+name, ('#!/usr/bin/python3\nimport os,sys\nargv='+repr(argv)+'\nos.execv(argv[0],argv+sys.argv[1:])\n').encode(), 0o755)
+        return edits
     if module == 'wallpaper-glass':
         config_root = os.environ.get('XDG_CONFIG_HOME')
         if Path(home) == Path.home() and config_root and Path(config_root) != Path(home)/'.config':

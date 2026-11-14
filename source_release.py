@@ -28,6 +28,9 @@ def payload(root, name):
         raise ValueError('Source must be a regular file: '+name)
     data = path.read_bytes()
     if name.startswith('assets/') and path.suffix in ('.png', '.gif', '.apng', '.mp4'):
+        valid = (data.startswith(b'\x89PNG\r\n\x1a\n') if path.suffix in ('.png', '.apng') else
+                 data.startswith((b'GIF87a', b'GIF89a')) if path.suffix == '.gif' else data[4:8] == b'ftyp')
+        if not valid: raise ValueError('Unexpected artwork format: '+name)
         catalog = json.loads((root/'assets/catalog.json').read_text())['assets']
         entry = next((item for item in catalog if item['path'] == name), None)
         if entry is None or entry['sha256'] != hashlib.sha256(data).hexdigest() or entry['size'] != len(data):

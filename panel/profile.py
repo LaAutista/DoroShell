@@ -7,6 +7,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -14,7 +15,7 @@ import tempfile
 from PySide6.QtCore import QSettings
 from gi.repository import Gio
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from install import safe
+from install import safe, validate_backup
 from modules import atomic
 
 
@@ -149,13 +150,52 @@ def prepare(home, output, binary, hidden=None, launchers=None):
     print('Prepared:',output,'— current panel and autostart unchanged')
 
 
+def launcher(binary, config):
+    return '#!/usr/bin/python3\nimport os\nfrom pathlib import Path\np=Path.home()/".local/state/doroshell/native-panel.log"\np.parent.mkdir(parents=True,exist_ok=True)\nfd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_APPEND,0o600)\nos.dup2(fd,1);os.dup2(fd,2);os.close(fd)\nos.execv('+repr(str(binary))+','+repr([str(binary),'--config',str(config)])+')\n'
+
+
+def validate_record(record):
+    targets = {'.config/doroshell/panel.conf', '.local/bin/doroshell-native-panel', '.config/autostart/lxqt-panel.desktop'}
+    if not isinstance(record, dict) or set(record) != targets:
+        raise ValueError('Unexpected native panel manifest targets')
+    for entry in record.values():
+        validate_backup(entry, 'before')
+        for field in ('after', 'pending_after'):
+            if field == 'pending_after' and field not in entry: continue
+            if not isinstance(entry.get(field), str) or not re.fullmatch('[0-9a-f]{64}', entry[field]):
+                raise ValueError('Invalid native panel recovery hash')
+
+
+def upgrade(home, binary, preview=False):
+    """Replace only the staged executable reference; retain the user's panel profile."""
+    manifest = home/'.local/state/doroshell/native-panel.json'
+    wrapper = home/'.local/bin/doroshell-native-panel'
+    for path in (manifest, wrapper): safe(path, home)
+    binary = binary.resolve()
+    if not binary.is_file() or not os.access(binary, os.X_OK):
+        raise ValueError('Build the native panel before upgrading')
+    record = json.loads(manifest.read_text())
+    validate_record(record)
+    key = str(wrapper.relative_to(home))
+    entry = record[key]
+    current = wrapper.read_bytes()
+    if wrapper.stat().st_mode & 0o777 != 0o755 or digest(current) not in (entry['after'], entry.get('pending_after')):
+        raise RuntimeError('Edited panel launcher; refusing upgrade')
+    desired = launcher(binary, home/'.config/doroshell/panel.conf').encode()
+    print('Update native panel executable for next login; retain panel settings')
+    if preview: return
+    entry['pending_after'] = digest(desired)
+    atomic(manifest, json.dumps(record, indent=2).encode())
+    atomic(wrapper, desired, 0o755)
+    entry['after'] = entry.pop('pending_after')
+    atomic(manifest, json.dumps(record, indent=2).encode())
+
+
 def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=False):
     manifest=home/'.local/state/doroshell/native-panel.json'
     safe(manifest,home)
     saved = json.loads(manifest.read_text()) if manifest.exists() else None
-    targets = {'.config/doroshell/panel.conf', '.local/bin/doroshell-native-panel', '.config/autostart/lxqt-panel.desktop'}
-    if saved is not None and set(saved) != targets:
-        raise RuntimeError('Unexpected native panel manifest targets')
+    if saved is not None: validate_record(saved)
     if rollback:
         if saved is None:return
         record=saved
@@ -169,7 +209,7 @@ def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=
         if digest(binary.read_bytes())!=plan['binary_hash']:raise RuntimeError('Panel binary changed; prepare again')
         config=home/'.config/doroshell/panel.conf';wrapper=home/'.local/bin/doroshell-native-panel'
         # File-backed output avoids breaking launched applications when a parent exits.
-        script='#!/usr/bin/python3\nimport os\nfrom pathlib import Path\np=Path.home()/".local/state/doroshell/native-panel.log"\np.parent.mkdir(parents=True,exist_ok=True)\nfd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_APPEND,0o600)\nos.dup2(fd,1);os.dup2(fd,2);os.close(fd)\nos.execv('+repr(str(binary))+','+repr([str(binary),'--config',str(config)])+')\n'
+        script=launcher(binary, config)
         quoted=str(wrapper).replace('\\','\\\\').replace('"','\\"').replace('`','\\`').replace('$','\\$').replace('%','%%')
         desktop='[Desktop Entry]\nType=Application\nName=DoroShell Panel\nExec="'+quoted+'"\nOnlyShowIn=LXQt;\nX-LXQt-Module=true\n'
         files={config:content,wrapper:script.encode(),home/'.config/autostart/lxqt-panel.desktop':desktop.encode()}
@@ -179,7 +219,12 @@ def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=
         safe(path,home);key=str(path.relative_to(home));current=path.read_bytes() if path.exists() else None
         if saved is not None:
             before = base64.b64decode(record[key]['before'], validate=True) if record[key]['before'] is not None else None
-            if current != before and digest(current) != record[key]['after']:
+            if current is not None:
+                current_mode = path.stat().st_mode & 0o777
+                installed_mode = 0o755 if path.name == 'doroshell-native-panel' else 0o600
+                if current_mode != installed_mode and not (current == before and current_mode == record[key]['mode']):
+                    raise RuntimeError('Personal mode edit; refusing to change: '+key)
+            if current != before and digest(current) not in (record[key]['after'], record[key].get('pending_after')):
                 if rollback and key == '.config/doroshell/panel.conf' and current is not None:
                     if not keep_panel_edits:
                         raise RuntimeError('Panel settings changed. Restore with --keep-panel-edits to save a private copy before switching back.')

@@ -163,3 +163,44 @@ files remain reproducible from source; no native executables/caches are included
 The inventory checker permits only artwork with exact catalog hashes and sizes.
 The inherited 262-test full suite and four source-inventory tests pass. This checkpoint precedes installer orchestration.
 No personal install, session restart, display write or clean-OS test was performed.
+
+## Portable development installer — 2026-11-14
+
+Baseline `dee97b4` is remotely published and preserves the complete source/art
+bundle plus upstream `36929b2`. The next increment adds bootstrap acquisition,
+capability/package detection, native build reuse, scoped module orchestration,
+legacy-manifest recognition, update/removal launchers and a private deployment
+journal. Completed-upgrade undo restores preceding bytes/modes/manifests; module
+removal retains first-install baseline semantics. Pending module recovery refuses
+normal retries, reuses the same source and preserves conflict checks. Cursor
+writes now use atomic records and pending hashes/modes; native panel upgrades
+retain personal panel settings and original backups.
+
+Verification boundaries:
+
+- Inherited full suite: 262 tests before changes. An intermediate complete suite
+  passed 277 tests. Final suite: **285 tests passed** (`python -m unittest discover -s tests -v`).
+- Targeted bootstrap: five tests with fake Git/curl transport, including the exact
+  README shell command, failed-download non-execution, source reuse/dirty refusal,
+  stable-label refusal, and symlink refusal. No remote write by these tests.
+- Targeted deployment: 15 temporary-home tests, including actual menu installation,
+  combined core/clipboard adapters, package-offer mocks, interrupted persistence,
+  malformed undo, bytes/modes/symlinks, finalization recovery and native upgrades.
+- Cursor suite: seven tests including legacy record and partial-write recovery.
+- Fresh actual standard ten-patch panel build and standard paired native Background
+  + display build passed. Wallpaper build used the private panel build-tools prefix;
+  no OS package was installed. This is not clean-host dependency acceptance.
+- Complete disposable-home acceptance used those actual compiled payloads for
+  staging, with all core modules plus clipboard/wallpaper/glass/display. Install,
+  repeat, exact previous-upgrade undo, installed toolkit imports and first-baseline
+  removal passed. No native executable was launched by that staging test.
+- The bundled Start art matches installed image pixels; APNG-generated wait and
+  progress cursor bytes match the installed cursor files exactly. Media frames and
+  metadata were reviewed; personal configs/identifiers and binaries are excluded.
+
+A local Docker daemon was unavailable. No clean Arch/CachyOS/EndeavourOS VM, normal
+login, live desktop interaction or physical display recovery is claimed. Read-only
+process inspection still found the ten-patch panel, schema-2 desktop and clipboard
+helper; no session process was refreshed. The hardware NVIDIA mismatch remains
+unknown. `release.json` declares development; no stable portable release is invented.
+See README and docs/INSTALL.md, STATUS.md and HANDOFF.md for installation and limits.

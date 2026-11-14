@@ -8,7 +8,7 @@ import re
 import struct
 from pathlib import Path
 from PIL import Image, ImageSequence
-from install import safe, set_ini
+from install import safe, set_ini, atomic, validate_backup
 
 THEME = 'DoroShell-Loading'
 SIZES = (24, 30, 32, 48, 64)
@@ -106,6 +106,20 @@ def run(home, gif=None, base=Path('/usr/share/icons/breeze_cursors'), apply=Fals
     manifest=home/'.local/state/lxqt-comfort/cursor-install.json'
     safe(manifest,home)
     record=json.loads(manifest.read_text()) if manifest.exists() else {}
+    if not isinstance(record, dict): raise ValueError('Invalid cursor manifest; preserve it for recovery')
+    for entry in record.values():
+        validate_backup(entry, 'before')
+        if type(entry['mode']) is not int or not 0 <= entry['mode'] <= 0o777:
+            raise ValueError('Invalid cursor file mode')
+        if 'pending_from' in entry and 'pending_mode' not in entry:
+            raise ValueError('Missing cursor recovery mode')
+        for key in ('installed', 'pending_from'):
+            value = entry.get(key)
+            if value is not None and (not isinstance(value, str) or not re.fullmatch('[0-9a-f]{64}', value)):
+                raise ValueError('Invalid cursor recovery hash')
+        if 'installed' not in entry: raise ValueError('Missing cursor installed hash')
+        if entry.get('pending_mode') is not None and (type(entry['pending_mode']) is not int or not 0 <= entry['pending_mode'] <= 0o777):
+            raise ValueError('Invalid cursor recovery mode')
     if rollback:
         files={home/key:base64.b64decode(item['before']) if item['before'] is not None else None for key,item in record.items()}
     else:
@@ -121,11 +135,22 @@ def run(home, gif=None, base=Path('/usr/share/icons/breeze_cursors'), apply=Fals
         safe(path,home)
         current=path.read_bytes() if path.exists() else None
         key=str(path.relative_to(home))
-        if key in record and ((hashlib.sha256(current).hexdigest() if current is not None else None)!=record[key]['installed']):
-            raise RuntimeError(f'Edited or missing managed file; no changes made: {path}')
+        current_hash = hashlib.sha256(current).hexdigest() if current is not None else None
+        current_mode = path.stat().st_mode & 0o777 if current is not None else None
+        if key in record:
+            entry = record[key]
+            allowed = {(entry['installed'], entry['mode'] if entry['installed'] is not None else None)}
+            if 'pending_from' in entry: allowed.add((entry['pending_from'], entry['pending_mode']))
+            if rollback:
+                before = base64.b64decode(entry['before'], validate=True) if entry['before'] is not None else None
+                allowed.add((hashlib.sha256(before).hexdigest() if before is not None else None, entry['mode'] if before is not None else None))
+            if (current_hash, current_mode) not in allowed:
+                raise RuntimeError(f'Edited or missing managed file; no changes made: {path}')
         if key not in record:
             record[key]={'before':base64.b64encode(current).decode() if current is not None else None,'mode':path.stat().st_mode & 0o777 if current is not None else 0o644}
         if not rollback:
+            record[key]['pending_from'] = current_hash
+            record[key]['pending_mode'] = current_mode
             record[key]['installed']=hashlib.sha256(data).hexdigest() if data is not None else None
         print('Restore:' if rollback else 'Write:',path.relative_to(home))
     if not (apply or rollback):
@@ -133,20 +158,19 @@ def run(home, gif=None, base=Path('/usr/share/icons/breeze_cursors'), apply=Fals
         return
     if not rollback:
         manifest.parent.mkdir(parents=True,exist_ok=True)
-        manifest.write_text(json.dumps(record,indent=2)+'\n')
-        manifest.chmod(0o600)
+        atomic(manifest,(json.dumps(record,indent=2)+'\n').encode())
     for path,data in files.items():
         if data is None:
             path.unlink(missing_ok=True)
         else:
             path.parent.mkdir(parents=True,exist_ok=True)
-            temp=path.with_name(path.name+'.cursor-tmp')
-            safe(temp,home)
-            temp.write_bytes(data)
-            temp.chmod(record[str(path.relative_to(home))]['mode'])
-            temp.replace(path)
+            atomic(path,data,record[str(path.relative_to(home))]['mode'])
     if rollback and manifest.exists():
         manifest.unlink()
+    if not rollback:
+        for entry in record.values():
+            entry.pop('pending_from',None);entry.pop('pending_mode',None)
+        atomic(manifest,(json.dumps(record,indent=2)+'\n').encode())
     print('Saved. Restart affected applications; log out/in later for consistent session-wide pickup. No session was restarted.')
 
 

@@ -1,7 +1,7 @@
 {
-  "format": 8,
-  "candidate": "doroshell-reproduction-baseline-20261114",
-  "published_ancestor": "36929b2e7d6a26ebf53cb8adfc4dfa4c9c15ef19",
+  "format": 9,
+  "candidate": "doroshell-portable-development-20261114",
+  "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -16,13 +16,14 @@
     "display_failure_visibility": "Persistent Close-only failure UI and bounded redacted record; see display/README.md and RELEASE-CANDIDATE.md",
     "screenshot_window_capture": "0e66e29179051a5eb7459afe003e5a2e9ca19958",
     "display_diagnostic_phases": "Private schema-2 phase/property diagnostics; exact state equivalence retained; see RELEASE-CANDIDATE.md",
-    "native_tray_shortcut": "d7279a62921cb3fb7e6a4907a4c3e40e1b919736"
+    "native_tray_shortcut": "d7279a62921cb3fb7e6a4907a4c3e40e1b919736",
+    "portable_installer": "bootstrap/deploy over existing adapters; legacy cursor recovery; profile-preserving native upgrade; docs/HANDOFF.md"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 262,
+    "passed": 285,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Inherited full suite 262 passed; four inventory tests passed. Upstream documentation-only commit retained. No live or clean-OS testing."
+    "note": "Final full suite: 285 passed. Actual panel and paired wallpaper/display builds passed; disposable-home complete-module install/repeat/undo/removal and installed toolkit imports passed. Bootstrap shell/transport tests passed. No packages/live settings/clean OS/login/hardware tests."
   },
   "source_payloads": [
     {
@@ -33,8 +34,14 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "f941c7e22523cc25e01d4ee63a4cd926b1eff868515fa8f9a1d0d319ec3a514a",
-      "size": 1360,
+      "sha256": "640f016257d99cb8c41183ac2ac975ffe6349f502719fc5059b7192ccb6c5bc3",
+      "size": 1847,
+      "mode": "0o644"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "548608a3fe46c19fee8f2b98a191abd51156914ec1f659a56b111aec80f41926",
+      "size": 1438,
       "mode": "0o644"
     },
     {
@@ -51,20 +58,20 @@
     },
     {
       "path": "README.md",
-      "sha256": "4f628e8cbc1fadfac1293d87528202aacc6fd091a4ba0ed12d50f4d922c47bc9",
-      "size": 41889,
+      "sha256": "309277f60032ab98abce2309f0362a33ded40f1d9e28e4b80b509385d1c3c0a8",
+      "size": 5898,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "81f1daad644902ef835dbe39d0b0473731b3655378cd9bb7850df79bc4d27746",
-      "size": 12752,
+      "sha256": "5cfabf2df9c8451e762bc6a77febef92502fce5adb9955f6043fcadf12884cb3",
+      "size": 15580,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "c83f5a84ca82d96ac43e0b56237bd538346f36a78732f3877ecdb3040b9f1c15",
-      "size": 7087,
+      "sha256": "999ef08d75b5b44bc0346d99a09ba38e3bf96d3e6f62af59cfd9a0638b0eab6e",
+      "size": 7486,
       "mode": "0o644"
     },
     {
@@ -110,6 +117,12 @@
       "mode": "0o644"
     },
     {
+      "path": "bootstrap.sh",
+      "sha256": "54fd2329799c1887942539af6ca3573f5671cf1cfa9b4978bcdc2a61fb3a72c5",
+      "size": 3098,
+      "mode": "0o644"
+    },
+    {
       "path": "clipboard/README.md",
       "sha256": "298cf42541037e6e28815d5e6d368ca78820bc1dc26b8a53cdc797afea2ea22b",
       "size": 3753,
@@ -140,9 +153,21 @@
       "mode": "0o644"
     },
     {
+      "path": "compatibility.py",
+      "sha256": "b3c611cfcdc05a5185a89409bbd700a2e77471865f8056e7898448deabf33d6e",
+      "size": 2896,
+      "mode": "0o644"
+    },
+    {
       "path": "cursor.py",
-      "sha256": "1c4a07519598188abe943a37582574bafa359bb966e30296cf8a2b63baaa9460",
-      "size": 8589,
+      "sha256": "c38f4bd5140a5f301bf8fb1bdbd7e059d0c81e89af93281eb57311e0a52a4527",
+      "size": 10408,
+      "mode": "0o644"
+    },
+    {
+      "path": "deploy.py",
+      "sha256": "928804dd8c3b4ed8a974176508372fbebb05d653eb5bd27dd801404ac721703c",
+      "size": 19197,
       "mode": "0o644"
     },
     {
@@ -173,6 +198,54 @@
       "path": "display/pcmanfm-advanced.patch",
       "sha256": "72e7a276035b67210686fb97e859543b296904d898a78698a73c7715283214a7",
       "size": 2617,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "sha256": "b1492b8ef1d5b95e4e31d495a1c880f3898cb12a3a5c1e6d3558d3160e9da348",
+      "size": 4379,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/DEVELOPMENT.md",
+      "sha256": "3d89f9e6462af63576beb82d152c6ed2b2354447c715e49c21797614ff0fd416",
+      "size": 3272,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/FEATURE-GUIDE.md",
+      "sha256": "474c8616af488692bcced12bcb96546fcc2f5c3a7593be8d1aad67521e419e9b",
+      "size": 42411,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/HANDOFF.md",
+      "sha256": "e19426bfc54df38aa4da69df0bb67695acecd5f3c8502e42c18dfa4e5c15a6b2",
+      "size": 5243,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/INSTALL.md",
+      "sha256": "a38e05dedb0a2157ddc53361b7a89dcdacacc6f4af8f9d60cb347517a51cbd1c",
+      "size": 7726,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/MODULES.md",
+      "sha256": "8e5446a9f0a303d7365e4f938db37023545095131819f34807066119ecf09b79",
+      "size": 3551,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/ROADMAP.md",
+      "sha256": "ccc7a9f3beac5eccd4c6c53d80355b7ce3858bcf3545c2320d510fb45609c549",
+      "size": 1923,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/STATUS.md",
+      "sha256": "7164327691a9a11aca8edd203095b1359f140ef1654ab414117ca86775c1c505",
+      "size": 3386,
       "mode": "0o644"
     },
     {
@@ -207,8 +280,8 @@
     },
     {
       "path": "docs/final-acceptance.md",
-      "sha256": "559cabbfca5dbd4f3cfe8497cb308f3d7c0ab624da79089cffe5da157cc4c92b",
-      "size": 7143,
+      "sha256": "67fc65a1176f4e6e3c7de466094c3e7cbcc850ba465fa0d670292925eddcc648",
+      "size": 7208,
       "mode": "0o644"
     },
     {
@@ -387,8 +460,8 @@
     },
     {
       "path": "modules.py",
-      "sha256": "8a26f82b9b4987ec80ffa1a71f71dc8774421d669eb0d80a194986a739d882e8",
-      "size": 31643,
+      "sha256": "5e53d5dc4371982ef88b7fecd5f1e5344ed9d7888916946fa903d3217bb27d74",
+      "size": 32300,
       "mode": "0o644"
     },
     {
@@ -495,14 +568,20 @@
     },
     {
       "path": "panel/profile.py",
-      "sha256": "e8c333a20e6779b63f557e284ea58eb840aa32a389869c301ce628d8b2289f01",
-      "size": 13598,
+      "sha256": "c1b98be57a814ea08d6c00c4bcc07c464eb0d0620f7a138fb03229d1fe03e08b",
+      "size": 15846,
       "mode": "0o644"
     },
     {
       "path": "portable_settings.py",
       "sha256": "dc48d73ed6e89cabc620831349f409e334dfaf278b3580d59b5b3d7835c81298",
       "size": 16736,
+      "mode": "0o644"
+    },
+    {
+      "path": "release.json",
+      "sha256": "d5680a9fc643de08eaea3dbc8cb20015e2abf2a4a95833c230335d6595084b33",
+      "size": 185,
       "mode": "0o644"
     },
     {
@@ -561,14 +640,14 @@
     },
     {
       "path": "setup.py",
-      "sha256": "fe5b5028d7309b91663c19f96a8370bd13d6872a978b39fe905268bf37999149",
-      "size": 7155,
+      "sha256": "c85fd64696c5488e31364d331168351d1d68af1aed6e2df1c1a91d71c5ec40e8",
+      "size": 7191,
       "mode": "0o644"
     },
     {
       "path": "source_release.py",
-      "sha256": "c437afba88936a8c9b2c29c53b49fd18b884c992e306898d12d7f77a7c7c99b8",
-      "size": 4314,
+      "sha256": "6923bdcbe96fe4eeabaa5d3fbc3d1c91c8566d7c3df7f9f9a567852a76eef7f2",
+      "size": 4594,
       "mode": "0o644"
     },
     {
@@ -920,6 +999,12 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/test_bootstrap.py",
+      "sha256": "a09bb0ccc890ded203201190f484e87d9df9f594790d581bd74cec1f7c2a6d15",
+      "size": 4079,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/test_clean_environment.py",
       "sha256": "a79aea3a4b8811256cb059f7883c2bcff1868204cdf6d06ede3c078ca817807f",
       "size": 9569,
@@ -935,6 +1020,18 @@
       "path": "tests/test_cursor.py",
       "sha256": "97b26ca1d609bd90b266b71da0cf61a9a56c61951e886a5bc4177d5dd3eab4d5",
       "size": 5085,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_cursor_recovery.py",
+      "sha256": "5d92afed09c1b28e96c5aafe64ee42140b5e52183e7c87b022f115076cc7abf5",
+      "size": 2680,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_deployment.py",
+      "sha256": "ec60c911dba2721e99e8a100bffd74e1a4d8540632b3325b356b402c7ab4cd28",
+      "size": 13534,
       "mode": "0o644"
     },
     {

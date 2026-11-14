@@ -8,6 +8,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parent
 PACKAGES={
+ 'maintenance':[],
  'clipboard':['python','pyside6','lxqt-panel'],
  'wallpaper-glass':['pyside6','python-pillow'],
  'wallpaper':['pcmanfm-qt','qt6-multimedia','qt6-multimedia-ffmpeg','pyside6'],
@@ -20,7 +21,7 @@ PACKAGES={
  'dolphin':['dolphin','xdg-utils'], 'kate':['kate','xdg-utils'],
  'kate-dark':['kate','breeze'], 'dolphin-dark':['dolphin','breeze'],
  'single-desktop':['openbox'], 'taskbar':['lxqt-panel'],
- 'cursor':['python-pillow'],
+ 'cursor':['python-pillow','breeze-cursors'],
  'taskbar-drag':['python-gobject'], 'taskbar-size':['lxqt-panel'],
 }
 DEFAULT=['menu']
