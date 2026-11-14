@@ -175,3 +175,6 @@ completed Open-Shell parity, or a finished project.
 Recent applications can optionally expire after a chosen number of days via Start →
 Menu options → Recent history age. No age limit remains the default; see
 [recent-app retention and backup limits](docs/recent-apps.md).
+
+[Start keyboard navigation](docs/start-keyboard.md) documents search/results arrows,
+Home/End, focus order and the boundaries of offscreen acceptance.

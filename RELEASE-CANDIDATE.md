@@ -1,3 +1,36 @@
+# Start keyboard navigation checkpoint — 2026-11-14
+
+Source follow-up to published `baa0a23b7c1c1c506bdac46f934136c5f94f1076`,
+from a new isolated checkout. Confirmed baseline gaps: search Up did not enter the
+last result, Up at the first result did not return to search, Tab from search did
+not enter results, and a focused list rebuild lost its selected desktop entry.
+Native Home/End handled simple disabled rows, but left selection unchanged with
+mixed hidden/disabled endpoints in the added fixture.
+
+Only the Start runtime changes: widget-local Up/Down and list-edge focus, usable-row
+Home/End, Search → Results → All Programs/Back Tab order, focused selection retention,
+accessible key descriptions and refusal to activate disabled/hidden/stale rows.
+Native text editing/modifiers, the remaining Tab chain, safe GIO launch, nested
+folder menus and staged Escape remain intact. See docs/start-keyboard.md.
+
+**467 full-suite tests passed** in 25.515s with a disposable HOME/XDG, offscreen Qt,
+memory GSettings and no personal display/session bus. Ten targeted cases cover
+empty/disabled/hidden rows, endpoint/boundary keys, focused filtered/catalog rebuild,
+text editing, Tab/backtab/reachability, fake Enter activation, nested folder keys,
+staged Escape and three resident reopen/cancel cycles. The actual temporary-home
+installed Start passed those same ten cases (0.239s), source identity and rendered
+result-focus inspection. App/session/URI dispatch is mocked or blocked.
+
+Source inventory/checksums, complete Git archive and scoped patch round-trip are
+verified for this increment. Source/test/docs/metadata only; existing artwork and
+licenses are unchanged. No personal fixtures, screenshots, configs, history,
+credentials, binaries, caches or evidence bundles are part of the source archive.
+The original dirty workspace and disabled input-helper candidate remain untouched.
+No package, live/session/input change, global key injection or Xvfb retry occurred.
+Offscreen tests do not establish AT-SPI/screen-reader, live X11, login or clean-OS
+acceptance. Broader cross-column arrows/mnemonics remain deferred. This local
+candidate awaits independent review before publication; no push is performed.
+
 # Optional recent-app retention checkpoint — 2026-11-14
 
 Source follow-up to published `09a013acad71c68943aba2b698082bd609153302`.

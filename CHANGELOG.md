@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Complete bounded Start search/results keyboard navigation: Up enters the last
+  usable result, list-edge arrows return to search, Home/End skip unusable rows,
+  Tab includes results, and focused rebuilds retain selection. Preserve text editing,
+  nested menu/Escape behavior and fake-tested Enter; guard disabled/stale rows.
+
 - Add optional recent-app age retention, off by default, with local launch timestamps,
   event-driven expiry, bounded legacy validation and visible save failures. Portable
   preferences carry the policy only; history/timestamps stay private. No background

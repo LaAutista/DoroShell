@@ -597,6 +597,33 @@ class ApplicationList(QListWidget):
         self.setDefaultDropAction(Qt.DropAction.CopyAction)
         self.setDropIndicatorShown(True)
 
+    @staticmethod
+    def selectable(item):
+        flags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        return item is not None and item.flags() & flags == flags and not item.isHidden()
+
+    def selectable_rows(self):
+        return [row for row in range(self.count()) if self.selectable(self.item(row))]
+
+    def keyPressEvent(self, event):
+        # Stay inside this list; text editing, modifiers and nested menus keep Qt handling.
+        if (event.modifiers() == Qt.KeyboardModifier.NoModifier
+                and event.key() in (Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Home, Qt.Key.Key_End) and not self.dragging
+                and QApplication.activeModalWidget() is None
+                and QApplication.activePopupWidget() in (None, self.owner)):
+            rows = self.selectable_rows()
+            if rows and event.key() in (Qt.Key.Key_Home, Qt.Key.Key_End):
+                self.setCurrentRow(rows[0] if event.key() == Qt.Key.Key_Home else rows[-1])
+                self.scrollToItem(self.currentItem())
+                event.accept()
+                return
+            if (not rows or (event.key() == Qt.Key.Key_Up and self.currentRow() == rows[0])
+                    or (event.key() == Qt.Key.Key_Down and self.currentRow() == rows[-1])):
+                self.owner.search.setFocus(Qt.FocusReason.ShortcutFocusReason)
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
     def startDrag(self, actions):
         item = self.currentItem()
         if item is None:
@@ -766,6 +793,7 @@ class StartMenu(QWidget):
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.list.setAccessibleName('Applications')
+        self.list.setAccessibleDescription('Arrows move between applications. Home and End select the first and last. Up at the first or Down at the last returns to search.')
         self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list.customContextMenuRequested.connect(self.context_menu)
         self.list.itemClicked.connect(self.launch_item)
@@ -780,6 +808,7 @@ class StartMenu(QWidget):
         self.search.setPlaceholderText('Search programs…')
         self.search_action = self.search.addAction(QIcon(), QLineEdit.ActionPosition.LeadingPosition)
         self.search.setAccessibleName('Search applications')
+        self.search.setAccessibleDescription('Down enters the selected or first application; Up enters the last. Home and End edit the search text.')
         self.programs = QPushButton('All Programs')
         self.programs.setObjectName('programsButton')
         self.programs.clicked.connect(self.toggle_programs)
@@ -947,6 +976,10 @@ class StartMenu(QWidget):
         QShortcut(QKeySequence('Ctrl+F'), self, activated=self.search.setFocus)
         self.results_shortcut = QShortcut(QKeySequence('Down'), self.search, activated=self.focus_results)
         self.results_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.last_result_shortcut = QShortcut(QKeySequence('Up'), self.search, activated=lambda: self.focus_results(last=True))
+        self.last_result_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.setTabOrder(self.search, self.list)
+        self.setTabOrder(self.list, self.programs)
         self.refresh()
         self.search.setFocus()
         self.catalog_timer = QTimer(self)
@@ -1136,9 +1169,13 @@ class StartMenu(QWidget):
         else:
             self.close()
 
-    def focus_results(self):
-        if self.list.count():
-            self.list.setFocus()
+    def focus_results(self, last=False):
+        rows = self.list.selectable_rows()
+        if rows:
+            row = rows[-1] if last else self.list.currentRow() if self.list.currentRow() in rows else rows[0]
+            self.list.setCurrentRow(row)
+            self.list.scrollToItem(self.list.item(row))
+            self.list.setFocus(Qt.FocusReason.ShortcutFocusReason)
 
     def set_remember(self, enabled):
         try:
@@ -1211,6 +1248,10 @@ class StartMenu(QWidget):
         self.refresh()
 
     def refresh(self):
+        keep_selection = self.list.hasFocus()
+        selected = self.list.currentItem()
+        selected_id = selected.data(Qt.ItemDataRole.UserRole) if selected else None
+        previous_row = self.list.currentRow()
         self.list.clear()
         category = self.category.currentText()
         query = self.search.text().strip()
@@ -1252,7 +1293,14 @@ class StartMenu(QWidget):
             item.setToolTip(app.get_description() or app.get_display_name())
             self.list.addItem(item)
         self.list.setDragEnabled(True)
-        self.list.setCurrentRow(0)
+        rows = self.list.selectable_rows()
+        row = rows[0] if rows else -1
+        if keep_selection and rows:
+            row = next((i for i in rows if self.list.item(i).data(Qt.ItemDataRole.UserRole) == selected_id),
+                       min(rows, key=lambda i: abs(i - previous_row)))
+        self.list.setCurrentRow(row)
+        if keep_selection and not rows:
+            self.search.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -1304,11 +1352,14 @@ class StartMenu(QWidget):
         QMessageBox.warning(self, 'DoroShell Start', message)
 
     def launch_item(self, item):
-        if item is None or self.launching or self.list.dragging:
+        if not self.list.selectable(item) or self.launching or self.list.dragging:
+            return
+        app = self.by_id.get(item.data(Qt.ItemDataRole.UserRole))
+        if app is None:
             return
         self.launching = True
         try:
-            if not self.by_id[item.data(Qt.ItemDataRole.UserRole)].launch([], None):
+            if not app.launch([], None):
                 raise RuntimeError('The application could not be launched.')
             try:
                 self.recent.save(launched=item.data(Qt.ItemDataRole.UserRole))

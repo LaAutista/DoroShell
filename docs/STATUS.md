@@ -187,3 +187,20 @@ legacy/corruption, save-failure, portable privacy and offscreen resident/UI case
 Disposable installed Start/portable helpers pass rendered age-choice, exact expiry,
 visible failure/retry and timestamp-exclusion checks. This is offscreen fixture
 acceptance, not live login, real input or long-running-session validation.
+
+
+Start keyboard follow-up on `baa0a23` addresses confirmed search/results gaps:
+widget-scoped Up/Down entry, list-edge return to search, selectable-row Home/End,
+Search → Results → All Programs/Back Tab order and focused selection retention.
+Native text editing/modifiers, remaining Tab traversal, nested folder menus and
+staged Escape are preserved. Disabled/hidden/nonselectable/stale rows do not launch.
+Source and temporary installed-runtime tests use offscreen local key events, a
+synthetic catalog and fake dispatch. No Xvfb retry, global shortcut change or live
+input/session action; AT-SPI/screen-reader/live X11 acceptance remains unverified.
+See start-keyboard.md for precise scope and remaining broader parity work.
+
+Keyboard verification: **467 full-suite tests pass** (25.515s); all 10 new widget
+cases also pass against the actual temporary installed Start (0.239s). Its source
+hash matches, and synthetic offscreen result-focus rendering was inspected. Tests
+block real app/session/URI dispatch and use no personal catalog/history or display.
+This source candidate awaits independent review; it is not deployed or pushed.

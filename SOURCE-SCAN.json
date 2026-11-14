@@ -59,6 +59,7 @@
     "docs/roadmap.md",
     "docs/screenshot-verification.md",
     "docs/show-desktop.md",
+    "docs/start-keyboard.md",
     "docs/taskbar-filters.md",
     "docs/taskbar-identity.md",
     "docs/themes.md",
@@ -209,6 +210,7 @@
     "tests/test_screenshot.py",
     "tests/test_settings.py",
     "tests/test_source_release.py",
+    "tests/test_start_keyboard.py",
     "tests/test_start_resident.py",
     "tests/test_start_shortcut.py",
     "tests/test_taskbar_drag.py",
@@ -231,8 +233,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 230,
-  "source_payload_count": 228,
+  "file_count": 232,
+  "source_payload_count": 230,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

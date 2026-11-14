@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-recent-retention-20261114",
+  "candidate": "doroshell-start-keyboard-20261114",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -32,13 +32,14 @@
     "explicit_config_root": "Bounded CLI single-desktop adapter on 72833d01815ea8b544f11414d8b15003ec208fb8. Explicit home-contained configuration path, existing XML ownership/backup engine, root-specific edit kinds and journal-5 captured root/pre-write snapshot, conflict-aware recovery and exact undo. No runtime/data/state migration; docs/config-roots.md.",
     "config_root_symlink_review": "Correction on unpublished 0b32202f752af49f227478ba0e3dc71a26fe4bcd: reproduce and refuse in-home symlink ancestors through module/setup/installed CLI and recovery; strict root/target/ownership component checks. Three fixtures bind their own XDG_CONFIG_HOME; real mismatch refusal retained.",
     "config_root_snapping": "Follow-up on 63114132943c24cdd54be1b9a97de695f7a0aba3: explicit snapping/combined config paths, shared locks and conservative ownership/recovery; docs/config-roots.md",
-    "recent_retention": "Follow-up on 09a013acad71c68943aba2b698082bd609153302: opt-in local recent-app expiry, default unchanged, policy-only portable export; docs/recent-apps.md"
+    "recent_retention": "Follow-up on 09a013acad71c68943aba2b698082bd609153302: opt-in local recent-app expiry, default unchanged, policy-only portable export; docs/recent-apps.md",
+    "start_keyboard": "Bounded search/results keyboard navigation on baa0a23b7c1c1c506bdac46f934136c5f94f1076: widget-local arrows/Home/End, native Tab chain and focused rebuild selection; docs/start-keyboard.md. No global key/session change."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 457,
+    "passed": 467,
     "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
-    "note": "457 tests passed in 25.284s under disposable HOME/XDG, offscreen Qt, memory GSettings and no personal display/session bus. Includes 13 new recency tests. Temporary installed Start/portable helper identity and rendered age choices, expiry, visible save-failure/retry, no new timed-history backups and timestamp-exclusion checks passed with synthetic data. No personal history access, live activation, package, login or long-session acceptance."
+    "note": "467 tests passed in 25.515s under disposable HOME/XDG, offscreen Qt, memory GSettings and no personal display/session bus. Includes 10 new widget-key tests with synthetic catalog and fake app/session/URI dispatch. The actual temporary-home installed Start passed the same 10 cases (0.239s), plus source hash identity and rendered result-focus inspection. No global key injection, personal catalog/history, live X11, AT-SPI/screen-reader, login or clean-OS acceptance. Existing private-Xvfb capability blocker was not retried."
   },
   "source_payloads": [
     {
@@ -55,8 +56,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "19bf336d06543a91e6ef6b61cf933e0bb247268f7e2383d96b5b43a6950c6558",
-      "size": 7730,
+      "sha256": "63088c33c191fc83e3cfc610e75d9df2ff70d7baa4cefe018419819322228c49",
+      "size": 8058,
       "mode": "0o644"
     },
     {
@@ -73,20 +74,20 @@
     },
     {
       "path": "README.md",
-      "sha256": "3d66a20fcb90a74bb3e6eaed30bde0efb539cb0a32d3218acbd41dc6d9d9760e",
-      "size": 10402,
+      "sha256": "a29a04733a3c9f0719ef71acb08371ebdded7089a17c86c8275e89f3001107a3",
+      "size": 10554,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "38b73c0f3ae9359009b2d3d30190cbcdf53c3d4e932675d73c1388a7535a7608",
-      "size": 44774,
+      "sha256": "9bc80cfbd29985d973bfce8432fd3759234bf9b8ae2b7ce94f5383cb75e514a1",
+      "size": 46992,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "01f30ca7f444fa0d7f5d5c150dd8e0c2bea82af37678b223be4c4daced90babb",
-      "size": 8172,
+      "sha256": "c4b448dea101716f5e6e2e9997513232afe37c576d41067ee8877b49c8648b0a",
+      "size": 8238,
       "mode": "0o644"
     },
     {
@@ -241,8 +242,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "ff5e7ba817d8e70ab53312b8c04383748cabc37d7d7b2f7603c1fb0e9488500e",
-      "size": 16773,
+      "sha256": "61b8c5b6f4d4ae982eef71afcd3ce265ca17d30bad157c87cd79ca5d2325e6b0",
+      "size": 17915,
       "mode": "0o644"
     },
     {
@@ -265,8 +266,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "1f4928072ea349fe60c540d20be83499a9bb16c18e3f3d1b805f7ad386ffdeb3",
-      "size": 15625,
+      "sha256": "30b8d72efb4aac2eec86da8eddd3583fb78d1866b4ae4099c907a356a71f2ee0",
+      "size": 16767,
       "mode": "0o644"
     },
     {
@@ -337,8 +338,8 @@
     },
     {
       "path": "docs/open-shell-parity.md",
-      "sha256": "a9cce83e0a3555956382ab5507b14262bd0476292c8bb28f101baa791cec42f4",
-      "size": 11073,
+      "sha256": "aab19c288d550d6122b6ea0570e8a38771bb0e49ebc6d831b1e20f4443f7e269",
+      "size": 11151,
       "mode": "0o644"
     },
     {
@@ -381,6 +382,12 @@
       "path": "docs/show-desktop.md",
       "sha256": "21e17b2133245bd2fdc13ed35b1dcf1aa26ecb0931ef1d322bbeb8ced8ffbee9",
       "size": 3042,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/start-keyboard.md",
+      "sha256": "5650225452f49c26b3b1c5c31b726e51badf91126bcdeddb7464c0b5b85894aa",
+      "size": 3029,
       "mode": "0o644"
     },
     {
@@ -499,8 +506,8 @@
     },
     {
       "path": "menu/start_menu.py",
-      "sha256": "22f60bdb032d33a352232463f97c9154f4eb611a79b540d482b3787b96b51076",
-      "size": 76049,
+      "sha256": "86040434d413bba56eb05aa4e9255c888503b7f7687e58cf8428334a26cda0f2",
+      "size": 79123,
       "mode": "0o644"
     },
     {
@@ -1281,6 +1288,12 @@
       "path": "tests/test_source_release.py",
       "sha256": "cb466acad35217caba7b29a694457c86b155e4d47fb495bfff59e9d26221eb1e",
       "size": 2659,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_start_keyboard.py",
+      "sha256": "7f41266ba14ba8b1a6addad9de363718f6254f0202d5624568ca07b53e94d697",
+      "size": 12307,
       "mode": "0o644"
     },
     {
