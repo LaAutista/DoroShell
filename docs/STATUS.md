@@ -33,3 +33,23 @@ The authenticated private-GitHub bootstrap was tested against published `5c0baba
 download/plan, scoped menu apply with `--no-packages`, repeat and removal all passed
 in a disposable home. It used development-host dependencies, not a clean OS. The
 new full source archive also passed inventory/hash round-trip checks.
+
+## Additional independent QA received at handoff
+
+On baseline `dee97b4`, independent private-X11 screenshot QA passed menu-open
+Print, rendered editing, annotated PNG/image clipboard export, native ScreenGrab
+import/Copy and exact Writer/Draw paste after the editor exited. Instrumented global
+Print passed three Escape/reopen cycles and exact 1024×768 full-frame clipboard
+pixels. The initial failure was a harness command-serialization error: LXQt treated
+`python SCRIPT` as one executable; the production single-launcher path worked.
+These are independent results, not reruns by the installer task, and do not prove
+Wayland, physical mixed-DPI, fresh login or full Spectacle parity.
+
+The separate unmerged `probe/animated-lock-surface` experiment at
+`f81d5d58dadcc140ce383316f965cf6a5616ccdf` failed its final stacking assertion:
+mpv's child covered an existing synthetic sibling overlay on launch and restart.
+Independent QA confirmed 69 preceding assertions and the same final failure.
+It is **unimplemented/unready as locker integration**, excluded from this release,
+and must not be installed or registered. This is not evidence of a real XScreenSaver
+vulnerability; real host hierarchy/authentication and lock testing were not reviewed
+or authorized. Unit passes do not override the rendering failure.

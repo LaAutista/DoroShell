@@ -78,3 +78,11 @@ refresh source hashes after staging intended files, review privacy/assets/notice
 commit focused changes and verify the remote SHA after an authorized normal push.
 Keep native source/build dependencies documented so another machine can rebuild
 without private paths or copies of the original developer's configuration.
+
+Additional handoff evidence is recorded in STATUS: independent private screenshot
+QA passed rendered/capture/native-import/paste paths and desktop-wide Print after
+a harness serialization fix. No production fix was indicated. The unmerged
+animated-lock-surface probe at `f81d5d5` instead has a reproduced final overlay-stacking
+failure; do not present or register it as working locker support. Its source is not
+in main or this release manifest. Keep future locker tests isolated and separately
+authorized; the synthetic failure makes no real-locker vulnerability claim.

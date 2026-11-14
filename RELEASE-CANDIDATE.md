@@ -228,3 +228,12 @@ The full suite after the authentication correction passed **285 tests**.
 The committed source export was round-trip extracted and passed both
 `python source_release.py` and `sha256sum -c SHA256SUMS`. No `.git` directory,
 compiled runtime, cache, private config, journal or credential is part of the export.
+
+### Independent QA context retained
+
+The separately recorded screenshot acceptance on `dee97b4` passed rendered capture,
+native import, exact application paste and global Print after a test-harness command
+serialization correction. This task did not repeat those UI suites. The unmerged
+lock-surface probe at `f81d5d5` has a reproduced final overlay-stacking failure and
+is excluded/unready; unit assertions do not establish working locker integration.
+STATUS and HANDOFF preserve the exact boundaries without copying private logs.

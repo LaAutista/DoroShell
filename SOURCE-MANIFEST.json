@@ -18,7 +18,8 @@
     "display_diagnostic_phases": "Private schema-2 phase/property diagnostics; exact state equivalence retained; see RELEASE-CANDIDATE.md",
     "native_tray_shortcut": "d7279a62921cb3fb7e6a4907a4c3e40e1b919736",
     "portable_installer": "bootstrap/deploy over existing adapters; legacy cursor recovery; profile-preserving native upgrade; docs/HANDOFF.md",
-    "private_bootstrap": "Authenticated GitHub CLI acquisition after real raw-URL 404; repository remains private"
+    "private_bootstrap": "Authenticated GitHub CLI acquisition after real raw-URL 404; repository remains private",
+    "independent_qa": "Private screenshot acceptance on dee97b4; unmerged lock probe f81d5d5 fails final stacking assertion. See docs/STATUS.md; probe excluded."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -65,8 +66,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "e7912e19ce07d0c0007849add8b334ef6fc0b4d0244918510de1933514cce79f",
-      "size": 17166,
+      "sha256": "ade744d203c4fd4d4faafb5171a2e238fa64cc845bf5ffecf8c70347dc5b85bd",
+      "size": 17699,
       "mode": "0o644"
     },
     {
@@ -221,8 +222,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "bc7c97f3563a0d54d7a1bf13b5fdbc46ad3352c28bac1f7ae335baf0f8060f91",
-      "size": 5364,
+      "sha256": "ce99c2385adb4d01c592faa47e01c5da7dba565ebec81b3a4e48eb11e658e19e",
+      "size": 5936,
       "mode": "0o644"
     },
     {
@@ -245,8 +246,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "53d18b62c988613cf89d69566281d250e4a4027139ae95499f488a1e4b85caee",
-      "size": 3711,
+      "sha256": "cf77a2c25b026417f3a2687e2efb08c85145530da1d2e5ec5eaac08b12e9d808",
+      "size": 5023,
       "mode": "0o644"
     },
     {
