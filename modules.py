@@ -17,7 +17,7 @@ from xml.parsers import expat
 
 ROOT = Path(__file__).resolve().parent
 TASKBAR_SIZES = {'small': (20, 36), 'medium': (28, 48), 'large': (36, 56)}
-MODULES = ('maintenance', 'clipboard', 'wallpaper-glass', 'wallpaper', 'theme', 'taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
+MODULES = ('start-shortcut', 'maintenance', 'clipboard', 'wallpaper-glass', 'wallpaper', 'theme', 'taskbar-size', 'snapping', 'screenshots', 'dolphin', 'single-desktop', 'taskbar', 'kate', 'kate-dark', 'dolphin-dark', 'taskbar-drag')
 
 
 def ini_value(text, section, key):
@@ -42,7 +42,10 @@ def ini_set(text, section, key, value):
     return text[:match.end()]+body+text[stop:]
 
 
-def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None):
+def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None, replace_start_shortcut=False):
+    if module == 'start-shortcut':
+        from integrate import shortcut_plan
+        return shortcut_plan(home, replace_start_shortcut)
     if module == 'clipboard':
         from clipboard.install import plans as clipboard_plans
         return clipboard_plans(home)
@@ -374,7 +377,7 @@ def validate_module_record(saved):
         if edit['kind'] == 'ini' and any(not isinstance(edit.get(k), str) for k in ('section', 'key')):
             raise ValueError('Invalid module INI target; preserve the recovery manifest')
 
-def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None):
+def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None, replace_start_shortcut=False):
     if module not in MODULES:
         raise ValueError("Unknown module")
     manifest=home/'.local/state/doroshell'/f'{module}.json'
@@ -382,6 +385,22 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
     saved=json.loads(manifest.read_text()) if manifest.exists() else None
     if saved is not None:
         validate_module_record(saved)
+        if module=='start-shortcut':
+            name='.config/lxqt/globalkeyshortcuts.conf'
+            if len(saved['edits'])!=1 or saved['edits'][0]['kind']!='file' or saved['edits'][0]['file']!=name or set(saved['backup'])!={name}:
+                raise ValueError('Invalid Start shortcut ownership inventory')
+            if saved.get('phase') not in ('pending','complete','restoring'):
+                raise ValueError('Invalid Start shortcut recovery phase')
+            if saved['phase']=='restoring' and not rollback:
+                raise RuntimeError('Finish Start shortcut restoration before applying again')
+            edit=saved['edits'][0];target=home/name;safe(target,home)
+            allowed=[edit['after']]
+            if saved['phase']!='complete':
+                if 'pending_from' not in saved:raise ValueError('Missing Start shortcut recovery evidence')
+                validate_backup({'data':saved['pending_from'],'mode':saved['backup'][name]['mode']})
+                allowed=[saved['pending_from'],saved['backup'][name]['data'] if saved['phase']=='restoring' else edit['after']]
+            if read_value(edit,target.read_bytes() if target.exists() else None) not in allowed:
+                raise RuntimeError('Edited shortcut file; restore/inspect it before continuing')
         # Optional writes preserve the mode captured in the first backup.
         for name, backup in saved['backup'].items():
             path = home/name
@@ -406,7 +425,7 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
                     edit['section'] = groups[0]
                     if read_value(edit,current)!=edit['after']:
                         raise RuntimeError('The renumbered Print shortcut was edited; refusing to change it.')
-    edits=saved['edits'] if rollback else plans(home,module,taskbar_style,taskbar_size,native_preview,theme,wallpaper_binary)
+    edits=saved['edits'] if rollback else plans(home,module,taskbar_style,taskbar_size,native_preview,theme,wallpaper_binary,replace_start_shortcut)
     if not edits:
         print(module+': existing icon taskbar retained')
         return
@@ -442,9 +461,19 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
         identity = lambda e: tuple(e.get(k) for k in ('file','kind','section','key'))
         order = [identity(e) for e in saved['edits']]
         record.sort(key=lambda e: order.index(identity(e)) if identity(e) in order else len(order))
+    shortcuts = home/'.config/lxqt/globalkeyshortcuts.conf'
+    shortcut_owner = home/'.local/state/doroshell/start-shortcut.json'
+    if module!='start-shortcut' and shortcuts in changed and original[shortcuts]!=changed[shortcuts]:
+        safe(shortcut_owner,home)
+        if shortcut_owner.exists():
+            raise RuntimeError('Restore start-shortcut before changing other shortcuts; its full-file backup must remain exact')
     if not apply and not rollback:
         print('Plan only. Add --apply.')
         return
+    if module=='start-shortcut' and apply and not rollback:
+        launcher=home/'.local/bin/lxqt-comfort-menu';safe(launcher,home)
+        if not launcher.is_file() or not os.access(launcher,os.X_OK):
+            raise RuntimeError('Install the Start menu before enabling its shortcut')
     restore_modes = {}
     if rollback:
         # Decode and reconstruct every target before any restoration or live update.
@@ -463,17 +492,30 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
     update_print = None
     if active_print and original[shortcuts] != changed[shortcuts]:
         update_print = live_print_change(shortcuts, original[shortcuts], changed[shortcuts])
-    transaction = theme_transaction(manifest, original, changed, modes) if module in ('theme','wallpaper','clipboard') else nullcontext()
+    transaction = theme_transaction(manifest, original, changed, modes) if module in ('theme','wallpaper','clipboard','start-shortcut') else nullcontext()
     with transaction as attempted:
         modes.update(restore_modes)
         if not rollback:
             backup=dict(saved['backup']) if saved else {}
             for p,v in original.items():
                 backup.setdefault(str(p.relative_to(home)), {'data':base64.b64encode(v).decode() if v is not None else None,'mode':modes[p]})
-            atomic(manifest,(json.dumps({'edits':record,'backup':backup},indent=2)+'\n').encode())
+            data_record={'edits':record,'backup':backup}
+            if module=='start-shortcut':
+                previous=next(iter(original.values()))
+                data_record.update(phase='pending',pending_from=base64.b64encode(previous).decode() if previous is not None else None)
+            atomic(manifest,(json.dumps(data_record,indent=2)+'\n').encode())
+        elif module=='start-shortcut':
+            saved['phase']='restoring'
+            previous=next(iter(original.values()))
+            saved['pending_from']=base64.b64encode(previous).decode() if previous is not None else None
+            atomic(manifest,(json.dumps(saved,indent=2)+'\n').encode())
         if rollback and update_print:
             update_print()
         for path,data in changed.items():
+            if module=='start-shortcut':
+                safe(path,home)
+                if (path.read_bytes() if path.exists() else None)!=original[path] or (path.exists() and path.stat().st_mode & 0o777 != modes[path]):
+                    raise RuntimeError('Concurrent shortcut-file edit; recovery evidence retained')
             if path == shortcuts and update_print:
                 if not rollback:
                     update_print()
@@ -488,6 +530,10 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
                 atomic(path,data,modes[path])
         if rollback:
             manifest.unlink()
+        elif module=='start-shortcut':
+            data_record['phase']='complete'
+            data_record.pop('pending_from')
+            atomic(manifest,(json.dumps(data_record,indent=2)+'\n').encode())
 
 
 def refresh_dockbarx():
@@ -503,6 +549,7 @@ def main():
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--home',type=Path,default=Path.home())
     parser.add_argument('--live',action='store_true')
+    parser.add_argument('--replace-start-shortcut',action='store_true')
     parser.add_argument('--wallpaper-binary', type=Path)
     parser.add_argument('--theme', choices=('windows','polar','heretic','spring'), default='windows')
     parser.add_argument('--native-preview', type=Path)
@@ -512,14 +559,16 @@ def main():
     actions.add_argument('--apply',action='store_true')
     actions.add_argument('--rollback',action='store_true')
     args=parser.parse_args()
+    if args.replace_start_shortcut and (args.module!='start-shortcut' or args.rollback):
+        parser.error('--replace-start-shortcut requires start-shortcut without rollback')
     if os.geteuid()==0:
         parser.error('Run as your desktop user, not root')
     components={'screenshots':['lxqt-globalkeysd'], 'taskbar':['lxqt-panel']}.get(args.module,[])
-    if args.module in ('theme', 'wallpaper', 'wallpaper-glass', 'clipboard'):
+    if args.module in ('theme', 'wallpaper', 'wallpaper-glass', 'clipboard', 'start-shortcut'):
         if args.live:
             parser.error('Theme settings apply on normal application/desktop startup; --live is unsupported')
         if not (args.apply or args.rollback):
-            run(args.home, args.module, theme=args.theme, wallpaper_binary=args.wallpaper_binary)
+            run(args.home, args.module, theme=args.theme, wallpaper_binary=args.wallpaper_binary, replace_start_shortcut=args.replace_start_shortcut)
             raise SystemExit(0)
         # Serialize theme switch/restore against another setup process.
         import fcntl
@@ -528,7 +577,7 @@ def main():
         lock.parent.mkdir(parents=True, exist_ok=True)
         with lock.open('a') as stream:
             fcntl.flock(stream, fcntl.LOCK_EX)
-            run(args.home, args.module, args.apply, args.rollback, theme=args.theme, wallpaper_binary=args.wallpaper_binary)
+            run(args.home, args.module, args.apply, args.rollback, theme=args.theme, wallpaper_binary=args.wallpaper_binary, replace_start_shortcut=args.replace_start_shortcut)
         if args.module == 'clipboard' and args.rollback and args.home.resolve() == Path.home().resolve():
             subprocess.run([sys.executable, str(ROOT/'clipboard/clipboard.py'), '--stop'], check=True)
         raise SystemExit(0)

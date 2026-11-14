@@ -1,3 +1,39 @@
+# Optional Alt+F1 ownership checkpoint — 2026-11-14
+
+Based on published `4e608edb6c8cc69aa5fd66eceaa75e0a1839ba43`. Add optional
+`start-shortcut` selection to deploy/bootstrap/setup. Reuse integrate's Start values,
+shared INI editing and existing transactional backup/undo. Core defaults are
+unchanged. Show the current/proposed binding; custom replacement needs an explicit
+flag. Never reload the shortcut daemon. The saved file targets its next normal
+startup, not a verified active shortcut.
+
+The adapter preserves unrelated bytes on first apply, then conservatively owns the
+whole shortcut file. Later edits/renumbering/chmod refuse repeat/removal; other
+DoroShell shortcut writes refuse until this ownership is restored. Combined
+screenshots/Start deployment orders install/removal safely. Pending/complete/
+restoring records retain first-install originals. Journal 4 binds the reviewed
+Alt+F1 fingerprint and replacement choice for recovery; old schemas remain supported
+for their existing modules. Changed review during build or before interrupted
+ownership refuses rather than adopting an edit. Launcher removal cannot strand an
+owned binding. Exact upgrade undo remains separate from baseline removal.
+
+**413 tests pass** in disposable HOME/runtime with offscreen Qt and no personal
+session bus/display. Added 21 shortcut tests and one bootstrap forwarding test;
+invalid replacement syntax also joins zero-command prerequisite checks. Actual
+menu/toolkit files and CLI run in fixtures, including installed CLI without Qt or
+PATH tools; Qt reads private encoded action fixtures. Package/build/daemon transport
+is mocked or unused. Source inventory, archive round-trip, patch applicability and
+bundle checks are recorded separately in durable private evidence.
+
+Known limits: CLI only; one standard Alt+F1 action, default XDG layout, conservative
+ASCII launcher-path syntax, full-file ownership. Legacy combined integration must
+be restored first. Interrupted overlapping writes may require manual inspection
+under the existing completed-step guard. Actual shortcut-daemon startup/login and
+clean-machine/package acceptance are unverified. No session/input/display/package
+change or publication was performed for this candidate. Original dirty source,
+previous evidence, disabled experimental input-helper work, artwork and licenses
+remain unchanged.
+
 # Prerequisite argument-order correction — 2026-11-14
 
 Based on unpublished `060a904ff8ffd7bb671b62549e179c2b1a60d9af`. Independent review

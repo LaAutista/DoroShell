@@ -20,8 +20,8 @@ from setup import PACKAGES
 
 ROOT = Path(__file__).resolve().parent
 CORE = ['menu', 'native-panel', 'theme', 'cursor', 'snapping', 'single-desktop', 'screenshots', 'maintenance']
-ORDER = [*CORE, 'clipboard', 'wallpaper', 'wallpaper-glass', 'display']
-OPTIONAL = ['clipboard', 'wallpaper', 'wallpaper-glass', 'display']
+ORDER = [*CORE, 'clipboard', 'wallpaper', 'wallpaper-glass', 'display', 'start-shortcut']
+OPTIONAL = ['clipboard', 'wallpaper', 'wallpaper-glass', 'display', 'start-shortcut']
 POINTER = '.local/state/doroshell/deployment.json'
 TRANSACTION = r'[0-9]{8}T[0-9]{6}-[0-9a-f]{12}'
 BUILD_PACKAGES = ['base-devel', 'git', 'cmake', 'ninja', 'pkgconf', 'qt6-base', 'qt6-tools',
@@ -49,7 +49,7 @@ def select_modules(names, extras=(), expand=True):
     if unknown: raise ValueError('Unknown modules: '+', '.join(sorted(unknown)))
     if 'display' in requested: requested.add('wallpaper')
     if expand and 'clipboard' in requested: requested.add('native-panel')
-    if expand and 'native-panel' in requested: requested.add('menu')
+    if expand and ('native-panel' in requested or 'start-shortcut' in requested): requested.add('menu')
     return [name for name in ORDER if name in requested]
 
 
@@ -183,20 +183,26 @@ def panel_preflight(home, panel, journal_path=None):
 
 def validate_journal(home, journal, identifier):
     """Validate every consumed field before recovery, finalization or undo writes."""
-    if (not isinstance(journal, dict) or type(journal.get('format')) is not int or journal['format'] not in (1, 2, 3)
+    if (not isinstance(journal, dict) or type(journal.get('format')) is not int or journal['format'] not in (1, 2, 3, 4)
             or journal.get('status') not in ('pending', 'complete', 'undoing', 'undone')):
         raise ValueError('Unsupported or invalid deployment journal')
     if journal['format'] == 1 and journal['status'] == 'pending':
         raise ValueError('Legacy pending journal has no completed-step evidence; preserve it for manual inspection')
     request = journal.get('request')
-    fields = {'modules', 'remove', 'theme', 'source'} | ({'panel'} if journal['format'] == 3 else set())
+    fields = {'modules', 'remove', 'theme', 'source'} | ({'panel'} if journal['format'] in (3,4) else set()) | ({'replace_start_shortcut','shortcut_before'} if journal['format']==4 else set())
     if (not isinstance(request, dict) or set(request) != fields
             or type(request.get('remove')) is not bool
             or request.get('theme') not in ('windows', 'polar', 'heretic', 'spring')
             or not valid_hash(request.get('source'))):
         raise ValueError('Invalid recovery request')
-    if journal['format'] == 3: validate_panel(request['panel'])
+    if journal['format'] == 3 or (journal['format']==4 and request['panel'] is not None): validate_panel(request['panel'])
     selected = module_list(request.get('modules'))
+    if ('start-shortcut' in selected) != (journal['format']==4):
+        raise ValueError('Start shortcut requires its reviewed-choice journal schema')
+    if journal['format']==4 and (type(request['replace_start_shortcut']) is not bool or 'start-shortcut' not in selected or (request['remove'] and request['replace_start_shortcut'])):
+        raise ValueError('Invalid Start shortcut replacement request')
+    if journal['format']==4 and (request['shortcut_before'] is not None if request['remove'] else not valid_hash(request['shortcut_before'])):
+        raise ValueError('Invalid reviewed shortcut fingerprint')
     module_list(journal.get('installed_before'))
     sequence = [m for m in selected if m != 'display']
     if request['remove']: sequence.reverse()
@@ -263,6 +269,10 @@ def recovery_journal(home, previous):
 def undo(home, identifier):
     path, journal = load_journal(home, identifier)
     if journal['status'] in ('pending', 'undone'): return _undo(home, identifier)
+    launcher = '.local/bin/lxqt-comfort-menu'
+    if (manifest_for(home,'start-shortcut').exists() and launcher in journal['before'] and journal['before'][launcher]['data'] is None
+            and str(manifest_for(home,'start-shortcut').relative_to(home)) not in journal['before']):
+        raise RuntimeError('Restore the owned Start shortcut before undo removes its launcher')
     helper = '.local/share/doroshell/toolkit/input_preferences.py'
     if helper in journal['before'] and journal['before'][helper] != journal['after'].get(helper):
         from input_preferences import Preferences
@@ -357,7 +367,14 @@ def stock_start_icon(home, manifest):
     return icons == [str(home/'.local/share/lxqt-comfort/start.svg')]
 
 
-def step(home, name, binaries, theme, remove=False, job=None, panel=None):
+def check_shortcut_review(home, request):
+    if not manifest_for(home,'start-shortcut').exists():
+        from integrate import shortcut_fingerprint
+        if shortcut_fingerprint(home)!=request['shortcut_before']:
+            raise RuntimeError('Alt+F1 changed since review; replacement refused, original journal retained')
+
+
+def step(home, name, binaries, theme, remove=False, job=None, panel=None, replace_start_shortcut=False):
     """Return the managed path inventory and the existing adapter operation."""
     import install, modules
     manifest = manifest_for(home, name)
@@ -387,6 +404,7 @@ def step(home, name, binaries, theme, remove=False, job=None, panel=None):
             operation = lambda: profile.switch(home, prepared)
     else:
         kwargs = dict(theme=theme, wallpaper_binary=binaries.get('wallpaper'))
+        if name=='start-shortcut':kwargs['replace_start_shortcut']=replace_start_shortcut
         edits = json.loads(manifest.read_text())['edits'] if remove and manifest.exists() else [] if remove else modules.plans(home, name, **kwargs)
         paths.update(home/e['file'] for e in edits)
         if manifest.exists(): paths.update(home/p for p in json.loads(manifest.read_text())['backup'])
@@ -394,7 +412,7 @@ def step(home, name, binaries, theme, remove=False, job=None, panel=None):
     return [str(p.relative_to(home)) for p in sorted(paths)], operation
 
 
-def deploy(home, selected, binaries, theme='windows', remove=False, recover=False, panel=None):
+def deploy(home, selected, binaries, theme='windows', remove=False, recover=False, panel=None, replace_start_shortcut=False):
     if remove and 'menu' in selected:
         from input_preferences import Preferences
         Preferences(home).require_inactive()
@@ -419,8 +437,11 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     source = hashlib.sha256((ROOT/'SHA256SUMS').read_bytes()).hexdigest()
     request = dict(modules=selected, remove=remove, theme=theme, source=source)
     if panel is not None: request['panel'] = panel
+    if 'start-shortcut' in selected:
+        request.update(panel=panel,replace_start_shortcut=replace_start_shortcut)
     if recover:
         path, journal = recovery_journal(home, previous)
+        if 'start-shortcut' in selected:request['shortcut_before']=journal['request']['shortcut_before']
         if journal['request'] != request: raise ValueError('Recovery needs the same revision, modules, theme and action')
         if journal['status'] == 'complete':
             target = str(pointer.relative_to(home))
@@ -429,11 +450,21 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
             return identifier
         if panel is not None and not remove and 'native-panel' in selected and 'native-panel' not in journal['done']:
             panel_preflight(home, panel, path)
+        if 'start-shortcut' in selected and not remove and 'start-shortcut' not in journal['done']:
+            import modules
+            check_shortcut_review(home,request)
+            modules.run(home,'start-shortcut',replace_start_shortcut=replace_start_shortcut)
     else:
+        if 'start-shortcut' in selected:
+            from integrate import shortcut_fingerprint
+            request['shortcut_before']=None if remove else shortcut_fingerprint(home)
         if panel is not None and not remove and 'native-panel' in selected:
             panel_preflight(home, panel)
+        if 'start-shortcut' in selected and not remove:
+            import modules
+            modules.run(home,'start-shortcut',replace_start_shortcut=replace_start_shortcut)
         job.mkdir(parents=True); job.chmod(0o700)
-        journal = dict(format=3 if panel is not None else 2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
+        journal = dict(format=4 if 'start-shortcut' in selected else 3 if panel is not None else 2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
                        before={str(pointer.relative_to(home)):file_state(home, str(pointer.relative_to(home)))}, after={})
         validate_journal(home, journal, identifier)
         atomic(path, json.dumps(journal).encode())
@@ -449,7 +480,8 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
             print('Preserve existing '+name+' selection'); journal['done'].append(name)
             atomic(path, json.dumps(journal).encode()); continue
         print(f'[{index}/{len(sequence)}] {"Restore" if remove else "Install/update"} {name}', flush=True)
-        names, operation = step(home, name, binaries, theme, remove, job, panel=panel)
+        if name=='start-shortcut' and not remove:check_shortcut_review(home,journal['request'])
+        names, operation = step(home, name, binaries, theme, remove, job, panel=panel, replace_start_shortcut=replace_start_shortcut)
         if journal['active'] == name and set(names) != set(journal['active_files']):
             raise ValueError('Changed pending module inventory; preserve the journal for inspection')
         for target in names:
@@ -487,6 +519,7 @@ def main(argv=None):
     parser.add_argument('--with', dest='extras', action='append', choices=OPTIONAL, default=[])
     parser.add_argument('--home', type=Path, default=Path.home())
     parser.add_argument('--theme', choices=('windows','polar','heretic','spring'), default='windows')
+    parser.add_argument('--replace-start-shortcut', action='store_true', help='Explicitly replace the reviewed existing Alt+F1 binding; requires start-shortcut')
     parser.add_argument('--panel', help='Explicit native-panel ID for first install; recorded for repeat/recovery')
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--remove', action='store_true', help='Restore selected modules to first-install baseline; requires --apply')
@@ -498,6 +531,8 @@ def main(argv=None):
     if args.panel is not None:
         validate_panel(args.panel)
         if args.undo: raise ValueError('--panel cannot be combined with --undo')
+    if args.replace_start_shortcut and (args.remove or args.undo or args.prerequisites):
+        raise ValueError('--replace-start-shortcut cannot combine with remove/undo/prerequisites')
     if args.prerequisites:
         if args.apply or args.remove or args.recover or args.undo:
             raise ValueError('--prerequisites is guidance only; cannot combine with apply/remove/recover/undo')
@@ -521,10 +556,15 @@ def main(argv=None):
         if args.panel is not None and args.panel != request.get('panel'):
             raise ValueError('Recovery needs the recorded panel choice; no prerequisites or files were changed')
         args.panel = request.get('panel')
+        if args.replace_start_shortcut and not request.get('replace_start_shortcut',False):
+            raise ValueError('Recovery needs the recorded shortcut replacement choice')
+        args.replace_start_shortcut = request.get('replace_start_shortcut',False)
         if args.modules is None: args.modules = request['modules']
         args.theme = request['theme']; args.remove = request['remove']
     defaults = previous.get('modules', list(dict.fromkeys([*CORE, *installed_modules(home)])))
     selected = select_modules(args.modules if args.modules is not None else defaults, args.extras, not args.remove)
+    if args.replace_start_shortcut and 'start-shortcut' not in selected:
+        raise ValueError('--replace-start-shortcut requires the start-shortcut module')
     if args.panel is not None and 'native-panel' not in selected and not args.recover:
         raise ValueError('--panel requires the native-panel module')
     if previous.get('panel') is not None and args.panel not in (None, previous['panel']):
@@ -546,6 +586,15 @@ def main(argv=None):
         try: panel_preflight(home, panel, journal_path if args.recover else None)
         except PanelPrerequisitesUnavailable as error: panel_prerequisites = str(error)
         except (OSError, ValueError, RuntimeError) as error: report['issues'].append(str(error))
+    reviewed_shortcut = None
+    if 'start-shortcut' in selected and not (args.remove or args.undo) and not (args.recover and 'start-shortcut' in journal['done']):
+        import modules
+        try:
+            if args.recover:check_shortcut_review(home,request)
+            from integrate import shortcut_fingerprint
+            reviewed_shortcut = shortcut_fingerprint(home)
+            modules.run(home,'start-shortcut',replace_start_shortcut=args.replace_start_shortcut)
+        except (OSError,ValueError,RuntimeError) as error: report['issues'].append(str(error))
     packages = packages_for(selected); versions = compatibility.package_versions(packages)
     issues = report['issues'] + ([panel_prerequisites] if panel_prerequisites else [])
     print(json.dumps(dict(platform={**report, 'issues':issues}, package_versions=versions, modules=selected, panel=panel), indent=2))
@@ -595,12 +644,18 @@ def main(argv=None):
         binaries = {} if args.remove or args.undo else build_native(home, selected, versions)
         # Lock the existing optional-module writer locks too, retaining their inodes.
         with contextlib.ExitStack() as locks:
-            for name in ('theme', 'wallpaper', 'clipboard'):
+            for name in ('theme', 'wallpaper', 'clipboard', 'start-shortcut'):
                 if name in selected or args.undo:
+                    if name=='start-shortcut' and name not in selected and name not in journal['request']['modules']:
+                        continue
                     path = state/(name+'.lock'); safe(path, home)
                     handle = locks.enter_context(path.open('a')); fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             if args.undo: undo(home, args.undo); return 0
-            deploy(home, selected, binaries, args.theme, args.remove, args.recover, panel=panel)
+            if reviewed_shortcut is not None:
+                from integrate import shortcut_fingerprint
+                if shortcut_fingerprint(home)!=reviewed_shortcut:
+                    raise RuntimeError('Alt+F1 changed during prerequisite/build work; review again before applying')
+            deploy(home, selected, binaries, args.theme, args.remove, args.recover, panel=panel, replace_start_shortcut=args.replace_start_shortcut)
     return 0
 
 

@@ -585,6 +585,7 @@ class MenuTests(unittest.TestCase):
                 self.assertFalse(launcher.exists())
 
     def test_integration_preserves_other_settings_and_rolls_back(self):
+        from PySide6.QtCore import QSettings
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             config = home / '.config/lxqt'
@@ -596,7 +597,7 @@ class MenuTests(unittest.TestCase):
             installer.install(home, True)
             integration.run(home, apply=True)
             integration.run(home, apply=True)
-            cfg = integration.QSettings(str(config / 'panel.conf'), integration.QSettings.Format.IniFormat)
+            cfg = QSettings(str(config / 'panel.conf'), QSettings.Format.IniFormat)
             self.assertEqual(cfg.value('panel1/plugins'), ['comfortstart', 'dockbarx'])
             cfg.setValue('other/keep', 'new personal setting')
             cfg.sync()

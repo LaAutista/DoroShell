@@ -92,7 +92,13 @@ python deploy.py --modules menu --apply       # scoped Start/settings installati
 python deploy.py --with clipboard --apply     # optional session-only history
 python deploy.py --with wallpaper --apply     # native Background controls; video stays opt-in
 python deploy.py --with display --apply       # optional guarded Advanced controls
+python deploy.py --modules start-shortcut     # optional Alt+F1 plan; includes menu
 ```
+
+Alt+F1 is **opt-in**. The shortcut plan shows the current binding; an existing custom
+action requires the explicit `--replace-start-shortcut` choice as well as `--apply`.
+It saves for normal shortcut-daemon startup without reloading it. Read the
+[ownership and restoration limits](docs/INSTALL.md#optional-altf1-start-shortcut) before applying.
 
 For a standard multi-panel layout, explicitly choose the existing panel ID with
 `--panel panel2` (also accepted by bootstrap). Preview first; apply retains other

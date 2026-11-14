@@ -60,8 +60,8 @@ hash-checked. System LXQt binaries remain installed.
 
 Configuration adapters retain unrelated keys and first-install originals. The
 native panel adds Start and tray integration to a separate profile. Existing custom
-Alt+F1 mappings are not silently replaced: the new orchestration provides the Start
-button; use the existing reviewed shortcut-integration workflow separately if needed.
+Alt+F1 mappings are not silently replaced: the Start button needs no global shortcut.
+The optional `start-shortcut` adapter below adds explicit ownership independently.
 Screenshots configure Print on disk; running shortcut daemons may require the next
 normal login to pick up changes. No process is restarted by `deploy.py`.
 
@@ -119,6 +119,56 @@ state, checking packages or downloading anything. Omit `--modules` for core, or 
 `--with` options explicitly. Its default is core, not the installed module selection;
 it is guidance only and cannot combine with apply/remove/recover/undo. Ordinary
 `deploy.py` plans still report platform issues and now explicitly label a blocked plan.
+
+## Optional Alt+F1 Start shortcut
+
+This CLI-only optional adapter reuses the existing Start shortcut values and INI/backup
+engine. It is never selected by core installation. Preview the current and proposed
+binding before applying; deployment adds the menu dependency automatically:
+
+```sh
+python deploy.py --modules start-shortcut
+python deploy.py --modules start-shortcut --apply
+# Only when you explicitly choose to replace the displayed custom binding:
+python deploy.py --modules start-shortcut --replace-start-shortcut
+python deploy.py --modules start-shortcut --replace-start-shortcut --apply
+# Restore only the shortcut to its exact first-install baseline:
+python deploy.py --modules start-shortcut --remove --apply
+```
+
+Local bootstrap accepts `--with start-shortcut` and `--replace-start-shortcut`.
+The README download wrapper intentionally keeps its smaller argument interface.
+Low-level `setup.py menu start-shortcut` supports the same preview/apply/replacement
+flag; an already installed menu can use `setup.py start-shortcut`. This adds no
+Settings button or shortcut service. No shortcut daemon is reloaded or started.
+The file is staged for its next normal startup; next-login activation is unverified.
+
+No binding or the stock Fancy Menu binding can be changed by the explicit module
+opt-in; any other existing binding requires the replacement flag. One standard
+`Alt+F1.N` or `Alt%2BF1.N` action is supported. Duplicate/ambiguous aliases, unknown
+fields, unsupported launcher-path characters (including spaces), symlinks and
+legacy combined `menu-integration.json` ownership refuse without guessing. Restore
+legacy integration through its existing workflow before using separate ownership.
+
+Unrelated shortcut sections remain byte-for-byte intact on initial apply. The
+conservative adapter then owns the **whole shortcut file**: any later content/mode
+edit, daemon renumbering or rewrite blocks repeat/removal/undo, including edits to
+other bindings. Restore this module before changing shortcuts. Other DoroShell
+shortcut writes refuse while its ownership exists; combined deployment installs
+Print first and restores Alt+F1 first on removal. No automatic merge is attempted.
+
+`start-shortcut.json` retains the original bytes/mode and pending/complete/restoring
+phase. Recovery can retry the recorded interrupted write/restore; changed files
+remain untouched. Journal format 4 records the replacement choice and fingerprint
+of the reviewed Alt+F1 binding. Recovery never adopts a different binding before
+ownership; changing a binding during prerequisite/build work also refuses the write.
+A failed overlapping write already covered by an earlier module's completed-state
+evidence requires inspection, as with existing deployment recovery. Use the same
+source for `--apply --recover`; do not delete manifests to bypass a conflict.
+Older journal formats remain supported, but older installers reject the new module
+and journal format. `--undo TRANSACTION` restores the exact pre-upgrade state;
+`--remove` restores first-install originals. Removing/undoing the menu separately is
+refused if it would strand an owned shortcut without its launcher.
 
 ## Explicit panel selection
 

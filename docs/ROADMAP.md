@@ -16,7 +16,9 @@ The project is functional and under active development. Preserve working compone
    Completed-step recovery preserves a later multi-panel stock layout. First-time
    `profile.py prepare --panel` now supports explicit selection in bounded standard
    profiles through setup and deploy/bootstrap, with recorded choice and interrupted
-   first-stage recovery. Broader layout/XDG adapters and shortcut integration remain open.
+   first-stage recovery. Optional Alt+F1 deployment now has explicit custom replacement,
+   conservative whole-file ownership, recovery and exact undo; activation remains
+   unverified. Broader layout/XDG and shortcut-format adapters remain open.
 4. Expand real notifier/XEmbed/application, accessibility, mixed-DPI and long-session
    acceptance without adding a mandatory compositor or extra polling/indexing.
 5. Continue Windows 7/Open-Shell and screenshot parity from the detailed inventories.

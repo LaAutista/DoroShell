@@ -271,6 +271,8 @@ def _rollback(home):
         return
     record = json.loads(manifest.read_text())
     validate_menu_record(record)
+    if (home/'.local/state/doroshell/start-shortcut.json').exists():
+        raise RuntimeError('Restore the owned Start shortcut before removing its launcher.')
     if (manifest.parent / 'menu-integration.json').exists():
         raise RuntimeError('Restore the Start button and shortcut integration before removing its launcher.')
     if (home/'.local/state/doroshell/native-panel.json').is_file():

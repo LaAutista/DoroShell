@@ -5,6 +5,7 @@ main() (
     local channel=development ref=main apply=false allow_packages=true arg root tmp revision destination
     local plan=false guidance=false remove=false recover=false help=false undo='' panel=''
     local modules_set=false panel_module=false clipboard_module=false extra_clipboard=false
+    local shortcut_module=false extra_shortcut=false replace_shortcut=false
     local -a forwarded=() missing=()
     invalid() { echo "Bootstrap arguments: $1. No prerequisites requested." >&2; exit 2; }
     # Pure shell syntax/action gate: runs before acquisition tools or authentication.
@@ -18,7 +19,7 @@ main() (
                     --ref) ref=$2 ;;
                     --panel) [[ "$2" =~ ^panel[1-9][0-9]*$ ]] || invalid 'Choose an existing panelN ID with --panel'; panel=$2 ;;
                     --theme) case "$2" in windows|polar|heretic|spring) ;; *) invalid 'Unknown theme' ;; esac ;;
-                    --with) case "$2" in clipboard) extra_clipboard=true ;; wallpaper|wallpaper-glass|display) ;; *) invalid 'Unknown optional module' ;; esac ;;
+                    --with) case "$2" in clipboard) extra_clipboard=true ;; start-shortcut) extra_shortcut=true ;; wallpaper|wallpaper-glass|display) ;; *) invalid 'Unknown optional module' ;; esac ;;
                     --undo) [[ "$2" =~ ^[0-9]{8}T[0-9]{6}-[0-9a-f]{12}$ ]] || invalid 'Invalid undo transaction ID'; undo=$2 ;;
                 esac
                 case "$1" in --channel|--ref) ;; *) forwarded+=("$1" "$2") ;; esac
@@ -26,17 +27,19 @@ main() (
             --modules)
                 forwarded+=(--modules); shift
                 (($#)) && [[ "$1" != -* ]] || invalid 'Missing module list'
-                modules_set=true; panel_module=false; clipboard_module=false
+                modules_set=true; panel_module=false; clipboard_module=false; shortcut_module=false
                 while (($#)) && [[ "$1" != -* ]]; do
                     case "$1" in
                         core|native-panel) panel_module=true ;;
                         clipboard) clipboard_module=true ;;
+                        start-shortcut) shortcut_module=true ;;
                         menu|theme|cursor|snapping|single-desktop|screenshots|maintenance|wallpaper|wallpaper-glass|display) ;;
                         *) invalid 'Unknown module' ;;
                     esac
                     forwarded+=("$1"); shift
                 done ;;
             --apply) apply=true; forwarded+=(--apply); shift ;;
+            --replace-start-shortcut) replace_shortcut=true; forwarded+=(--replace-start-shortcut); shift ;;
             --no-packages) allow_packages=false; forwarded+=(--no-packages); shift ;;
             --plan) plan=true; shift ;;
             --prerequisites) guidance=true; forwarded+=(--prerequisites); shift ;;
@@ -47,6 +50,10 @@ main() (
         esac
     done
     "$plan" && "$apply" && invalid '--plan cannot combine with --apply'
+    if "$replace_shortcut"; then
+        if "$guidance" || "$help" || "$remove" || [[ -n "$undo" ]]; then invalid 'Shortcut replacement cannot combine with guidance/help/remove/undo'; fi
+        if ! "$shortcut_module" && ! "$extra_shortcut" && ! "$recover"; then invalid 'Explicitly select start-shortcut before choosing replacement'; fi
+    fi
     if "$guidance" || "$help"; then
         if "$apply" || "$remove" || "$recover" || [[ -n "$undo" ]]; then invalid 'Guidance/help cannot combine with an action'; fi
     fi

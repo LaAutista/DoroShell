@@ -76,6 +76,9 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
                  ['--apply','--ref','../main'],['--apply','--undo','invalid'],['--apply','--panel=panel2'],
                  ['--apply','--panel','panel2','--modules','menu'],['--prerequisites','--remove'],
                  ['--apply','--help'],['--apply','positional'],
+                 ['--apply','--replace-start-shortcut'],
+                 ['--apply','--modules','start-shortcut','--replace-start-shortcut','--remove'],
+                 ['--prerequisites','--with','start-shortcut','--replace-start-shortcut'],
                  ['--apply','--undo','20261114T120000-0123456789ab','--recover']]
         for args in invalid:
             with self.subTest(args=args):
@@ -187,3 +190,9 @@ sys.exit(22 if os.environ.get('FAIL_FETCH') else 0)
         self.env['FAIL_FETCH']='1'
         result=subprocess.run(['/usr/bin/bash','-c',command],env=self.env,capture_output=True,text=True)
         self.assertNotEqual(result.returncode,0);self.assertNotIn('EXECUTED-BOOTSTRAP',result.stdout)
+
+    def test_explicit_start_shortcut_replacement_is_forwarded(self):
+        args=['--apply','--modules','menu','--with','start-shortcut','--replace-start-shortcut']
+        result=self.run_bootstrap(*args)
+        forwarded=json.loads(next(line[7:] for line in result.stdout.splitlines() if line.startswith('DEPLOY ')))
+        self.assertEqual(forwarded,args)

@@ -12,6 +12,7 @@ The shared interface is preview → apply/update → conflict-checked restoratio
 | `cursor` | Inherited `DoroShell-Loading` Xcursor theme, LXQt/default cursor selection | Pillow + Breeze cursors. GIF/APNG sources included; ordinary pointer inherited. Legacy `cursor-install.json` retained. |
 | `snapping` | X11/Openbox helper, autostart and owned keybinding block | Python Xlib/PySide6; startup at next login. Explicit legacy `--live` exists but deploy never uses it. |
 | `screenshots` | Independent overlay/helper, owned Print keys | Xlib/PySide6/GIO. Optional native ScreenGrab importer built separately. No personal capture during tests. |
+| `start-shortcut` | Optional Alt+F1 binding in `.config/lxqt/globalkeyshortcuts.conf` | Menu + lxqt-globalkeys; explicit custom replacement flag. Whole-file ownership/phase record, exact original bytes/mode, no live reload. Restore before other shortcut edits; see INSTALL. |
 | `maintenance` | `doroshell-update` and `doroshell-remove` launchers | Permanent source checkout; existing shared module manifest engine. Does not run in the background. |
 | `clipboard` | In-memory history helper, autostart, fixed panel button | Optional native panel + menu; never serializes clipboard content. Removing files does not force-stop an active helper in this orchestrator. |
 | `wallpaper` | Native PCManFM + video worker and native Background preferences | Optional libfm-qt/Qt Multimedia build. Format-2/3 integrity checks; native/system fallback. Media selection/enabling remains explicit. |

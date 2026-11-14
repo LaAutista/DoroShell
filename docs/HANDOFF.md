@@ -171,3 +171,16 @@ animated-lock-surface probe at `f81d5d5` instead has a reproduced final overlay-
 failure; do not present or register it as working locker support. Its source is not
 in main or this release manifest. Keep future locker tests isolated and separately
 authorized; the synthetic failure makes no real-locker vulnerability claim.
+
+
+Optional Alt+F1 follow-up on `4e608ed`: `start-shortcut` is an explicit deploy/bootstrap/
+setup selection, with separate custom-binding replacement consent. Reuses integrate
+values and shared INI/transaction code; no new daemon or GUI. Journal 4 retains review
+fingerprint and consent; per-module phases distinguish interrupted writes/restoration
+from later user edits. Conservative whole-file ownership refuses unrelated later
+shortcut edits and blocks other module writers until restored; Print+Start combined
+ordering/removal is tested. Old schema support and baseline versus upgrade undo stay
+separate. Installed toolkit CLI is tested in disposable homes without Qt/PATH tools.
+No live shortcut reload, login acceptance or package authentication occurred. See
+INSTALL for supported syntax and recovery limits; preserve the independent disabled
+experimental input-helper work and its real authentication blocker.

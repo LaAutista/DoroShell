@@ -12,6 +12,7 @@ separate from this pass. Source publication does not imply live activation.
 | Mouse & Touchpad | DoroShell Settings page, installed opt-in X11 helper, login intent, restoration and guarded removal/undo; read-only capability/configuration-intent status | 35 input unit/lifecycle/diagnostic tests and private rendered installed-toolkit acceptance; evdev profile support only when exposed. Current initialization remains unverified; stale logs cannot establish it. Native LXQt is linked, not patched. No physical input or login acceptance. |
 | Panel/tray | Ten-patch native panel, profile-preserving updates, Quick Launch apps merged into taskbar pins (opt-in command for existing installs) | Read-only running path confirms ten-patch runtime. New upgrade tests preserve config and baseline and cover interrupted writes. No panel refresh performed. |
 | Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
+| Optional Alt+F1 | Explicit deploy/bootstrap/setup selection, custom replacement choice, next-startup disk binding | Disposable-home apply/repeat/recovery/remove/undo and installed-toolkit CLI; Qt reads private binding fixtures. Whole-file ownership refuses later shortcut edits. No live daemon reload or login acceptance. |
 | Installer | Bootstrap, approved automatic prerequisite stages, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and fake-command missing-capability/cancellation/fault tests; see release evidence for final counts. Actual package/authentication and clean-machine acceptance remain separate. Existing adapters remain the persistence engines. |
 | Compatibility | Arch lineage/pacman, LXQt/X11, Openbox; single panel1 or bounded explicit multi-panel selection through setup/deploy/bootstrap; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/Wayland refused. Explicit panelN selection preserves other standard panels; shared widgets/ambiguous layouts remain unsupported. |
 | Lock-screen animation | Design only | [Separate design](animated-lock-screen-design.md); no authentication/locker changes or claim of implementation. |
@@ -120,3 +121,15 @@ It is **unimplemented/unready as locker integration**, excluded from this releas
 and must not be installed or registered. This is not evidence of a real XScreenSaver
 vulnerability; real host hierarchy/authentication and lock testing were not reviewed
 or authorized. Unit passes do not override the rendering failure.
+
+
+The optional Alt+F1 follow-up on `4e608ed` passes **413 tests**, including 21 new
+shortcut tests and one bootstrap-forwarding test. Fake command checks also cover
+invalid replacement arguments before acquisition/authentication. Tests install real
+menu/toolkit files in disposable homes, exercise existing Print/Alt+F1 ordering,
+interrupted writes/restoration, stale review, exact bytes/modes, malformed records,
+symlinks and launcher-removal guards. Private Qt parsing verifies supported stored
+bindings; installed CLI preview/apply/rollback works without Qt/PATH commands.
+The older independent-module test excludes this dependent adapter, whose combined
+lifecycle now has separate coverage. No native process/build, live shortcut/input,
+package authentication, fresh OS or login test occurred.

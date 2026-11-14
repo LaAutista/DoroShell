@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add optional `start-shortcut` deployment/bootstrap/setup support for Alt+F1, with
+  current/proposed preview, explicit custom replacement, recorded review/ownership,
+  interrupted recovery and exact restoration. Preserve unrelated bytes and refuse
+  subsequent shortcut-file edits; no live shortcut reload or default takeover.
+
 - Reject invalid options and conflicting actions before prerequisite authentication
   in bootstrap and the README downloader. Keep the downloader's option set small;
   local bootstrap/deploy retain advanced operations. Test zero external commands

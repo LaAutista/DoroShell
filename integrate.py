@@ -6,7 +6,6 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from PySide6.QtCore import QSettings
 from install import atomic, safe
 
 
@@ -26,7 +25,71 @@ def desired(home):
     }
 
 
+def shortcut_state(home):
+    """Read the one supported Alt+F1 binding without loading Qt or writing."""
+    import re
+    from urllib.parse import unquote
+    from modules import ini_value
+    name = '.config/lxqt/globalkeyshortcuts.conf'
+    path = home/name
+    safe(path, home)
+    legacy = home/'.local/state/lxqt-comfort/menu-integration.json'
+    safe(legacy, home)
+    if legacy.exists():
+        raise RuntimeError('Restore legacy Start-button/shortcut integration before managing Alt+F1 separately')
+    text = path.read_bytes().decode() if path.exists() else ''
+    if '\0' in text or any(line.lstrip().startswith('[') and not re.fullmatch(r'\[[^\]\r\n]+\][ \t]*',line) for line in text.splitlines()):
+        raise RuntimeError('Unsupported shortcut section syntax; inspect the file first')
+    headers = re.findall(r'(?m)^\[([^\]\r\n]+)\][ \t]*\r?$', text)
+    groups = [s for s in headers if re.match(r'(?i)^alt\+f1(?:\.|$)', unquote(s))]
+    if len(groups)>1 or (groups and not re.fullmatch(r'Alt(?:\+|%2[Bb])F1\.[1-9][0-9]*', groups[0])):
+        raise RuntimeError('Ambiguous/nonstandard Alt+F1 binding; no shortcut is chosen')
+    section = groups[0] if groups else 'Alt%2BF1.1'
+    if groups:
+        body = re.split(r'(?m)^\[', text.split('['+section+']',1)[1],maxsplit=1)[0]
+        keys = re.findall(r'(?m)^([^#;\s=][^=]*)=',body)
+        lines=[line for line in body.splitlines() if line.strip() and not line.lstrip().startswith(('#',';'))]
+        if len(keys)!=len(lines) or len(keys)!=len(set(keys)) or any(k not in ('Exec','path','Comment','Enabled') for k in keys):
+            raise RuntimeError('Unsupported/duplicate Alt+F1 fields; inspect the binding first')
+    current = {key:ini_value(text,section,key) for key in ('Exec','path','Comment','Enabled')}
+    return name, text, section, current, bool(groups)
+
+
+def shortcut_fingerprint(home):
+    import hashlib
+    _, _, section, current, present = shortcut_state(home)
+    return hashlib.sha256(json.dumps([section if present else None,current],sort_keys=True).encode()).hexdigest()
+
+
+def shortcut_plan(home, replace=False):
+    """Bounded shortcut-only adapter; reuse legacy values and shared INI editing."""
+    from modules import ini_set
+    import re
+    name, text, section, current, present = shortcut_state(home)
+    launcher = str(home / '.local/bin/lxqt-comfort-menu')
+    if not re.fullmatch(r'/[A-Za-z0-9_./-]+', launcher):
+        raise RuntimeError('Shortcut launcher path contains unsupported characters; no binding written')
+    print('Alt+F1 current binding: '+json.dumps(current,ensure_ascii=True))
+    print('Proposed: DoroShell Start at next normal shortcut-daemon startup; no reload. Full-file ownership refuses later shortcut-file edits.')
+    managed = home/'.local/state/doroshell/start-shortcut.json'
+    safe(managed,home)
+    standard = current['path']=='/panel/fancymenu/show_hide' and current['Exec'] is None and current['Enabled'] in (None,'true')
+    if present and not managed.exists() and not standard and not replace:
+        raise RuntimeError('Alt+F1 has an existing binding. Review it, then explicitly choose --replace-start-shortcut to replace it')
+    print('Proposed binding: '+json.dumps(desired(home)['globalkeyshortcuts.conf'],ensure_ascii=True))
+    # Seed the section so the shared setter cannot trim unrelated trailing bytes.
+    if not present:
+        text += ('\n' if text and not text.endswith('\n') else '')+'\n['+section+']\n'
+    elif re.search(r'(?m)^\['+re.escape(section)+r'\][ \t]*\Z',text):
+        text += '\n'
+    for key,value in desired(home)['globalkeyshortcuts.conf'].items():
+        if isinstance(value,bool): value=str(value).lower()
+        text=ini_set(text,section,key.split('/',1)[1],value)
+    return [{'file':name,'kind':'file','after':base64.b64encode(text.encode()).decode(),'mode':0o644}]
+
+
 def run(home, apply=False, rollback=False):
+    from PySide6.QtCore import QSettings
     state = home / '.local/state/lxqt-comfort/menu-integration.json'
     safe(state, home)
     config = home / '.config/lxqt'

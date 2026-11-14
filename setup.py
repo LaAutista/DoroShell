@@ -8,6 +8,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parent
 PACKAGES={
+ 'start-shortcut':['lxqt-globalkeys'],
  'maintenance':[],
  'clipboard':['python','pyside6','lxqt-panel'],
  'wallpaper-glass':['pyside6','python-pillow'],
@@ -46,6 +47,7 @@ def main():
     p.add_argument('--keep-panel-edits',action='store_true',help='Back up changed native panel settings before rollback')
     p.add_argument('--prepared',type=Path,help='Prepared native panel profile directory')
     p.add_argument('--gui',action='store_true',help='Open DoroShell settings')
+    p.add_argument('--replace-start-shortcut',action='store_true')
     p.add_argument('--packages',action='store_true',help='Print the exact Arch/CachyOS full-update installation command and exit')
     args=p.parse_args()
     if args.gui:
@@ -54,6 +56,10 @@ def main():
     if not args.modules or any(m not in PACKAGES for m in args.modules):
         p.error('Choose modules: '+', '.join(PACKAGES))
     selected=list(dict.fromkeys(args.modules))
+    if args.live and 'start-shortcut' in selected:
+        p.error('Start shortcut is saved for next startup; live reload is not supported')
+    if args.replace_start_shortcut and ('start-shortcut' not in selected or args.rollback):
+        p.error('--replace-start-shortcut requires start-shortcut without rollback')
     if args.keep_panel_edits and (not args.rollback or 'native-panel' not in selected):
         p.error('--keep-panel-edits requires native-panel --rollback')
     if args.native_preview and ('screenshots' not in selected or args.rollback):
@@ -69,6 +75,9 @@ def main():
         p.error('The cursor module requires --gif /path/to/local-animation.gif')
     if args.pink_pointer and 'cursor' not in selected:
         p.error('--pink-pointer requires the cursor module')
+    if 'start-shortcut' in selected and not args.rollback:
+        import modules
+        modules.run(args.home,'start-shortcut',replace_start_shortcut=args.replace_start_shortcut)
     if args.apply:
         try:
             missing=[pkg for pkg in packages if subprocess.run(['pacman','-Q',pkg],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode]
@@ -76,7 +85,7 @@ def main():
             p.error(f'Cannot query pacman: {error}. Setup apply requires Arch/CachyOS package checks; no files were changed.')
         if missing:
             p.error('Missing packages: '+', '.join(missing)+'. Run --packages to review the installation command.')
-    if 'menu' in selected and ('panel' in selected or 'native-panel' in selected):
+    if 'menu' in selected and ('panel' in selected or 'native-panel' in selected or 'start-shortcut' in selected):
         selected.remove('menu')
         selected.insert(0, 'menu')
     if args.rollback:
@@ -100,6 +109,9 @@ def main():
             if result.returncode:
                 p.exit(result.returncode)
             continue
+        elif module=='start-shortcut':
+            cmd += [str(ROOT/'modules.py'),'start-shortcut']
+            if args.replace_start_shortcut:cmd += ['--replace-start-shortcut']
         elif module=='panel': cmd += [str(ROOT/'integrate.py')]
         elif module=='cursor':
             cmd += [str(ROOT/'cursor.py')]
