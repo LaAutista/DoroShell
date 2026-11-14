@@ -27,16 +27,22 @@ def payload(root, name):
     if path.is_symlink() or not path.is_file():
         raise ValueError('Source must be a regular file: '+name)
     data = path.read_bytes()
-    if b'\0' in data:
-        raise ValueError('Binary payload in source inventory: '+name)
-    data.decode('utf-8')
+    if name.startswith('assets/') and path.suffix in ('.png', '.gif', '.apng', '.mp4'):
+        catalog = json.loads((root/'assets/catalog.json').read_text())['assets']
+        entry = next((item for item in catalog if item['path'] == name), None)
+        if entry is None or entry['sha256'] != hashlib.sha256(data).hexdigest() or entry['size'] != len(data):
+            raise ValueError('Uncatalogued or changed artwork: '+name)
+    else:
+        if b'\0' in data:
+            raise ValueError('Binary payload in source inventory: '+name)
+        data.decode('utf-8')
     return {'path': name, 'sha256': hashlib.sha256(data).hexdigest(),
             'size': len(data), 'mode': oct(path.stat().st_mode & 0o777)}
 
 
 def scan_record(files):
     return {'files': files, 'file_count': len(files), 'source_payload_count': len(files)-2,
-            'checks': ['Tracked regular UTF-8 source files; no NUL binaries or symlinks',
+            'checks': ['Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks',
                        'Payload hashes and complete file inventory checked',
                        'Manual privacy and component-license scope: see RELEASE-CANDIDATE.md'],
             'private_deployment_plan': 'not included'}

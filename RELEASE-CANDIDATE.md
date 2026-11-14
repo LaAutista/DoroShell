@@ -136,3 +136,19 @@ This candidate follows published main `958248b6e1f158e95cabf0cba21cbda6e95134bd`
 The reconciled full suite passed **262 tests**. The standard Background+display build and **13 private native-X11 scenarios** passed. Native tests read the actual UI-written schema-2 record and assert separate apply-verification/state-mismatch and recovery/external-change events, brightness/Colorspace labels, command-failure classification, and exclusion of raw property values. Independent writer tests are supplemented by this full helper-to-UI-to-record check. A strict native Qt cast-policy compilation issue found by the standard build was corrected with explicit QStringLiteral values and a regression compile using the same restrictions.
 
 The new paired executable and source patch remain private and uninstalled. No live staging, activation, display/VSync mutation or physical retest occurred for this diagnostic increment. Prior warning-only activation is separate evidence. The original hardware mismatch remains unknown and automatic hardware rollback unverified. The earlier differential comparison against `e284054` matched 26 parse/token snapshots, 676 equality comparisons and 26 transaction outcomes/driver-query traces; finer diagnostic metadata is excluded from accepted-state mappings. Existing screenshot tests are included in the combined suite; no additional unchanged screenshot UI acceptance is claimed.
+
+## Reproduction baseline — 2026-11-14
+
+This baseline starts from published `fd1859d` and retains all its source. The
+installed Start/search/folder/theme helpers match that revision. The shared older
+checkout has uncommitted work and was left untouched; it was not overlaid onto
+newer main. The installed toolkit wallpaper controller predates the volume-aware
+source and was not copied over it. Actual personal configs/backups are excluded.
+
+Owner-requested Doro artwork, original and transparent loading animations, static
+Heretic wallpaper and the selected optional video are now catalogued in `assets/`.
+They are included without inventing an artwork license. Generated themes and cursor
+files remain reproducible from source; no native executables/caches are included.
+The inventory checker permits only artwork with exact catalog hashes and sizes.
+The inherited 262-test full suite and four source-inventory tests pass. This checkpoint precedes installer orchestration.
+No personal install, session restart, display write or clean-OS test was performed.

@@ -1,7 +1,7 @@
 {
   "format": 8,
-  "candidate": "doroshell-source-20261111-display-diagnostic-phases",
-  "published_ancestor": "958248b6e1f158e95cabf0cba21cbda6e95134bd",
+  "candidate": "doroshell-reproduction-baseline-20261114",
+  "published_ancestor": "fd1859d26a6277ec3ea7a1ca5b5256567a171aca",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -19,9 +19,9 @@
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 262,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Full reconciled suite, standard paired Background/display build and 13 private native fake-driver cases passed, including actual UI-written schema-2 evidence. No staging/live deployment or physical retest; hardware cause remains unverified. Inherited screenshot evidence preserved separately."
+    "note": "Inherited full suite: 262 passed. Additional artwork/source inventory suite: 4 passed. No personal install or clean OS test.",
+    "passed": 262
   },
   "source_payloads": [
     {
@@ -32,8 +32,8 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "05fc3851960f80425c7bb00302baa633b76e93e0d47daa8374e89f0fa31a90ac",
-      "size": 1188,
+      "sha256": "f941c7e22523cc25e01d4ee63a4cd926b1eff868515fa8f9a1d0d319ec3a514a",
+      "size": 1360,
       "mode": "0o644"
     },
     {
@@ -44,26 +44,68 @@
     },
     {
       "path": "LICENSING.md",
-      "sha256": "35cd2aabbf1cf5e1d171d79edc8979d2cb343b1d8ba9ccdfbc84b1a1d8384575",
-      "size": 3217,
+      "sha256": "f7e1c7a7ecf9bc6a90e029e0acbfb90d6189f7ac323d6fd32e9648257b064395",
+      "size": 3346,
       "mode": "0o644"
     },
     {
       "path": "README.md",
-      "sha256": "ee115c978fba83ca500c3b6f2b06f29d9626d97e2dfe59bd4387974feaa6c740",
-      "size": 41629,
+      "sha256": "1d4557e3211eb564784ee6ae2a4d60d2bee2bce13951c302003eda7c3f7d7e8e",
+      "size": 41724,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "1ab19dc02e226c136e84ca4456284a2e9a88259a9f75ff098ddb148d3c1c164c",
-      "size": 10952,
+      "sha256": "7666bb4335d36c0277b607433c726adc22dd725625b4a519d41f1daff464ba81",
+      "size": 12013,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "6f4187a3de2a4c1a9e7c59e5c71297778363dd7d0ec4e174538929475fe74237",
-      "size": 6751,
+      "sha256": "ca1331d842b0a7a3ba62bf966b774b8e309ae2dccbb1a0edcafdb7d6a3dc1219",
+      "size": 7044,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/catalog.json",
+      "sha256": "0b92489936aa8ba2e7c5d4bebb3ddb914c62f5d764e3ce642f76387a71851c0a",
+      "size": 2354,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/cursors/spin-doro-transparent.apng",
+      "sha256": "b0756c32819b8e457c43401532ba65ec4333b25c6c4d6d2a594678b532998b84",
+      "size": 1407214,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/cursors/spin-doro.gif",
+      "sha256": "c232566e9941fde6594e46bdd27bcbc049e4f32784f9d49fd8571c9f0c560874",
+      "size": 713423,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/doro/portrait.png",
+      "sha256": "79735954e5a60eaae0fb786219ffa91e12a15bbcbc28bf40288b9a899ce6e60e",
+      "size": 1430973,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/doro/start.png",
+      "sha256": "52eb5f4c110040d03f16ea85d458db9ce6cb021b7b9bf5127802bd272d34cf47",
+      "size": 288733,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/wallpapers/heretic-office.png",
+      "sha256": "a8f45238f396ba6561e6352ef1a79c22a7a10a91f4a42f58f670d141881c95ce",
+      "size": 9636159,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/wallpapers/jeanne.mp4",
+      "sha256": "ac2285f00a310d71c710f5de09ebae6b9bdb57878d0be58b80560fefcee362a5",
+      "size": 66094008,
       "mode": "0o644"
     },
     {
@@ -140,8 +182,8 @@
     },
     {
       "path": "docs/assets.md",
-      "sha256": "47567682cccd128dda5bf76f6336715d3f3d74086caccb4fece36d49c6283d4d",
-      "size": 6372,
+      "sha256": "bbd20a5868547022052753cb8c06e7ed309bda24c7e42ff6a666bf82ad96b017",
+      "size": 7673,
       "mode": "0o644"
     },
     {
@@ -518,8 +560,8 @@
     },
     {
       "path": "source_release.py",
-      "sha256": "d04f61745a2425a6c48363eb965c1588fa3a21af4184e481e80edc4eb8c947bb",
-      "size": 3822,
+      "sha256": "c437afba88936a8c9b2c29c53b49fd18b884c992e306898d12d7f77a7c7c99b8",
+      "size": 4314,
       "mode": "0o644"
     },
     {
@@ -1004,8 +1046,8 @@
     },
     {
       "path": "tests/test_source_release.py",
-      "sha256": "fdf0edd88e104a092df90720b4b21593127b110539198d624b87b961fba783e6",
-      "size": 1841,
+      "sha256": "cb466acad35217caba7b29a694457c86b155e4d47fb495bfff59e9d26221eb1e",
+      "size": 2659,
       "mode": "0o644"
     },
     {
@@ -1128,5 +1170,6 @@
       "size": 2396,
       "mode": "0o644"
     }
-  ]
+  ],
+  "assets": "Owner-requested artwork and animation sources; see assets/catalog.json and docs/assets.md"
 }

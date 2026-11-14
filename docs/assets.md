@@ -1,4 +1,26 @@
-# Custom icons and rights
+# Bundled artwork and cursor sources
+
+The project owner explicitly requested distribution of the existing fan artwork,
+loading animations and selected wallpapers on 2026-11-14. They are included in
+`assets/`, with exact hashes and known provenance in `assets/catalog.json`.
+Original artist/redistribution terms remain an owner review item. These files are
+**not relicensed under GPL** and no permission or ownership claim is invented.
+The earlier exclusion policy below is historical and superseded by this request.
+
+The transparent APNG reproduces the current loading cursor; the original GIF is
+also preserved. `cursor.py` generates Xcursor files at installation, inheriting
+Breeze for ordinary pointer shapes. Build outputs are not needed in Git. Themes
+are generated from the four palettes in `themes.py`. The bundled static wallpaper
+and optional video contain artwork, not screenshots of a personal desktop.
+Video playback remains optional; copying an asset does not enable playback/audio.
+
+Private pins, folder links, monitor identifiers, app history, wallpaper selections,
+backups and full personal configuration are excluded. Defaults and narrowly scoped
+configuration writers reproduce functionality without uploading those records.
+
+## Historical provenance notes (prior policy superseded)
+
+### Earlier asset policy
 
 The bundled `menu/start.svg` is a simple project-authored geometric menu icon. No third-party art, character image, screenshots, or generated character variants are included. Rights to redistribute the prototype's Doro artwork were not established, so it is omitted even though this repository is private.
 

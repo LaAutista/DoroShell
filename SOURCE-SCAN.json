@@ -9,6 +9,13 @@
     "SHA256SUMS",
     "SOURCE-MANIFEST.json",
     "SOURCE-SCAN.json",
+    "assets/catalog.json",
+    "assets/cursors/spin-doro-transparent.apng",
+    "assets/cursors/spin-doro.gif",
+    "assets/doro/portrait.png",
+    "assets/doro/start.png",
+    "assets/wallpapers/heretic-office.png",
+    "assets/wallpapers/jeanne.mp4",
     "clipboard/README.md",
     "clipboard/__init__.py",
     "clipboard/clipboard.py",
@@ -187,10 +194,10 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 186,
-  "source_payload_count": 184,
+  "file_count": 193,
+  "source_payload_count": 191,
   "checks": [
-    "Tracked regular UTF-8 source files; no NUL binaries or symlinks",
+    "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",
     "Manual privacy and component-license scope: see RELEASE-CANDIDATE.md"
   ],

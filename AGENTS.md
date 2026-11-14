@@ -8,4 +8,4 @@ Use GIO for desktop-entry launching and standard user-directory APIs for folders
 
 Run `python -m unittest discover -s tests -v`. Distinguish mocks, local desktop checks and fresh-install tests. Never claim login or clean-install testing without doing it.
 
-Do not commit personal configs, private paths, screenshots from real desktops, credentials, caches, binaries, or unlicensed third-party artwork. The neutral SVG is the default. Keep runtime legacy paths compatible unless implementing a tested migration.
+Do not commit personal configs, private paths, screenshots from real desktops, credentials, caches, binaries, or newly sourced third-party artwork without owner direction. The owner explicitly requested the existing artwork catalogued in assets/catalog.json; preserve it and its separate provenance notice. Do not infer an artwork license from GPL. Keep runtime legacy paths compatible unless implementing a tested migration.

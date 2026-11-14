@@ -42,3 +42,16 @@ class SourceReleaseTests(unittest.TestCase):
             (root/'linked.py').symlink_to(root/'source.py')
             with self.assertRaisesRegex(ValueError, 'regular file'):
                 release.payload(root, 'linked.py')
+
+    def test_only_hash_catalogued_artwork_is_allowed(self):
+        import hashlib, json
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); (root/'assets').mkdir()
+            data=b'GIF89a\0fixture'
+            (root/'assets/art.gif').write_bytes(data)
+            (root/'assets/catalog.json').write_text(json.dumps({'assets':[{'path':'assets/art.gif', 'sha256':hashlib.sha256(data).hexdigest(),'size':len(data)}]}))
+            release.payload(root,'assets/art.gif')
+            (root/'assets/art.gif').write_bytes(data+b'changed')
+            with self.assertRaisesRegex(ValueError,'changed artwork'): release.payload(root,'assets/art.gif')
+            (root/'binary').write_bytes(b'ELF\0')
+            with self.assertRaisesRegex(ValueError,'Binary'): release.payload(root,'binary')

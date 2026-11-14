@@ -1,0 +1,48 @@
+{
+  "format": 1,
+  "distribution": "Included at the project owner’s explicit request; no new ownership or third-party license claim.",
+  "assets": [
+    {
+      "path": "assets/doro/start.png",
+      "sha256": "52eb5f4c110040d03f16ea85d458db9ce6cb021b7b9bf5127802bd272d34cf47",
+      "size": 288733,
+      "provenance": "User-selected Doro Start artwork; original artist/permission not independently verified.",
+      "license": "Owner review pending; not covered by the source-code GPL grant"
+    },
+    {
+      "path": "assets/doro/portrait.png",
+      "sha256": "79735954e5a60eaae0fb786219ffa91e12a15bbcbc28bf40288b9a899ce6e60e",
+      "size": 1430973,
+      "provenance": "Existing Doro portrait variant; original artist/permission not independently verified.",
+      "license": "Owner review pending; not covered by the source-code GPL grant"
+    },
+    {
+      "path": "assets/cursors/spin-doro.gif",
+      "sha256": "c232566e9941fde6594e46bdd27bcbc049e4f32784f9d49fd8571c9f0c560874",
+      "size": 713423,
+      "provenance": "Existing Spin Doro GIF; Tenor reference recorded in docs/assets.md.",
+      "license": "Owner review pending; not covered by the source-code GPL grant"
+    },
+    {
+      "path": "assets/cursors/spin-doro-transparent.apng",
+      "sha256": "b0756c32819b8e457c43401532ba65ec4333b25c6c4d6d2a594678b532998b84",
+      "size": 1407214,
+      "provenance": "Transparent 28-frame derivative used by the installed loading cursor.",
+      "license": "Owner review pending; not covered by the source-code GPL grant"
+    },
+    {
+      "path": "assets/wallpapers/heretic-office.png",
+      "sha256": "a8f45238f396ba6561e6352ef1a79c22a7a10a91f4a42f58f670d141881c95ce",
+      "size": 9636159,
+      "provenance": "Existing Heretic desktop wallpaper; source/rights review remains with project owner.",
+      "license": "Owner review pending; not covered by the source-code GPL grant"
+    },
+    {
+      "path": "assets/wallpapers/jeanne.mp4",
+      "sha256": "ac2285f00a310d71c710f5de09ebae6b9bdb57878d0be58b80560fefcee362a5",
+      "size": 66094008,
+      "provenance": "Existing optional Jeanne d’Arc / Jeanne Alter animation; filename attributes MoeWalls. Not Doro artwork; preserved to reproduce the selected animated background.",
+      "license": "Owner review pending; not covered by the source-code GPL grant"
+    }
+  ]
+}

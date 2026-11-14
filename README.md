@@ -108,7 +108,7 @@ Only owned integration keys are restored, preserving unrelated changes. Favorite
 
 ## Icon and asset policy
 
-The repository includes only an original neutral menu SVG. **No Doro/NIKKE artwork or generated character artwork is distributed.** See [custom icons and rights](docs/assets.md). Changing the brand in the README does not grant rights to third-party characters or trademarks. This project is not affiliated with LXQt, KDE, or NIKKE's publishers.
+The repository includes the existing owner-selected Doro artwork, cursor source animations and selected wallpaper assets in `assets/`, alongside the neutral SVG. Artwork rights/provenance remain separate from the code license. See [custom icons and rights](docs/assets.md). Changing the brand in the README does not grant rights to third-party characters or trademarks. This project is not affiliated with LXQt, KDE, or NIKKE's publishers.
 
 ## Tests
 
