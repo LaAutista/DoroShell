@@ -22,6 +22,8 @@ ROOT = Path(__file__).resolve().parent
 CORE = ['menu', 'native-panel', 'theme', 'cursor', 'snapping', 'screenshots', 'maintenance']
 ORDER = [*CORE, 'clipboard', 'wallpaper', 'wallpaper-glass', 'display']
 OPTIONAL = ['clipboard', 'wallpaper', 'wallpaper-glass', 'display']
+POINTER = '.local/state/doroshell/deployment.json'
+TRANSACTION = r'[0-9]{8}T[0-9]{6}-[0-9a-f]{12}'
 BUILD_PACKAGES = ['base-devel', 'git', 'cmake', 'ninja', 'pkgconf', 'qt6-base', 'qt6-tools',
                   'liblxqt', 'lxqt-build-tools', 'libqtxdg', 'kwindowsystem', 'layer-shell-qt']
 PANEL_PACKAGES = ['libdbusmenu-lxqt', 'solid', 'libsysstat', 'libstatgrab', 'libxdamage',
@@ -71,24 +73,113 @@ def validate_snapshot(home, snapshot):
     from install import validate_backup
     if not isinstance(snapshot, dict): raise ValueError('Invalid recovery snapshot')
     for name, value in snapshot.items():
-        if not isinstance(name, str) or Path(name).is_absolute() or '..' in Path(name).parts:
+        if (not isinstance(name, str) or not name or name == '.' or '\0' in name
+                or Path(name).is_absolute() or '..' in Path(name).parts or str(Path(name)) != name):
             raise ValueError('Invalid recovery path')
         safe(home/name, home)
         validate_backup(value)
+        if set(value) != {'data', 'mode'} or (value['data'] is None) != (value['mode'] is None):
+            raise ValueError('Invalid recovery snapshot bytes/mode')
 
 
-def undo(home, identifier):
-    if not re.fullmatch(r'[0-9]{8}T[0-9]{6}-[0-9a-f]{12}', identifier):
+def module_list(value):
+    if (not isinstance(value, list) or any(not isinstance(m, str) or m not in ORDER for m in value)
+            or len(value) != len(set(value))):
+        raise ValueError('Invalid recovery module list')
+    return value
+
+
+def validate_pointer(record):
+    if (not isinstance(record, dict) or type(record.get('format')) is not int or record['format'] != 1
+            or record.get('status') not in ('pending', 'complete')
+            or not isinstance(record.get('transaction'), str) or not re.fullmatch(TRANSACTION, record['transaction'])):
+        raise ValueError('Unsupported or invalid deployment record; no migration is guessed')
+    module_list(record.get('modules'))
+    if record['status'] == 'complete' and not valid_hash(record.get('source')):
+        raise ValueError('Invalid deployment source hash')
+
+
+def valid_hash(value):
+    return isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value) is not None
+
+
+def validate_journal(home, journal, identifier):
+    """Validate every consumed field before recovery, finalization or undo writes."""
+    if (not isinstance(journal, dict) or type(journal.get('format')) is not int or journal['format'] not in (1, 2)
+            or journal.get('status') not in ('pending', 'complete', 'undoing', 'undone')):
+        raise ValueError('Unsupported or invalid deployment journal')
+    if journal['format'] == 1 and journal['status'] == 'pending':
+        raise ValueError('Legacy pending journal has no completed-step evidence; preserve it for manual inspection')
+    request = journal.get('request')
+    if (not isinstance(request, dict) or set(request) != {'modules', 'remove', 'theme', 'source'}
+            or type(request.get('remove')) is not bool
+            or request.get('theme') not in ('windows', 'polar', 'heretic', 'spring')
+            or not valid_hash(request.get('source'))):
+        raise ValueError('Invalid recovery request')
+    selected = module_list(request.get('modules'))
+    module_list(journal.get('installed_before'))
+    sequence = [m for m in selected if m != 'display']
+    if request['remove']: sequence.reverse()
+    done = module_list(journal.get('done'))
+    active = journal.get('active')
+    if ('active' not in journal or done != sequence[:len(done)] or len(done) > len(sequence)
+            or (active is not None and (len(done) == len(sequence) or active != sequence[len(done)]))):
+        raise ValueError('Invalid recovery progress')
+    before, after = journal.get('before'), journal.get('after')
+    validate_snapshot(home, before); validate_snapshot(home, after)
+    if POINTER not in before: raise ValueError('Missing original deployment record')
+    if before[POINTER]['data'] is not None:
+        previous = json.loads(base64.b64decode(before[POINTER]['data'], validate=True))
+        validate_pointer(previous)
+        if previous['status'] != 'complete': raise ValueError('Invalid original deployment status')
+    if journal['format'] == 2:
+        names = journal.get('active_files')
+        if (not isinstance(names, list) or any(not isinstance(n, str) or n not in before or n == POINTER for n in names)
+                or len(names) != len(set(names)) or (active is None and names)):
+            raise ValueError('Invalid active recovery inventory')
+        if journal['status'] == 'pending' and (POINTER in after or set(after) | set(names) != set(before)-{POINTER}):
+            raise ValueError('Missing completed-step recovery evidence')
+    if journal['status'] != 'pending':
+        if active is not None or done != sequence or set(before) != set(after):
+            raise ValueError('Incomplete recovery inventory')
+        if after[POINTER]['data'] is None: raise ValueError('Missing final deployment record')
+        final = json.loads(base64.b64decode(after[POINTER]['data'], validate=True))
+        validate_pointer(final)
+        if final['status'] != 'complete' or final['transaction'] != identifier or final['source'] != request['source']:
+            raise ValueError('Mismatched final deployment record')
+
+
+def load_journal(home, identifier):
+    if not isinstance(identifier, str) or not re.fullmatch(TRANSACTION, identifier):
         raise ValueError('Choose the exact transaction ID printed after installation')
     path = home/'.local/state/doroshell/deployments'/identifier/'journal.json'
     safe(path, home)
     journal = json.loads(path.read_text())
-    if journal.get('format') != 1 or journal.get('status') not in ('complete', 'undoing', 'undone'):
+    validate_journal(home, journal, identifier)
+    return path, journal
+
+
+def check_completed(home, journal, changing=()):
+    for name, value in journal['after'].items():
+        if name != POINTER and name not in changing and file_state(home, name) != value:
+            raise RuntimeError('Edited completed deployment file; recovery/finalization refused: '+name)
+
+
+def recovery_journal(home, previous):
+    if not previous or previous['status'] != 'pending': raise ValueError('No pending deployment')
+    path, journal = load_journal(home, previous['transaction'])
+    if journal['status'] not in ('pending', 'complete') or journal['request']['modules'] != previous['modules']:
+        raise ValueError('Mismatched pending deployment journal')
+    check_completed(home, journal)
+    return path, journal
+
+
+def undo(home, identifier):
+    path, journal = load_journal(home, identifier)
+    if journal['status'] not in ('complete', 'undoing', 'undone'):
         raise ValueError('Incomplete transaction: use --recover first; original module backups are retained')
     if journal['status'] == 'undone': return
     before, after = journal['before'], journal['after']
-    validate_snapshot(home, before); validate_snapshot(home, after)
-    if set(before) != set(after): raise ValueError('Incomplete recovery inventory')
     for name in before:
         current = file_state(home, name)
         allowed = (after[name], before[name]) if journal['status'] == 'undoing' else (after[name],)
@@ -194,7 +285,7 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     pointer = state/'deployment.json'
     safe(pointer, home)
     previous = json.loads(pointer.read_text()) if pointer.exists() else None
-    if previous and previous.get('format') != 1: raise ValueError('Unsupported deployment schema; no downgrade/migration is guessed')
+    if previous is not None: validate_pointer(previous)
     if previous and previous['status'] == 'pending' and not recover:
         raise RuntimeError('Interrupted deployment '+previous['transaction']+'; use --recover from the same source or inspect its private journal')
     if recover:
@@ -206,46 +297,54 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     source = hashlib.sha256((ROOT/'SHA256SUMS').read_bytes()).hexdigest()
     request = dict(modules=selected, remove=remove, theme=theme, source=source)
     if recover:
-        journal = json.loads(path.read_text())
+        path, journal = recovery_journal(home, previous)
         if journal['request'] != request: raise ValueError('Recovery needs the same revision, modules, theme and action')
         if journal['status'] == 'complete':
             target = str(pointer.relative_to(home))
-            for name, value in journal['after'].items():
-                if name != target and file_state(home, name) != value:
-                    raise RuntimeError('Edited file during finalization: '+name)
-            atomic(pointer, base64.b64decode(journal['after'][target]['data'], validate=True))
+            atomic(pointer, base64.b64decode(journal['after'][target]['data'], validate=True), journal['after'][target]['mode'])
             print('Completed interrupted deployment finalization:', identifier)
             return identifier
     else:
         job.mkdir(parents=True); job.chmod(0o700)
-        journal = dict(format=1, status='pending', request=request, done=[], active=None, installed_before=installed_modules(home),
+        journal = dict(format=2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
                        before={str(pointer.relative_to(home)):file_state(home, str(pointer.relative_to(home)))}, after={})
+        validate_journal(home, journal, identifier)
         atomic(path, json.dumps(journal).encode())
         atomic(pointer, json.dumps(dict(format=1,status='pending',transaction=identifier,modules=selected)).encode())
     sequence = [m for m in selected if m != 'display']
     if remove: sequence.reverse()
     for index, name in enumerate(sequence, 1):
         if name in journal['done']: continue
+        check_completed(home, journal)
         # Existing preferences stay as chosen on update. Their original manifests
         # still support removal; explicit changes use setup.py/settings.
         if not remove and name in ('theme', 'cursor', 'wallpaper-glass') and manifest_for(home, name).exists() and journal['active'] != name:
-            print('Preserve existing '+name+' selection'); journal['done'].append(name); continue
+            print('Preserve existing '+name+' selection'); journal['done'].append(name)
+            atomic(path, json.dumps(journal).encode()); continue
         print(f'[{index}/{len(sequence)}] {"Restore" if remove else "Install/update"} {name}', flush=True)
         names, operation = step(home, name, binaries, theme, remove, job)
+        if journal['active'] == name and set(names) != set(journal['active_files']):
+            raise ValueError('Changed pending module inventory; preserve the journal for inspection')
         for target in names:
             journal['before'].setdefault(target, file_state(home, target))
-        journal['active'] = name; atomic(path, json.dumps(journal).encode())
-        operation()
-        journal['done'].append(name); journal['active'] = None
+        journal['active'] = name; journal['active_files'] = names
         atomic(path, json.dumps(journal).encode())
+        operation()
+        # Only the successful adapter's declared paths may replace earlier evidence.
+        # An interrupted overlapping step has no such proof and is refused on retry.
+        check_completed(home, journal, names)
+        journal['after'].update({target:file_state(home, target) for target in names})
+        journal['done'].append(name); journal['active'] = None; journal['active_files'] = []
+        atomic(path, json.dumps(journal).encode())
+    check_completed(home, journal)
     previous_data = journal['before'][str(pointer.relative_to(home))]['data']
     installed = set(json.loads(base64.b64decode(previous_data))['modules']) if previous_data else set(journal['installed_before'])
     installed = installed-set(selected) if remove else installed|set(selected)
     final_pointer = json.dumps(dict(format=1,status='complete',transaction=identifier,
                                    modules=[m for m in ORDER if m in installed], source=source)).encode()
-    journal['after'] = {name:file_state(home, name) for name in journal['before']}
     journal['after'][str(pointer.relative_to(home))] = dict(data=base64.b64encode(final_pointer).decode(), mode=0o600)
-    journal['status'] = 'complete'; atomic(path, json.dumps(journal).encode())
+    journal['status'] = 'complete'; validate_journal(home, journal, identifier)
+    atomic(path, json.dumps(journal).encode())
     atomic(pointer, final_pointer)
     print('Transaction:', identifier)
     print('Exact previous-upgrade undo: python '+str(ROOT/'deploy.py')+' --apply --undo '+identifier)
@@ -269,15 +368,21 @@ def main(argv=None):
     home = args.home.absolute()
     safe(home, home)
     pointer = home/'.local/state/doroshell/deployment.json'; safe(pointer, home)
-    previous = json.loads(pointer.read_text()) if pointer.exists() else {}
-    if args.recover and previous.get('status') == 'pending':
-        journal_path = pointer.parent/'deployments'/previous['transaction']/'journal.json'
-        safe(journal_path, home)
-        request = json.loads(journal_path.read_text())['request']
+    previous = json.loads(pointer.read_text()) if pointer.exists() else None
+    if previous is not None: validate_pointer(previous)
+    previous = previous or {}
+    if args.undo:
+        _, journal = load_journal(home, args.undo)
+        if journal['status'] == 'pending': raise ValueError('Incomplete transaction: use --recover first')
+    if args.recover:
+        _, journal = recovery_journal(home, previous)
+        request = journal['request']
         if args.modules is None: args.modules = request['modules']
         args.theme = request['theme']; args.remove = request['remove']
     defaults = previous.get('modules', list(dict.fromkeys([*CORE, *installed_modules(home)])))
     selected = select_modules(args.modules if args.modules is not None else defaults, args.extras, not args.remove)
+    if args.recover and selected != request['modules']:
+        raise ValueError('Recovery needs the recorded module set; no prerequisites or files were changed')
     report = compatibility.inspect(home, selected)
     packages = packages_for(selected); versions = compatibility.package_versions(packages)
     print(json.dumps(dict(platform=report, package_versions=versions, modules=selected), indent=2))

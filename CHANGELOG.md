@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Fix recovery adopting user edits to completed modules and then overwriting them
+  on undo. Persist and verify completed-step bytes/modes in format-2 journals.
+- Validate journal versions, progress, requests and snapshots before CLI recovery,
+  finalization or undo. Keep completed legacy undo; refuse legacy pending journals
+  without historical evidence and ambiguous interrupted shared-file changes.
 - Preserve complete current source and owner-requested Doro artwork, original GIF,
   transparent APNG and selected wallpapers in a hash-catalogued baseline (`dee97b4`).
   Retain newer upstream provenance and design work (`36929b2`).

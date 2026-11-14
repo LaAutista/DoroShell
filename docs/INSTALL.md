@@ -97,8 +97,21 @@ python deploy.py --apply --recover
 ```
 
 Recovery uses the recorded module set/theme/action and existing module conflict
-checks; it does not discard user edits. Cursor writes now retain pending hashes/modes for retry and use atomic records. A corrupt
-manifest still requires manual inspection; keep the journal and originals.
+checks. Journal format 2 saves each completed module's output bytes and modes;
+recovery and finalization verify that evidence instead of adopting current edits.
+Unknown versions, invalid progress/request/snapshot records, and changed completed
+files are refused before recovery writes. Cursor writes retain pending hashes/modes
+for retry and use atomic records.
+
+Legacy format-1 **pending** journals have no completed-step evidence and require
+manual inspection; no safe history can be reconstructed from current files alone.
+Valid completed format-1 journals retain their recorded exact-undo support, but
+the new checks cannot retrospectively detect edits already adopted by an older
+installer. New active-step retries retain their original snapshots and module
+conflict checks. If an interrupted step changed a file also owned by a completed
+step, or its declared target inventory changed, recovery conservatively refuses
+the ambiguous state. A corrupt manifest also requires manual inspection; keep
+the journal and originals.
 Do not delete records to bypass refusal. Exact undo is available after a transaction
 has completed/recovered; incomplete writes are never blindly assumed to be owned.
 

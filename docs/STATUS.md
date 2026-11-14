@@ -15,12 +15,22 @@ separate from this pass. Source publication does not imply live activation.
 | Compatibility | Arch lineage/pacman, LXQt/X11, single panel1/Openbox capability gates; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/multi-panel/Wayland refused. |
 | Lock-screen animation | Design only | [Separate design](animated-lock-screen-design.md); no authentication/locker changes or claim of implementation. |
 
-The inherited 262-test suite passed before installer edits; the final suite passes **285 tests**. New targeted tests cover
+The inherited 262-test suite passed before installer edits; the portable installer
+checkpoint passed 285 tests. After the recovery follow-up, the full suite passes
+**302 tests**. New targeted tests cover
 real temporary-home menu/toolkit installation, combined panel/theme/snapping/capture/
 clipboard staging, repeats, first-baseline restoration, exact prior-upgrade undo,
 injected partial failure/recovery, invalid records, byte/mode/symlink conflicts and
 native launcher upgrades, cursor interrupted-write recovery and bootstrap transport refusal. Build/bootstrap/final suite results are recorded in
 [release evidence](../RELEASE-CANDIDATE.md).
+
+The recovery follow-up to `fa8808c` adds 17 tests: completed-output content/mode
+edits cannot be adopted during recovery; unsupported/malformed journals are refused
+before request consumption or writes. Format-2 journals preserve successful-step
+evidence. Existing active-step retries, repeat/removal and exact upgrade undo pass;
+valid completed format-1 undo remains supported. Legacy pending journals and
+ambiguous interrupted overlapping writes require manual inspection. These are
+disposable-home fault-injection checks, not real power-loss or clean-OS acceptance.
 
 Unverified: clean Arch/CachyOS/EndeavourOS machine install, normal login/autostart on
 that machine, physical multi-monitor/mixed-DPI and NVIDIA rollback, physical audio/

@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-portable-development-20261114-private-github",
+  "candidate": "doroshell-portable-development-20261114-recovery",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -19,13 +19,14 @@
     "native_tray_shortcut": "d7279a62921cb3fb7e6a4907a4c3e40e1b919736",
     "portable_installer": "bootstrap/deploy over existing adapters; legacy cursor recovery; profile-preserving native upgrade; docs/HANDOFF.md",
     "private_bootstrap": "Authenticated GitHub CLI acquisition after real raw-URL 404; repository remains private",
-    "independent_qa": "Private screenshot acceptance on dee97b4; unmerged lock probe f81d5d5 fails final stacking assertion. See docs/STATUS.md; probe excluded."
+    "independent_qa": "Private screenshot acceptance on dee97b4; unmerged lock probe f81d5d5 fails final stacking assertion. See docs/STATUS.md; probe excluded.",
+    "deployment_recovery": "Follow-up to fa8808c75f4d6d1d639432d95f093d20a1497459: format-2 completed output evidence and shared recovery/undo validation; see RELEASE-CANDIDATE.md"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 285,
+    "passed": 302,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Final corrected full suite: 285 passed. Actual panel and paired Background/display builds passed. Complete disposable-home module staging/repeat/undo/removal and installed imports passed. Published authenticated GitHub bootstrap plan/scoped menu apply/repeat/removal passed at 5c0baba with --no-packages. Export inventory/hash round-trip passed. No clean OS/login/hardware or personal deployment claim."
+    "note": "Recovery follow-up: 302 full-suite tests passed, including 17 new disposable-home recovery tests. Existing repeat, partial retry, exact upgrade undo and removal tests passed. Source inventory/checksum archive round-trip checked. Earlier native build/bootstrap evidence retained in RELEASE-CANDIDATE.md; no new UI, packages, personal deployment, clean OS, login, power-loss or hardware claim."
   },
   "source_payloads": [
     {
@@ -42,8 +43,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "40ee55dd79888ed9474a0311f076a2cf52d94c5910ec47d25acf1b88000c75da",
-      "size": 1558,
+      "sha256": "a4129b66120264853dc2b2787748ec991553e431b1625d3cd92b179f92dd2882",
+      "size": 1962,
       "mode": "0o644"
     },
     {
@@ -66,14 +67,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "ade744d203c4fd4d4faafb5171a2e238fa64cc845bf5ffecf8c70347dc5b85bd",
-      "size": 17699,
+      "sha256": "934251ed10bc5f8ab5b0a67138026a1377ee721b0b88bdfa90b989a3513cf6c7",
+      "size": 20380,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "999ef08d75b5b44bc0346d99a09ba38e3bf96d3e6f62af59cfd9a0638b0eab6e",
-      "size": 7486,
+      "sha256": "a5ef6a6d6ec93c96b7fbf2f489464eef9024e23a8fffb98f66dedaec23f12c78",
+      "size": 7527,
       "mode": "0o644"
     },
     {
@@ -168,8 +169,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "928804dd8c3b4ed8a974176508372fbebb05d653eb5bd27dd801404ac721703c",
-      "size": 19197,
+      "sha256": "2fb5fe0f2b3ce0d2f8456b50ddc2cc3d6cd3f24a5ca82773e62c8d435baccdc5",
+      "size": 25101,
       "mode": "0o644"
     },
     {
@@ -222,14 +223,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "ce99c2385adb4d01c592faa47e01c5da7dba565ebec81b3a4e48eb11e658e19e",
-      "size": 5936,
+      "sha256": "65202863c11395da388659fa4e18bdf5180fc4475a597c9e3f77d85eb9713c16",
+      "size": 6493,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "0423ca6295a04b5a13fd14a42a17f64d63a71e0e292a894d9154db2456f5f598",
-      "size": 8111,
+      "sha256": "984b5aaba4874ae04cc41d20f13daed979ef24999fe66ccaf4e065a7dc559556",
+      "size": 8935,
       "mode": "0o644"
     },
     {
@@ -246,8 +247,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "cf77a2c25b026417f3a2687e2efb08c85145530da1d2e5ec5eaac08b12e9d808",
-      "size": 5023,
+      "sha256": "0cde888fbca574643818d6c7bdb4274f2b9e185f2353aed43012b5fad856d8c0",
+      "size": 5674,
       "mode": "0o644"
     },
     {
@@ -1034,6 +1035,12 @@
       "path": "tests/test_deployment.py",
       "sha256": "ec60c911dba2721e99e8a100bffd74e1a4d8540632b3325b356b402c7ab4cd28",
       "size": 13534,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_deployment_recovery.py",
+      "sha256": "4386758e6575701aac0e4c06ac3a24c7d2089c19453b8248bb2b5b68b12affd8",
+      "size": 15292,
       "mode": "0o644"
     },
     {

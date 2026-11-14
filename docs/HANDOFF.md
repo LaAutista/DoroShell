@@ -58,6 +58,14 @@ Cursor recovery now preserves legacy schemas while recording pending hashes/mode
 refusing chmod conflicts and supporting interrupted restoration. Keep records and
 inspect errors rather than forcing retries. There is no stable portable installer tag until clean-machine acceptance.
 
+The follow-up to `fa8808c` fixes two independently reproduced deployment recovery
+defects: adopting edits to completed modules, and writing through unknown journal
+schemas. Format-2 journals preserve completed output bytes/modes immediately;
+shared validation gates CLI request reading, recovery/finalization and undo.
+Legacy pending journals and ambiguous interrupted shared-file writes require
+inspection, not guessed migration. Completed legacy undo remains supported.
+See INSTALL's recovery limits and RELEASE-CANDIDATE's targeted regression evidence.
+
 ## Ready-to-paste agent prompt
 
 > Work on DoroShell at https://github.com/LaAutista/DoroShell.git. Clone it into a new

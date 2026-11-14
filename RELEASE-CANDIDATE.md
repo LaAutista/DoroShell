@@ -237,3 +237,44 @@ serialization correction. This task did not repeat those UI suites. The unmerged
 lock-surface probe at `f81d5d5` has a reproduced final overlay-stacking failure and
 is excluded/unready; unit assertions do not establish working locker integration.
 STATUS and HANDOFF preserve the exact boundaries without copying private logs.
+
+### Deployment recovery correction — 2026-11-14
+
+Based on published `fa8808c75f4d6d1d639432d95f093d20a1497459` in a separate
+checkout; the original dirty workspace and personal installation remain unchanged.
+Independent fixture reproductions confirmed two defects in that baseline: recovery
+adopted a user edit to a completed menu output, making undo overwrite it, and
+recovery performed writes through journal format 999 that undo subsequently refused.
+
+`deploy.py` now writes format-2 journals with cumulative completed-step bytes/modes
+and the active target inventory. Recovery verifies completed outputs before doing
+work; finalization retains the saved evidence instead of sampling arbitrary current
+files as owned. Shared validation covers schema/status, request, progress, snapshot
+paths/bytes/modes and embedded deployment pointers before consuming recovery requests
+or writing. Original pre-transaction snapshots and first-install module records
+remain distinct and unchanged by successful retries.
+
+Verification:
+
+- `python -m unittest discover -s tests -v`: **302 tests passed** with display/session
+  buses unset and Qt offscreen. No live UI, clipboard or display was exercised.
+- 17 new recovery tests cover the two reproductions, content/mode/symlink conflicts,
+  malformed/unsupported records without target/pointer/journal changes, CLI refusal
+  before prerequisite/build work, saved evidence and finalization, overlapping
+  successful writes and ambiguous interruption, and legacy/current interrupted undo.
+- Existing temporary-home tests still cover active-module partial-write recovery,
+  real menu/toolkit repeat/upgrade, exact previous-upgrade undo, combined optional
+  module staging and first-baseline removal. No package manager mutation occurred.
+- Source inventory/checksums and the extracted Git archive are checked for this
+  increment; only code/tests/documentation/metadata change. Existing catalogued
+  artwork and all component licenses remain unchanged. No private fixture homes,
+  journals, configuration, screenshots, credentials, caches or compiled runtimes
+  are included.
+
+Compatibility limits: format-1 pending journals lack completed-step evidence and
+are refused, not migrated from current bytes. Valid completed format-1 journals
+retain exact undo, but earlier adoption cannot be detected retrospectively.
+Interrupted overlapping writes or changed active target inventories require manual
+inspection. Preserve journals and originals instead of deleting them to bypass
+conflicts. The same-source recovery rule remains. These tests simulate exceptions,
+not actual power loss, clean-machine install, login or physical hardware acceptance.
