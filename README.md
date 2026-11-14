@@ -12,12 +12,14 @@ improvements. See [current release evidence](RELEASE-CANDIDATE.md) and the
 
 ## Current status and scope
 
-Source publication, private testing and live activation are separate. Recorded
-independent live acceptance covers launcher identity and filtered pins. A read-only
-process-path check confirmed the filtered-pin panel and native wallpaper-preferences
-renderer. The user reported animation working. The newer tray lifecycle/keyboard,
-Show Desktop drag and density fixes are privately tested and staged, **not activated**
-by this release pass. Installed Start/screenshot revisions were not re-audited.
+Source publication, private testing and live activation are separate. A November 14
+read-only check confirms the selected and running panel matches the tested ten-patch
+shortcut runtime; all native patch notices match current source. Installed Start/search
+and capture files match current source bytes, without a new resident-process/UI test.
+Earlier controlled acceptance and the user-reported wallpaper animation remain recorded
+in the [acceptance matrix](docs/final-acceptance.md). No activation occurred in this pass.
+Optional [animated lock-screen decoration](docs/animated-lock-screen-design.md) is a design
+only; it is not implemented or security-tested.
 
 Lightweight wallpaper-derived glass is the accepted direction; true moving-window
 Aero/compositor work was dropped. Fresh-login and clean-system acceptance are

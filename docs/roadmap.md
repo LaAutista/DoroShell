@@ -32,8 +32,8 @@ inside a disposable Openbox session. [Density](panel-density.md) covers long lab
 an enlarged font, 12 tasks and 60 hidden icons at 150%/200% on one narrow Xvfb screen.
 [Synthetic XEmbed/SNI coexistence](xembed-tray.md) now covers docking, pixels,
 input and client restart; real-client variants remain unverified.
-These latter source upgrades remain staged; those checks are not a live deployment
-or physical mixed-DPI test. Current build/package verification is in the
+These native upgrades are included in the ten-patch runtime observed on November 14.
+Their private checks remain distinct from live acceptance or physical mixed-DPI evidence. Current build/package verification is in the
 [release record](../RELEASE-CANDIDATE.md).
 
 ## Deliberate appearance boundary
@@ -45,8 +45,8 @@ local; source ships neutral assets. No exact visual parity is claimed.
 
 ## Remaining work, without expanding this release
 
-1. Later, explicitly chosen activation and representative real-app/notifier checks
-   for the staged panel. Preserve clients, settings and rollback paths.
+1. Representative real-app/notifier checks at an explicitly chosen safe point
+   for the now-observed ten-patch panel. Preserve clients, settings and rollback paths.
 2. Broader notifier/app diversity, real-client XEmbed variants, long-session behavior and a
    configured [native tray shortcut](tray-shortcut.md) acceptance beyond the synthetic fixture. Pointer-free entry is implemented with no default binding; AT-SPI popup-label export remains a known limitation. Grouped previews and supported
    progress/overlay data are broader feature work, not claimed complete.
@@ -57,9 +57,8 @@ local; source ships neutral assets. No exact visual parity is claimed.
 5. Fresh-login and clean-system install/upgrade/rollback are user-deferred, as are
    disruptive hardware/locker acceptance. Existing private tests do not close them.
 
-The next non-disruptive step is a read-only staged-versus-installed provenance
-review and a concrete later activation/rollback plan, not another speculative
-feature. See the [feature-family inventory](open-shell-parity.md) for wider scope.
+The November 14 read-only provenance review confirms the selected/running
+ten-patch panel. No redundant activation is needed for this documentation pass. See the [feature-family inventory](open-shell-parity.md) for wider scope.
 
 ## One-desktop contract
 
@@ -68,3 +67,10 @@ preserves original configuration and refuses conflicting placement rules. It doe
 not migrate live windows. One virtual desktop does not mean one physical monitor.
 Any future live migration needs explicit intent and independent preservation and
 rollback checks; this release pass did not change desktop count or personal windows.
+
+## Optional animated lock-screen decoration
+
+[Feasibility and next test gate](animated-lock-screen-design.md): a graphics client
+for the existing XScreenSaver host, not a replacement locker. Design only; no renderer
+integration, live lock test or authentication change is implemented. Next step is a
+bounded fake-host embedding probe with synthetic frames and no locker registration.

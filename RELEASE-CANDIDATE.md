@@ -1,4 +1,15 @@
-# Current source release evidence — 2026-11-11
+# Provenance and optional lock-screen design checkpoint — 2026-11-14
+
+Based on published `fd1859d`, preserving all later Start, screenshot and display work.
+Read-only hashes identify the running/selected ten-patch panel and installed Start/search
+and capture payloads; this is not new activation or full live acceptance. The
+[optional animation design](docs/animated-lock-screen-design.md) is unimplemented:
+no locker command, authentication/config change or prototype was executed. Gamebox
+staging is reported separately, not reproduced; login remains unverified.
+This documentation-only increment checks the full unit suite and exported source
+inventory/checksums. Earlier build/UI evidence below belongs to its named checkpoint.
+
+## Historical source release evidence — 2026-11-11
 
 This source consistency checkpoint follows published main `5749fa1`. GitHub main
 already contains the screenshot/native Background integration, Start glass fixes,
