@@ -80,6 +80,7 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
                  ['--apply','--config-root','relative'],
                  ['--apply','--config-root','/home/user/../x','--modules','single-desktop'],
                  ['--apply','--config-root','/home/user/config','--modules','menu'],
+                 ['--apply','--config-root','/home/user/config','--modules','snapping','menu'],
                  ['--apply','--config-root','/home/user/config','--modules','single-desktop','--with','clipboard'],
                  ['--prerequisites','--config-root','/home/user/config','--modules','single-desktop'],
                  ['--apply','--modules','start-shortcut','--replace-start-shortcut','--remove'],
@@ -207,3 +208,10 @@ sys.exit(22 if os.environ.get('FAIL_FETCH') else 0)
         result=self.run_bootstrap(*args)
         forwarded=json.loads(next(line[7:] for line in result.stdout.splitlines() if line.startswith('DEPLOY ')))
         self.assertEqual(forwarded,args)
+
+    def test_snapping_and_combined_config_root_forwarding(self):
+        for selected in (['snapping'],['snapping','single-desktop']):
+            args=['--apply','--modules',*selected,'--config-root',str(self.home/'Config with spaces')]
+            result=self.run_bootstrap(*args)
+            forwarded=json.loads(next(line[7:] for line in result.stdout.splitlines() if line.startswith('DEPLOY ')))
+            self.assertEqual(forwarded,args)

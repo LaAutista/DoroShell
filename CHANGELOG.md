@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Extend explicit custom config roots to snapping and combined single-desktop,
+  relocating only XML/autostart config. Share writer locks, preserve unrelated XML
+  and exact original programs/modes, refuse root/path/ownership conflicts, and keep
+  conservative interrupted shared-file recovery. No live activation or XDG migration.
+
 - Fix custom config-root symlink-ancestor refusal in module/setup paths: an in-home
   alias could redirect XML writes into reserved storage. Check root, target and
   ownership path components before writes; retain strict environment mismatch checks.

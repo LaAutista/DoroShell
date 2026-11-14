@@ -41,9 +41,9 @@ def inspect(home, selected, environ=None, release=None, config_root=None):
     if 'lxqt' not in desktop.casefold().split(':'): issues.append('Run from your existing LXQt session.')
     if session != 'x11': issues.append('This release supports X11 only; Wayland is not implemented.')
     if config_root is not None:
-        from config_root import validate
+        from config_root import validate, SUPPORTED
         config_root=validate(home,config_root)
-        if selected!=['single-desktop']:raise ValueError('Custom configuration roots support only single-desktop')
+        if not selected or not set(selected).issubset(SUPPORTED):raise ValueError('Custom configuration roots support only snapping and single-desktop')
     for variable, default in [('XDG_CONFIG_HOME', '.config'), ('XDG_DATA_HOME', '.local/share'), ('XDG_STATE_HOME', '.local/state')]:
         expected=config_root if variable=='XDG_CONFIG_HOME' and config_root is not None else home/default
         if env.get(variable) and Path(env[variable]) != expected:
@@ -57,7 +57,7 @@ def inspect(home, selected, environ=None, release=None, config_root=None):
         if (panels and panels[1].strip() != 'panel1') or groups != ['panel1']:
             issues.append('Native taskbar needs an initialized single panel1 layout or explicit --panel panelN; custom layouts are preserved.')
     if any(m in selected for m in ('snapping', 'theme')):
-        if not (home/'.config/openbox/rc.xml').is_file():
+        if not ((config_root or home/'.config')/'openbox/rc.xml').is_file():
             issues.append('Snapping/themes need an initialized Openbox rc.xml; other window managers are preserved.')
     return dict(distribution=distro, arch_based=arch, desktop=desktop, session=session,
                 issues=issues, adapter='LXQt INI / Openbox XML / native upstream 2.4 patches')

@@ -207,3 +207,20 @@ Three legacy temporary-home fixtures set their own XDG_CONFIG_HOME. The producti
 mismatch refusal stays strict. Both unset-XDG and inherited-disposable-XDG full runs
 pass 431 tests; no live action or publication occurred. Prior 0b32202 artifacts remain
 immutable; use the correction for independent verification, not the superseded bundle.
+
+
+Follow-up on `6311413` extends the explicit config-root adapter to snapping alone or
+with single-desktop. See config-roots.md: only config XML/autostart move; helper,
+launcher and state paths remain fixed. Root/path validation covers every target;
+both adapters use shared locks and distinct XML ownership. Keep ambiguous-overlap
+recovery refusal and retain journals. No runtime/config environment is relocated.
+Alt+F1 private runtime acceptance remains blocked by Xvfb listener creation in the
+available sandbox; no host display fallback, package installation or security change.
+The experimental input helper remains disabled/unpublished and untouched.
+
+Final custom-root snapping validation: **444 tests pass** with inherited normal
+XDG paths under a disposable HOME, offscreen Qt and a private nonexistent session
+bus (24.703s). The 29 focused config-root tests and 16 bootstrap tests also pass.
+Two existing snapping fixtures now bind their own config directory; production
+mismatch refusal is unchanged. The prior reader at `6311413` separately refuses
+new module apply/rollback and combined journal requests before fixture writes.

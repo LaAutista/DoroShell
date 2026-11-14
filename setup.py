@@ -51,7 +51,7 @@ def main():
     p.add_argument('--replace-start-shortcut',action='store_true')
     p.add_argument('--packages',action='store_true',help='Print the exact Arch/CachyOS full-update installation command and exit')
     args=p.parse_args()
-    if args.gui and args.config_root is not None:p.error('--config-root is a CLI-only single-desktop option')
+    if args.gui and args.config_root is not None:p.error('--config-root is a CLI-only snapping/single-desktop option')
     if args.gui:
         from settings import main as settings_main
         return settings_main(args.home)
@@ -63,7 +63,7 @@ def main():
     if root!=args.home/'.config':
         if args.live:p.error('Custom configuration is saved only; no live activation')
         import modules
-        modules.run(args.home,'single-desktop',rollback=args.rollback,config_root=root,preview=True)
+        for module in selected:modules.run(args.home,module,rollback=args.rollback,config_root=root,preview=True)
     if args.live and 'start-shortcut' in selected:
         p.error('Start shortcut is saved for next startup; live reload is not supported')
     if args.replace_start_shortcut and ('start-shortcut' not in selected or args.rollback):

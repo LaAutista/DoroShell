@@ -9,9 +9,9 @@ selected panel in a supported standard layout. LXQt's default layout without a
 `panels=` line counts as a single `panel1`. Missing or ambiguous layouts produce a
 specific refusal. DoroShell does not install a display
 manager, switch desktop environments, or claim Wayland support. Broad XDG relocation
-remains unsupported. The [explicit config-root adapter](config-roots.md) supports only
-`single-desktop` in an initialized home-contained Openbox config directory; core and
-other module combinations still refuse custom roots.
+remains unsupported. The [explicit config-root adapter](config-roots.md) supports
+`single-desktop`, `snapping`, or both in an initialized home-contained Openbox config
+directory; core and other module combinations still refuse custom roots.
 
 The repository is public. The bootstrap command in [README](../README.md) uses
 `curl`, Git and Python and requires no GitHub account, token or GitHub CLI. The apply

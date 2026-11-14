@@ -18,8 +18,9 @@ The project is functional and under active development. Preserve working compone
    profiles through setup and deploy/bootstrap, with recorded choice and interrupted
    first-stage recovery. Optional Alt+F1 deployment now has explicit custom replacement,
    conservative whole-file ownership, recovery and exact undo; activation remains
-   unverified. Explicit home-contained config-root support now covers only the config-only
-   single-desktop adapter through deploy/setup/bootstrap; no runtime/data/state migration.
+   unverified (private Xvfb could not bind sockets in the available test environment).
+   Explicit home-contained config roots now cover single-desktop and snapping, alone
+   or together, through deploy/setup/bootstrap; fixed program/data/state paths remain.
    Broader layout/XDG and shortcut-format adapters remain open.
 4. Expand real notifier/XEmbed/application, accessibility, mixed-DPI and long-session
    acceptance without adding a mandatory compositor or extra polling/indexing.

@@ -189,6 +189,7 @@ class DeploymentTests(unittest.TestCase):
         deploy.undo(self.home,job);self.assertFalse((self.home/'a').exists())
 
     def test_core_helpers_stage_together_and_restore_configuration(self):
+        self.enterContext(patch.dict(os.environ,{'XDG_CONFIG_HOME':str(self.home/'.config')}))
         self.fixture();before=self.snapshot()
         selected=deploy.select_modules(['menu','native-panel','theme','snapping','screenshots','clipboard','maintenance'])
         # Executable is never launched: native profile setup only records its bytes/path.

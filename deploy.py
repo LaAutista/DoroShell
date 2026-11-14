@@ -198,12 +198,12 @@ def validate_journal(home, journal, identifier):
     if journal['format'] == 3 or (journal['format']==4 and request['panel'] is not None): validate_panel(request['panel'])
     selected = module_list(request.get('modules'))
     if journal['format']==5:
-        from config_root import recorded
+        from config_root import recorded, SUPPORTED
         custom=recorded(home,request['config_root'])
         if request['remove']:
             if request['config_before'] is not None:raise ValueError('Invalid removal configuration snapshot')
         else:validate_snapshot(home,{str((custom/'openbox/rc.xml').relative_to(home)):request['config_before']})
-        if selected!=['single-desktop']:raise ValueError('Custom-root journal has unsupported modules')
+        if not selected or not set(selected).issubset(SUPPORTED):raise ValueError('Custom-root journal has unsupported modules')
     if ('start-shortcut' in selected) != (journal['format']==4):
         raise ValueError('Start shortcut requires its reviewed-choice journal schema')
     if journal['format']==4 and (type(request['replace_start_shortcut']) is not bool or 'start-shortcut' not in selected or (request['remove'] and request['replace_start_shortcut'])):
@@ -375,7 +375,7 @@ def stock_start_icon(home, manifest):
 
 
 def check_config_review(home, request):
-    if 'config_root' in request and not request['remove'] and not manifest_for(home,'single-desktop').exists():
+    if 'config_root' in request and not request['remove'] and not any(manifest_for(home,name).exists() for name in request['modules']):
         name=str(Path(request['config_root'])/'openbox/rc.xml')
         if file_state(home,name)!=request['config_before']:
             raise RuntimeError('Selected configuration changed before ownership; recovery refused')
@@ -463,7 +463,7 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
         request.update(panel=panel,replace_start_shortcut=replace_start_shortcut)
     if config_root is not None:
         import modules
-        modules.run(home,'single-desktop',rollback=remove,config_root=config_root,preview=True)
+        for name in selected:modules.run(home,name,rollback=remove,config_root=config_root,preview=True)
     if recover:
         path, journal = recovery_journal(home, previous)
         if config_root is not None:
@@ -549,7 +549,7 @@ def main(argv=None):
     parser.add_argument('--modules', nargs='+', help='Default: recorded modules, or core on first install')
     parser.add_argument('--with', dest='extras', action='append', choices=OPTIONAL, default=[])
     parser.add_argument('--home', type=Path, default=Path.home())
-    parser.add_argument('--config-root',type=Path,help='Explicit home-contained configuration root for single-desktop only')
+    parser.add_argument('--config-root',type=Path,help='Explicit home-contained config root for snapping/single-desktop')
     parser.add_argument('--theme', choices=('windows','polar','heretic','spring'), default='windows')
     parser.add_argument('--replace-start-shortcut', action='store_true', help='Explicitly replace the reviewed existing Alt+F1 binding; requires start-shortcut')
     parser.add_argument('--panel', help='Explicit native-panel ID for first install; recorded for repeat/recovery')
@@ -621,7 +621,7 @@ def main(argv=None):
     reviewed_config=None
     if config_root is not None and not args.undo:
         import modules
-        modules.run(home,'single-desktop',rollback=args.remove,config_root=config_root,preview=True)
+        for name in selected:modules.run(home,name,rollback=args.remove,config_root=config_root,preview=True)
         reviewed_config=file_state(home,str((config_root/'openbox/rc.xml').relative_to(home)))
     capability_modules = selected
     completed_panel = args.recover and 'native-panel' in journal['done']
@@ -692,9 +692,10 @@ def main(argv=None):
         binaries = {} if args.remove or args.undo else build_native(home, selected, versions)
         # Lock the existing optional-module writer locks too, retaining their inodes.
         with contextlib.ExitStack() as locks:
-            for name in ('theme', 'wallpaper', 'clipboard', 'start-shortcut', 'single-desktop'):
-                if name in selected or args.undo:
-                    if name=='single-desktop' and config_root is None and not (args.undo and journal['format']==5):continue
+            for name in ('theme', 'wallpaper', 'clipboard', 'start-shortcut', 'snapping', 'single-desktop'):
+                shared_config = config_root is not None or (args.undo and journal['format']==5)
+                if name in selected or args.undo or (shared_config and name in ('snapping','single-desktop')):
+                    if name in ('snapping','single-desktop') and not shared_config:continue
                     if name=='start-shortcut' and name not in selected and name not in journal['request']['modules']:
                         continue
                     path = state/(name+'.lock'); safe(path, home)

@@ -4,7 +4,7 @@ set -euo pipefail
 main() (
     local channel=development ref=main apply=false allow_packages=true arg root tmp revision destination
     local plan=false guidance=false remove=false recover=false help=false undo='' panel='' config_root=''
-    local modules_set=false panel_module=false clipboard_module=false extra_clipboard=false config_module=false
+    local modules_set=false panel_module=false clipboard_module=false extra_clipboard=false config_module_count=0
     local module_count=0 extra_count=0
     local shortcut_module=false extra_shortcut=false replace_shortcut=false
     local -a forwarded=() missing=()
@@ -29,14 +29,14 @@ main() (
             --modules)
                 forwarded+=(--modules); shift
                 (($#)) && [[ "$1" != -* ]] || invalid 'Missing module list'
-                modules_set=true; panel_module=false; clipboard_module=false; shortcut_module=false; config_module=false; module_count=0
+                modules_set=true; panel_module=false; clipboard_module=false; shortcut_module=false; config_module_count=0; module_count=0
                 while (($#)) && [[ "$1" != -* ]]; do
                     case "$1" in
                         core|native-panel) panel_module=true ;;
                         clipboard) clipboard_module=true ;;
                         start-shortcut) shortcut_module=true ;;
-                        single-desktop) config_module=true ;;
-                        menu|theme|cursor|snapping|screenshots|maintenance|wallpaper|wallpaper-glass|display) ;;
+                        single-desktop|snapping) config_module_count=$((config_module_count+1)) ;;
+                        menu|theme|cursor|screenshots|maintenance|wallpaper|wallpaper-glass|display) ;;
                         *) invalid 'Unknown module' ;;
                     esac
                     module_count=$((module_count+1)); forwarded+=("$1"); shift
@@ -66,7 +66,7 @@ main() (
     fi
     if [[ -n "$config_root" ]]; then
         if "$guidance" || "$help" || [[ -n "$undo" || -n "$panel" ]]; then invalid 'Config root cannot combine with guidance/help/undo/panel'; fi
-        if ((extra_count)) || { ! "$recover" && { ! "$config_module" || ((module_count!=1)); }; }; then invalid 'Config root requires only --modules single-desktop'; fi
+        if ((extra_count)) || { ! "$recover" && { ((module_count==0 || config_module_count!=module_count)); }; }; then invalid 'Config root requires only --modules snapping and/or single-desktop'; fi
     fi
     case "$channel" in development) ;; stable) ref=stable ;; *) invalid 'Choose development or stable' ;; esac
     [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$ref" != *..* ]] || invalid 'Invalid revision'

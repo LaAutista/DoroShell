@@ -75,6 +75,7 @@ class ModulesTests(unittest.TestCase):
     def test_personal_changes_conflicts_and_symlinks(self):
         with tempfile.TemporaryDirectory() as d:
             home=self.home(d)
+            self.enterContext(patch.dict(os.environ,{'XDG_CONFIG_HOME':str(home/'.config')}))
             modules.run(home,'screenshots',apply=True)
             conf=home/'.config/lxqt/globalkeyshortcuts.conf'
             conf.write_text(conf.read_text()+'\n[Other]\nKeep=yes\n')

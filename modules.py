@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Independent, reversible desktop modules. No package installation or session logout."""
 import argparse
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager, nullcontext, ExitStack
 import base64
 import json
 import os
@@ -89,15 +89,20 @@ def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_pre
         wrapper = '#!/bin/sh\nexec /usr/bin/python3 '+shlex.quote(str(target))+' "$@"\n'
         file('.local/bin/doroshell-'+script, wrapper.encode(), 0o755)
         if module=='snapping':
+            if root!=home/'.config':
+                target=root/'openbox/rc.xml'
+                if not target.is_file():raise ValueError('An initialized Openbox rc.xml is required in the selected configuration root')
             launcher = str(home/'.local/bin/doroshell-snap')
-            file('.config/autostart/doroshell-snap.desktop', ('[Desktop Entry]\nType=Application\nName=DoroShell edge snapping\nExec="'+launcher+'"\nOnlyShowIn=LXQt;\n').encode())
+            file(str((root/'autostart/doroshell-snap.desktop').relative_to(home)), ('[Desktop Entry]\nType=Application\nName=DoroShell edge snapping\nExec="'+launcher+'"\nOnlyShowIn=LXQt;\n').encode())
             # An explicit Openbox section; preserve every unrelated key binding.
             block = '\n<!-- DoroShell snapping begin -->\n'
             for key,action in [('W-Left','left'),('W-Right','right'),('W-Down','restore')]:
                 from xml.sax.saxutils import escape
                 block += f'<keybind key="{key}"><action name="Execute"><command>{escape(shlex.quote(launcher))} {action}</command></action></keybind>\n'
             block += '<!-- DoroShell snapping end -->\n'
-            edits.append({'file':'.config/openbox/rc.xml','kind':'snapkeys','after':block})
+            edits.append({'file':str((root/'openbox/rc.xml').relative_to(home)),'kind':'snapkeys','after':block})
+            if root!=home/'.config':
+                for edit in edits:edit['kind']='root-'+edit['kind']
         else:
             conf = home/'.config/lxqt/globalkeyshortcuts.conf'
             text = conf.read_text() if conf.exists() else ''
@@ -209,6 +214,19 @@ def read_value(edit, data):
     if kind=='file':
         return base64.b64encode(data).decode() if data is not None else None
     text=(data or b'').decode()
+    if edit['kind']=='root-snapkeys':
+        tree=ET.fromstring(text)
+        if sum(node.tag.rsplit('}',1)[-1]=='keyboard' for node in tree.iter())!=1:
+            raise ValueError('Expected one Openbox keyboard section')
+        # The existing byte-preserving writer supports one unambiguous owned block.
+        if text.count('<!-- DoroShell snapping begin -->')!=text.count('<!-- DoroShell snapping end -->') or text.count('<!-- DoroShell snapping begin -->')>1:
+            raise ValueError('Ambiguous Openbox snapping block')
+        owned=read_value({'kind':'snapkeys'},text.encode())
+        if 'DoroShell snapping begin' in text and not owned:
+            raise ValueError('Unsupported Openbox snapping block formatting')
+        other=ET.fromstring(text.replace(owned,'') if owned else text)
+        if any(node.tag.rsplit('}',1)[-1]=='keybind' and node.get('key') in ('W-Left','W-Right','W-Down') for node in other.iter()):
+            raise RuntimeError('Existing Openbox shortcut conflicts with snapping')
     if kind=='ini':
         return ini_value(text,edit['section'],edit['key'])
     if kind == 'obtheme':
@@ -372,12 +390,12 @@ def validate_module_record(saved):
     for edit in saved['edits']:
         if not isinstance(edit, dict) or not isinstance(edit.get('file'), str) or edit['file'] not in saved['backup']:
             raise ValueError('Missing module backup; preserve the recovery manifest')
-        if edit.get('kind') not in ('file', 'ini', 'obtheme', 'desktop', 'firstdesk', 'snapkeys', 'root-desktop', 'root-firstdesk'):
+        if edit.get('kind') not in ('file', 'ini', 'obtheme', 'desktop', 'firstdesk', 'snapkeys', 'root-desktop', 'root-firstdesk', 'root-file', 'root-snapkeys'):
             raise ValueError('Invalid module edit kind; preserve the recovery manifest')
         for field in ('before', 'after'):
             if field not in edit or (edit[field] is not None and not isinstance(edit[field], str)):
                 raise ValueError('Invalid module edit value; preserve the recovery manifest')
-            if edit['kind'] == 'file' and edit[field] is not None:
+            if edit['kind'].removeprefix('root-') == 'file' and edit[field] is not None:
                 base64.b64decode(edit[field], validate=True)
         if 'mode' in edit and (type(edit['mode']) is not int or not 0 <= edit['mode'] <= 0o777):
             raise ValueError('Invalid module edit mode; preserve the recovery manifest')
@@ -401,18 +419,13 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
                     or any(e['file']!='.config/openbox/rc.xml' for e in saved['edits'])):
                 raise ValueError('Configuration-root metadata is missing or conflicts with legacy ownership')
         if custom:
-            target=str((root/'openbox/rc.xml').relative_to(home))
-            if (set(saved['backup'])!={target} or len(saved['edits'])!=2
-                    or [e['kind'] for e in saved['edits']]!=['root-desktop','root-firstdesk']
-                    or any(e['file']!=target or e['after']!='1' for e in saved['edits'])
-                    or saved.get('phase') not in ('pending','complete','restoring')):
-                raise ValueError('Invalid custom-root ownership/recovery record')
             if saved['phase']=='restoring' and not rollback:raise RuntimeError('Finish custom-root restoration before applying again')
             if saved['phase']=='complete':
-                path=home/target;safe(path,home)
-                current=path.read_bytes() if path.exists() else None
-                if any(read_value(e,current)!=e['after'] for e in saved['edits']):
-                    raise RuntimeError('Edited managed desktop values; custom-root restoration/update refused')
+                for edit in saved['edits']:
+                    path=home/edit['file'];safe(path,home)
+                    current=path.read_bytes() if path.exists() else None
+                    if read_value(edit,current)!=edit['after']:
+                        raise RuntimeError('Edited managed values; custom-root restoration/update refused')
         if module=='start-shortcut':
             name='.config/lxqt/globalkeyshortcuts.conf'
             if len(saved['edits'])!=1 or saved['edits'][0]['kind']!='file' or saved['edits'][0]['file']!=name or set(saved['backup'])!={name}:
@@ -583,7 +596,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--home',type=Path,default=Path.home())
-    parser.add_argument('--config-root',type=Path,help='Explicit config root for single-desktop only; existing ownership retains it')
+    parser.add_argument('--config-root',type=Path,help='Explicit config root for snapping/single-desktop; existing ownership retains it')
     parser.add_argument('--live',action='store_true')
     parser.add_argument('--replace-start-shortcut',action='store_true')
     parser.add_argument('--wallpaper-binary', type=Path)
@@ -613,11 +626,14 @@ def main():
             raise SystemExit(0)
         # Serialize theme switch/restore against another setup process.
         import fcntl
-        lock = args.home/'.local/state/doroshell'/f'{args.module}.lock'
-        safe(lock, args.home)
-        lock.parent.mkdir(parents=True, exist_ok=True)
-        with lock.open('a') as stream:
-            fcntl.flock(stream, fcntl.LOCK_EX)
+        from config_root import SUPPORTED
+        with ExitStack() as locks:
+            for name in SUPPORTED if root!=args.home/'.config' else (args.module,):
+                lock = args.home/'.local/state/doroshell'/f'{name}.lock'
+                safe(lock, args.home)
+                lock.parent.mkdir(parents=True, exist_ok=True)
+                stream=locks.enter_context(lock.open('a'))
+                fcntl.flock(stream, fcntl.LOCK_EX)
             run(args.home, args.module, args.apply, args.rollback, theme=args.theme, wallpaper_binary=args.wallpaper_binary, replace_start_shortcut=args.replace_start_shortcut,config_root=root)
         if args.module == 'clipboard' and args.rollback and args.home.resolve() == Path.home().resolve():
             subprocess.run([sys.executable, str(ROOT/'clipboard/clipboard.py'), '--stop'], check=True)

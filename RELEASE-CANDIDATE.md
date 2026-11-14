@@ -1,3 +1,19 @@
+# Custom-root snapping checkpoint — 2026-11-14
+
+Source-only follow-up based on published `63114132943c24cdd54be1b9a97de695f7a0aba3`.
+The explicit CLI config-root adapter now supports snapping alone or with
+single-desktop. XML/autostart config use the chosen root; program/data/state paths
+stay fixed. Both writers share locks, retain exact first backups and refuse root,
+symlink, managed-content/mode and ambiguous shared-file recovery conflicts.
+See docs/config-roots.md for the precise supported grammar and recovery boundary.
+
+Validation: 12 new disposable-home tests plus one bootstrap forwarding test, with
+existing recovery/ownership regressions retained. Installed toolkit CLI executes
+against private fixture homes. Package commands/build/platform discovery are mocked;
+there is no actual package authentication, runtime startup, login or clean-OS test.
+An earlier optional Alt+F1 runtime attempt stopped at failed private Xvfb listener
+creation; its runtime acceptance gap remains open. No live setting/session change.
+
 # Config-root symlink review correction — 2026-11-14
 
 Independent review of unpublished `0b32202f752af49f227478ba0e3dc71a26fe4bcd` found
@@ -599,3 +615,10 @@ system acceleration scheme and adds no daemon, privileged reader or diagnostic l
 Custom Xorg config sources/overrides and reliable current-initialization provenance
 remain outside this conservative diagnostic. Publication is held for independent
 review of the prepared commit; no session action or deployment is part of this pass.
+
+Final custom-root snapping validation: **444 tests pass** with inherited normal
+XDG paths under a disposable HOME, offscreen Qt and a private nonexistent session
+bus (24.703s). The 29 focused config-root tests and 16 bootstrap tests also pass.
+Two existing snapping fixtures now bind their own config directory; production
+mismatch refusal is unchanged. The prior reader at `6311413` separately refuses
+new module apply/rollback and combined journal requests before fixture writes.
