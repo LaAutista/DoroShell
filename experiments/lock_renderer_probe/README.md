@@ -1,7 +1,14 @@
 # Fake-host animated renderer probe
 
 **Experimental graphics test only. Not a locker, saver registration, installation
-module or security boundary.** Implements the first isolated checkpoint from
+module or security boundary.**
+
+**Current acceptance result: BLOCKED.** The final overlay-before-launch check
+reproduces a stacking incompatibility and intentionally exits nonzero with
+`result: FAIL`. Earlier passing checkpoints below are historical; the expanded
+probe is not an all-green integration test.
+
+Implements the first isolated checkpoint from
 [the design](../../docs/animated-lock-screen-design.md), without changing that
 proposal's real-lock approval boundary.
 
@@ -162,9 +169,60 @@ covering windows. No locker process, authentication, registration, personal
 session or clipboard is involved. The refresh override remains private-fixture
 behavior, not a production default.
 
+## Final stacking checkpoint — integration blocked
+
+The fixture now creates and maps a clearly labelled host-owned overlay **before**
+launching mpv, retains that same window through termination/restart, and never
+raises or redraws it afterward. No mpv embedding options changed. Pixel snapshots
+and child stacking both show the newly mapped renderer above the existing overlay
+on **both launch and restart**. The final compatibility assertion fails visibly;
+it has not been changed to accept the unwanted stacking.
+
+| Complete run observation | Launch | Restart |
+| --- | --- | --- |
+| Overlay pixels preserved while renderer runs | No | No |
+| Overlay remains highest child | No | No |
+| Request to rendered pixels | 94.0 ms | 93.0 ms |
+| SIGTERM to reaped exit | 15.3 ms | 7.2 ms |
+| Focus preserved; no input grabs | Yes | Yes |
+| Only decoder child removed; host and overlay remain mapped | Yes | Yes |
+| Original overlay pixels restored after decoder exit | No | No |
+
+The first run stopped at the post-exit pixel assertion. Its evidence is retained.
+The diagnostic revision separates surviving windows from restored content so it
+can finish the requested restart observation: **no repaint or restacking was
+added**. The fixture does not service Expose events for that label, so lost text
+on re-exposure is a fixture limitation, not proof that mpv destroyed the overlay.
+The independent stacking order and covered-pixel observations establish the
+launch/restart incompatibility regardless of that repaint limitation.
+
+The complete run passed 69 preceding assertions, including all 59 prior checks
+and ten new rendering/focus/grab/window-survival checks, then failed the final
+stacking requirement. All seven owned decoders exited; no forced cleanup occurred.
+The unchanged performance sample measured 0.06 CPU seconds over 8.173 seconds,
+81 transitions/eight hashes and 84,680 kB RSS. Initial first pixels were 92.8 ms,
+remap 94.4 ms and original target-destroy exit 75.9 ms. Measurement methods and
+polling limits remain as described above. The four probe unit tests and all 263
+repository tests passed; that does **not** override the native acceptance failure.
+
+Synthetic screenshots before launch, during each launch, and after each exit,
+plus `overlay_before_launch` observations in `results.json`, preserve the result.
+No repeated attempt to force this scenario to pass was made; no host re-raise
+comparison or compensating framework was implemented.
+
+**Decision:** conclude this fake-host exploration without an installable adapter.
+Unmodified mpv child embedding does not preserve an existing sibling overlay's
+stacking in this fixture. Whether real XScreenSaver uses a conflicting hierarchy
+or explicitly manages stacking is still unknown. Do not register this renderer or
+infer an authentication vulnerability from the synthetic result. A future
+integration decision needs authoritative review of the actual host hierarchy,
+stacking and repaint ownership; any real-lock acceptance requires separate
+explicit authorization at a safe point. Further incremental mocks are not a
+substitute for that contract evidence.
+
 ## Limits and integration decision
 
-No failed assertion remains in the final run. Untested: actual XScreenSaver host
+The final overlay-before-launch assertion fails as documented above. Untested: actual XScreenSaver host
 contract/coverage, authentication, unlock, suspend, DPMS, real monitors, Wayland,
 other mpv builds, hostile media, long-running resource use and actual lock safety.
 The test only checks selected fixture settings; it is not a syscall audit proving

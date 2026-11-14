@@ -288,7 +288,48 @@ def worker(mpv, evidence, comparison='fixture60'):
         check(first.get_attributes().map_state==X.IsViewable,'fake host survives renderer failures')
         check(hashlib.sha256(sentinel.read_bytes()).hexdigest()==sentinel_hash,'fixture settings sentinel unchanged')
         check(not any((home/p).exists() for p in ['.xscreensaver','.config/autostart','.config/mpv']), 'no locker/autostart/player config created')
+        # Observe unmodified embedding with an overlay that predates both launches.
+        early_overlay=first.create_window(20,40,320,100,0,connection.screen().root_depth,
+                                         X.InputOutput,X.CopyFromParent,background_pixel=0xffffff)
+        early_overlay.set_wm_name('SYNTHETIC OVERLAY BEFORE LAUNCH - NOT AUTHENTICATION')
+        early_overlay.map();connection.sync()
+        gc=early_overlay.create_gc(foreground=0x000000)
+        early_overlay.draw_text(gc,8,30,'SYNTHETIC OVERLAY BEFORE LAUNCH')
+        early_overlay.draw_text(gc,8,55,'NOT AUTHENTICATION');gc.free();connection.sync()
+        early_pixels=image(root).crop(overlay_box).tobytes()
+        image(root).save(evidence/'overlay-before-launch.png')
+        ordering=[]
+        results['overlay_before_launch']=ordering
+        for phase in ('launch','restart'):
+            started=time.monotonic();ordered=spawn(first.id,media)
+            check(wait_for(lambda:colorful(first)),'overlay-first '+phase+' renders within 3s')
+            latency=(time.monotonic()-started)*1000
+            time.sleep(.25)
+            children=first.query_tree().children
+            visible=image(root).crop(overlay_box).tobytes()==early_pixels
+            top=children[-1].id==early_overlay.id
+            ordering.append({'phase':phase,'overlay_pixels_preserved':visible,
+                             'overlay_is_top_child':top,'request_to_color_ms':latency})
+            image(root).save(evidence/('overlay-after-'+phase+'.png'))
+            check(connection.get_input_focus().focus.id==initial_focus,'overlay-first '+phase+' preserves focus')
+            grabbed=frame.grab_keyboard(False,X.GrabModeAsync,X.GrabModeAsync,X.CurrentTime)
+            connection.ungrab_keyboard(X.CurrentTime)
+            pointer=frame.grab_pointer(False,0,X.GrabModeAsync,X.GrabModeAsync,X.NONE,X.NONE,X.CurrentTime)
+            connection.ungrab_pointer(X.CurrentTime);connection.sync()
+            check(grabbed==X.GrabSuccess and pointer==X.GrabSuccess,'overlay-first '+phase+' holds no input grab')
+            ordering[-1]['sigterm_exit_ms']=stop(ordered)
+            check(wait_for(lambda:[w.id for w in first.query_tree().children]==[early_overlay.id]),
+                  'overlay-first '+phase+' removes only renderer child')
+            ordering[-1]['overlay_pixels_restored_after_exit'] = image(root).crop(overlay_box).tobytes()==early_pixels
+            image(root).save(evidence/('overlay-after-'+phase+'-exit.png'))
+            check(first.get_attributes().map_state==X.IsViewable and
+                  early_overlay.get_attributes().map_state==X.IsViewable,
+                  'overlay-first '+phase+' retains mapped host and overlay windows after exit')
+        results['overlay_before_launch']=ordering
+        early_overlay.destroy();connection.sync()
         check(all(p.poll() is not None for p in processes),'all owned decoder processes exited')
+        check(all(item['overlay_pixels_preserved'] and item['overlay_is_top_child'] for item in ordering),
+              'pre-existing overlay remains visible across renderer launch and restart')
         results['result']='PASS'
     except Exception as exc:
         results['result']='FAIL'
