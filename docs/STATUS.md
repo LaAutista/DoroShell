@@ -28,3 +28,8 @@ DPMS, long-session resource behavior, arbitrary future LXQt releases and Wayland
 No package installation, personal deployment, session refresh or hardware mode
 write was performed during this work. Artwork authorship/redistribution terms remain
 the owner's review responsibility; no new third-party license is asserted.
+
+The authenticated private-GitHub bootstrap was tested against published `5c0baba`: real
+download/plan, scoped menu apply with `--no-packages`, repeat and removal all passed
+in a disposable home. It used development-host dependencies, not a clean OS. The
+new full source archive also passed inventory/hash round-trip checks.

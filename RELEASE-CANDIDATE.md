@@ -213,3 +213,18 @@ CLI authentication and the authorized contents endpoint, with download completio
 checked before execution. Bootstrap fetch uses a per-command CLI credential helper
 and does not change repository visibility or persistent Git configuration. Five
 bootstrap tests cover the corrected command and failed-download non-execution.
+
+The corrected published revision `5c0baba43e2161ea56e03b5a8011290e2590bd2a`
+was fetched through the exact authenticated README command with the action changed
+to plan-only in a disposable home. It passed inventory verification and retained a
+clean source checkout without credential-helper config entries. The same command
+then passed a real scoped menu install with `--no-packages`, followed by repeat
+installation and removal through the downloaded source. Original module backup
+bytes survived the repeat, and managed menu/manifest files were removed as expected.
+No authentication prompt was opened by testing; existing authorization was read-only.
+No user configuration or live display/bus was accessed by the installation fixture.
+The full suite after the authentication correction passed **285 tests**.
+
+The committed source export was round-trip extracted and passed both
+`python source_release.py` and `sha256sum -c SHA256SUMS`. No `.git` directory,
+compiled runtime, cache, private config, journal or credential is part of the export.

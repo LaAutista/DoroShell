@@ -24,7 +24,7 @@
   "verification": {
     "passed": 285,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Final full suite: 285 passed. Actual panel and paired wallpaper/display builds passed; disposable-home complete-module install/repeat/undo/removal and installed toolkit imports passed. Bootstrap shell/transport tests passed. No packages/live settings/clean OS/login/hardware tests. Private repository correction: authenticated CLI bootstrap and targeted tests; remote preview verification follows publication."
+    "note": "Final corrected full suite: 285 passed. Actual panel and paired Background/display builds passed. Complete disposable-home module staging/repeat/undo/removal and installed imports passed. Published authenticated GitHub bootstrap plan/scoped menu apply/repeat/removal passed at 5c0baba with --no-packages. Export inventory/hash round-trip passed. No clean OS/login/hardware or personal deployment claim."
   },
   "source_payloads": [
     {
@@ -65,8 +65,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "69b753537f68d307a7a4cc4793c89d9807d0dcd4aaf49e563bc6e1b267b6ab21",
-      "size": 16120,
+      "sha256": "e7912e19ce07d0c0007849add8b334ef6fc0b4d0244918510de1933514cce79f",
+      "size": 17166,
       "mode": "0o644"
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "7164327691a9a11aca8edd203095b1359f140ef1654ab414117ca86775c1c505",
-      "size": 3386,
+      "sha256": "53d18b62c988613cf89d69566281d250e4a4027139ae95499f488a1e4b85caee",
+      "size": 3711,
       "mode": "0o644"
     },
     {
