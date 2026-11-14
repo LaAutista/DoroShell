@@ -2,14 +2,19 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Carry explicit `--panel panelN` through bootstrap/deploy, record it for repeat and
+  recovery, and validate selection before package/build/managed writes. Resume saved
+  first-profile staging after interruption. Retain exact undo and legacy single-panel
+  records; newer explicit-choice schemas are refused by older installers.
+  Acquisition needs Git/Python already available; explicit validation needs PySide6/GIO.
 - Add explicit `panel/profile.py prepare --panel panelN` for standard multi-panel
   profiles through the existing prepared-plan/setup workflow. Preserve other INI
   sections and selected geometry; refuse shared/ambiguous widgets instead of guessing.
   Package the layout helper and target sizing, clipboard and Quick Launch changes
-  to the unique DoroShell panel. Full bootstrap/deploy multi-panel support stays gated.
+  to the unique DoroShell panel. Deploy/bootstrap now reuse this adapter explicitly.
 - Recover a completed native-panel step after the unrelated stock LXQt layout gains
   a second panel. Verify the recorded output bytes/modes first and retain the stock
-  layout; unfinished native-panel work still needs the supported single-panel layout.
+  layout; unfinished work still requires a valid supported preparation.
 - Update bootstrap and handoff instructions for the public repository: curl/Git need
   no GitHub CLI, account or token. Anonymous fetch disables credential helpers and
   terminal prompts per command. Preserve complete-download-before-execution checks.

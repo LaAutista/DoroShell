@@ -2,13 +2,12 @@
 # Download a complete revision first. Never execute a partially downloaded script.
 set -euo pipefail
 main() (
-    local channel=development ref=main apply=false arg root tmp revision destination
+    local channel=development ref=main arg root tmp revision destination
     local -a forwarded=()
     while (($#)); do
         case "$1" in
             --channel) channel=${2:?Missing channel}; shift 2 ;;
             --ref) ref=${2:?Missing revision}; shift 2 ;;
-            --apply) apply=true; forwarded+=(--apply); shift ;;
             --plan) shift ;;
             *) forwarded+=("$1"); shift ;;
         esac
@@ -17,10 +16,9 @@ main() (
     [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$ref" != *..* ]] || { echo 'Invalid revision' >&2; return 2; }
     [[ $EUID != 0 ]] || { echo 'Run as your normal desktop user, not root.' >&2; return 1; }
     if ! command -v git >/dev/null || ! command -v python3 >/dev/null; then
-        if ! "$apply"; then echo 'Install prerequisites with sudo pacman -Syu --needed git python, or use --apply.'; return 1; fi
-        command -v pacman >/dev/null || { echo 'Arch/pacman required' >&2; return 1; }
-        echo 'Git/Python are missing. pacman will show a full-system update for approval.'
-        sudo pacman -Syu --needed git python
+        echo 'Git and Python must be available before layout validation. No packages were changed.' >&2
+        echo 'Review prerequisites separately: sudo pacman -Syu --needed git python' >&2
+        return 1
     fi
     # Existing installers use the default XDG layout; do not silently install elsewhere.
     root="$HOME/.local/share/doroshell/sources"

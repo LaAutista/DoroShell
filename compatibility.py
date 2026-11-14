@@ -48,8 +48,9 @@ def inspect(home, selected, environ=None, release=None):
         text = path.read_text() if path.is_file() else ''
         panels = re.search(r'(?m)^\s*panels\s*=(.*)$', text)
         # LXQt omits `panels=` for its default single-panel layout, so a missing key means panel1.
-        if (panels and panels[1].strip() != 'panel1') or not re.search(r'(?m)^\[panel1\]$', text):
-            issues.append('Native taskbar needs an initialized single panel1 layout; custom layouts are preserved.')
+        groups = re.findall(r'(?m)^\[(panel[1-9][0-9]*)\]$', text)
+        if (panels and panels[1].strip() != 'panel1') or groups != ['panel1']:
+            issues.append('Native taskbar needs an initialized single panel1 layout or explicit --panel panelN; custom layouts are preserved.')
     if any(m in selected for m in ('snapping', 'theme')):
         if not (home/'.config/openbox/rc.xml').is_file():
             issues.append('Snapping/themes need an initialized Openbox rc.xml; other window managers are preserved.')

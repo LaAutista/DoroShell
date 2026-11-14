@@ -28,7 +28,9 @@ updates are managed by pacman and are not reverted by DoroShell.
 
 Native builders pin source revisions because arbitrary new APIs cannot be assumed
 compatible. Platform detection is capability-based: Arch lineage/pacman, LXQt/X11,
-initialized single-panel layout and Openbox config. Unknown layouts are refused
+initialized single-panel layout or explicit standard-panel selection, and Openbox
+config. Explicit choices use the same profile adapter before package/build writes,
+with deployment pointer format 2 and journal format 3 retaining the choice. Unknown layouts are refused
 without guessing. CMake is the final ABI/dependency check. This allows tested
 adaptation without claiming future releases will automatically work.
 

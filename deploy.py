@@ -90,11 +90,17 @@ def module_list(value):
 
 
 def validate_pointer(record):
-    if (not isinstance(record, dict) or type(record.get('format')) is not int or record['format'] != 1
+    if (not isinstance(record, dict) or type(record.get('format')) is not int or record['format'] not in (1, 2)
             or record.get('status') not in ('pending', 'complete')
             or not isinstance(record.get('transaction'), str) or not re.fullmatch(TRANSACTION, record['transaction'])):
         raise ValueError('Unsupported or invalid deployment record; no migration is guessed')
     module_list(record.get('modules'))
+    if record['format'] == 2:
+        validate_panel(record.get('panel'))
+        if record['status'] == 'complete' and 'native-panel' not in record['modules']:
+            raise ValueError('Panel choice without an installed native-panel record')
+    elif 'panel' in record:
+        raise ValueError('Panel selection requires deployment record format 2')
     if record['status'] == 'complete' and not valid_hash(record.get('source')):
         raise ValueError('Invalid deployment source hash')
 
@@ -103,19 +109,67 @@ def valid_hash(value):
     return isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value) is not None
 
 
+def validate_panel(value):
+    if not isinstance(value, str) or not re.fullmatch(r'panel[1-9][0-9]*', value):
+        raise ValueError('Choose an existing panelN ID with --panel; no panel is guessed')
+
+
+def panel_record(record, panel):
+    if panel is not None: record.update(format=2, panel=panel)
+    return record
+
+
+def panel_preflight(home, panel, journal_path=None):
+    """Read-only selection validation before package/build or managed-file writes."""
+    validate_panel(panel)
+    try:
+        from panel import profile
+        from panel.layout import installed_panel, sections, select_panel
+        from PySide6.QtCore import QSettings
+    except ModuleNotFoundError as error:
+        if error.name not in ('PySide6', 'gi'): raise
+        raise ValueError('Panel validation needs PySide6 and GIO installed first; no packages or settings were changed.') from error
+    import tempfile
+    prepared = journal_path.parent/'panel' if journal_path is not None else None
+    if prepared is not None and (prepared/'plan.json').exists():
+        for path in (prepared/'plan.json', prepared/'panel.conf'): safe(path, home)
+        plan = json.loads((prepared/'plan.json').read_text())
+        if plan.get('panel', 'panel1') != panel:
+            raise ValueError('Prepared panel selection differs from the recorded request')
+        profile.switch(home, prepared, preview=True)
+        return
+    manifest = manifest_for(home, 'native-panel'); safe(manifest, home)
+    if manifest.exists():
+        profile.validate_record(json.loads(manifest.read_text()))
+        config = home/'.config/doroshell/panel.conf'; safe(config, home)
+        if installed_panel(config.read_text()) != panel:
+            raise ValueError('Selected panel differs from the staged profile; restore before changing panels')
+        return
+    source = home/'.config/lxqt/panel.conf'; safe(source, home)
+    text = source.read_text(); sections(text)
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory)/'panel.conf'; path.write_text(text)
+        cfg = QSettings(str(path), QSettings.Format.IniFormat)
+        select_panel(cfg, panel)
+        if cfg.status() != QSettings.Status.NoError:
+            raise ValueError('Malformed panel configuration; no settings changed')
+
+
 def validate_journal(home, journal, identifier):
     """Validate every consumed field before recovery, finalization or undo writes."""
-    if (not isinstance(journal, dict) or type(journal.get('format')) is not int or journal['format'] not in (1, 2)
+    if (not isinstance(journal, dict) or type(journal.get('format')) is not int or journal['format'] not in (1, 2, 3)
             or journal.get('status') not in ('pending', 'complete', 'undoing', 'undone')):
         raise ValueError('Unsupported or invalid deployment journal')
     if journal['format'] == 1 and journal['status'] == 'pending':
         raise ValueError('Legacy pending journal has no completed-step evidence; preserve it for manual inspection')
     request = journal.get('request')
-    if (not isinstance(request, dict) or set(request) != {'modules', 'remove', 'theme', 'source'}
+    fields = {'modules', 'remove', 'theme', 'source'} | ({'panel'} if journal['format'] == 3 else set())
+    if (not isinstance(request, dict) or set(request) != fields
             or type(request.get('remove')) is not bool
             or request.get('theme') not in ('windows', 'polar', 'heretic', 'spring')
             or not valid_hash(request.get('source'))):
         raise ValueError('Invalid recovery request')
+    if journal['format'] == 3: validate_panel(request['panel'])
     selected = module_list(request.get('modules'))
     module_list(journal.get('installed_before'))
     sequence = [m for m in selected if m != 'display']
@@ -132,7 +186,9 @@ def validate_journal(home, journal, identifier):
         previous = json.loads(base64.b64decode(before[POINTER]['data'], validate=True))
         validate_pointer(previous)
         if previous['status'] != 'complete': raise ValueError('Invalid original deployment status')
-    if journal['format'] == 2:
+        if previous.get('panel') is not None and previous['panel'] != request.get('panel'):
+            raise ValueError('Recovery request changed the original panel choice')
+    if journal['format'] >= 2:
         names = journal.get('active_files')
         if (not isinstance(names, list) or any(not isinstance(n, str) or n not in before or n == POINTER for n in names)
                 or len(names) != len(set(names)) or (active is None and names)):
@@ -147,6 +203,8 @@ def validate_journal(home, journal, identifier):
         validate_pointer(final)
         if final['status'] != 'complete' or final['transaction'] != identifier or final['source'] != request['source']:
             raise ValueError('Mismatched final deployment record')
+        if final.get('panel') != (request.get('panel') if 'native-panel' in final['modules'] else None):
+            raise ValueError('Mismatched final panel selection')
 
 
 def load_journal(home, identifier):
@@ -170,6 +228,8 @@ def recovery_journal(home, previous):
     path, journal = load_journal(home, previous['transaction'])
     if journal['status'] not in ('pending', 'complete') or journal['request']['modules'] != previous['modules']:
         raise ValueError('Mismatched pending deployment journal')
+    if previous.get('panel') != journal['request'].get('panel'):
+        raise ValueError('Mismatched pending panel selection')
     check_completed(home, journal)
     return path, journal
 
@@ -271,7 +331,7 @@ def stock_start_icon(home, manifest):
     return icons == [str(home/'.local/share/lxqt-comfort/start.svg')]
 
 
-def step(home, name, binaries, theme, remove=False, job=None):
+def step(home, name, binaries, theme, remove=False, job=None, panel=None):
     """Return the managed path inventory and the existing adapter operation."""
     import install, modules
     manifest = manifest_for(home, name)
@@ -292,10 +352,12 @@ def step(home, name, binaries, theme, remove=False, job=None):
         from panel import profile
         paths.update(home/p for p in ('.config/doroshell/panel.conf', '.config/autostart/lxqt-panel.desktop', '.local/bin/doroshell-native-panel'))
         if remove: operation = lambda: profile.switch(home, rollback=True)
-        elif manifest.exists(): operation = lambda: profile.upgrade(home, binaries[name])
+        elif manifest.exists() and not (job is not None and (job/'panel/plan.json').exists()): operation = lambda: profile.upgrade(home, binaries[name])
         else:
             prepared = job/'panel'
-            if not (prepared/'plan.json').exists(): profile.prepare(home, prepared, binaries[name])
+            if not (prepared/'plan.json').exists(): profile.prepare(home, prepared, binaries[name], panel=panel)
+            if json.loads((prepared/'plan.json').read_text()).get('panel', 'panel1') != (panel or 'panel1'):
+                raise ValueError('Prepared panel selection differs from the recorded request')
             operation = lambda: profile.switch(home, prepared)
     else:
         kwargs = dict(theme=theme, wallpaper_binary=binaries.get('wallpaper'))
@@ -306,7 +368,7 @@ def step(home, name, binaries, theme, remove=False, job=None):
     return [str(p.relative_to(home)) for p in sorted(paths)], operation
 
 
-def deploy(home, selected, binaries, theme='windows', remove=False, recover=False):
+def deploy(home, selected, binaries, theme='windows', remove=False, recover=False, panel=None):
     if remove and 'menu' in selected:
         from input_preferences import Preferences
         Preferences(home).require_inactive()
@@ -315,6 +377,11 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     safe(pointer, home)
     previous = json.loads(pointer.read_text()) if pointer.exists() else None
     if previous is not None: validate_pointer(previous)
+    recorded_panel = previous.get('panel') if previous else None
+    if panel is None: panel = recorded_panel
+    if panel is not None: validate_panel(panel)
+    if recorded_panel is not None and panel != recorded_panel:
+        raise ValueError('Panel selection differs from the recorded choice; restore before changing panels')
     if previous and previous['status'] == 'pending' and not recover:
         raise RuntimeError('Interrupted deployment '+previous['transaction']+'; use --recover from the same source or inspect its private journal')
     if recover:
@@ -325,6 +392,7 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     path = job/'journal.json'; safe(path, home)
     source = hashlib.sha256((ROOT/'SHA256SUMS').read_bytes()).hexdigest()
     request = dict(modules=selected, remove=remove, theme=theme, source=source)
+    if panel is not None: request['panel'] = panel
     if recover:
         path, journal = recovery_journal(home, previous)
         if journal['request'] != request: raise ValueError('Recovery needs the same revision, modules, theme and action')
@@ -333,13 +401,17 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
             atomic(pointer, base64.b64decode(journal['after'][target]['data'], validate=True), journal['after'][target]['mode'])
             print('Completed interrupted deployment finalization:', identifier)
             return identifier
+        if panel is not None and not remove and 'native-panel' in selected and 'native-panel' not in journal['done']:
+            panel_preflight(home, panel, path)
     else:
+        if panel is not None and not remove and 'native-panel' in selected:
+            panel_preflight(home, panel)
         job.mkdir(parents=True); job.chmod(0o700)
-        journal = dict(format=2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
+        journal = dict(format=3 if panel is not None else 2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
                        before={str(pointer.relative_to(home)):file_state(home, str(pointer.relative_to(home)))}, after={})
         validate_journal(home, journal, identifier)
         atomic(path, json.dumps(journal).encode())
-        atomic(pointer, json.dumps(dict(format=1,status='pending',transaction=identifier,modules=selected)).encode())
+        atomic(pointer, json.dumps(panel_record(dict(format=1,status='pending',transaction=identifier,modules=selected), panel)).encode())
     sequence = [m for m in selected if m != 'display']
     if remove: sequence.reverse()
     for index, name in enumerate(sequence, 1):
@@ -351,7 +423,7 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
             print('Preserve existing '+name+' selection'); journal['done'].append(name)
             atomic(path, json.dumps(journal).encode()); continue
         print(f'[{index}/{len(sequence)}] {"Restore" if remove else "Install/update"} {name}', flush=True)
-        names, operation = step(home, name, binaries, theme, remove, job)
+        names, operation = step(home, name, binaries, theme, remove, job, panel=panel)
         if journal['active'] == name and set(names) != set(journal['active_files']):
             raise ValueError('Changed pending module inventory; preserve the journal for inspection')
         for target in names:
@@ -369,8 +441,9 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     previous_data = journal['before'][str(pointer.relative_to(home))]['data']
     installed = set(json.loads(base64.b64decode(previous_data))['modules']) if previous_data else set(journal['installed_before'])
     installed = installed-set(selected) if remove else installed|set(selected)
-    final_pointer = json.dumps(dict(format=1,status='complete',transaction=identifier,
-                                   modules=[m for m in ORDER if m in installed], source=source)).encode()
+    final_pointer = json.dumps(panel_record(dict(format=1,status='complete',transaction=identifier,
+                                   modules=[m for m in ORDER if m in installed], source=source),
+                                   panel if 'native-panel' in installed else None)).encode()
     journal['after'][str(pointer.relative_to(home))] = dict(data=base64.b64encode(final_pointer).decode(), mode=0o600)
     journal['status'] = 'complete'; validate_journal(home, journal, identifier)
     atomic(path, json.dumps(journal).encode())
@@ -388,12 +461,16 @@ def main(argv=None):
     parser.add_argument('--with', dest='extras', action='append', choices=OPTIONAL, default=[])
     parser.add_argument('--home', type=Path, default=Path.home())
     parser.add_argument('--theme', choices=('windows','polar','heretic','spring'), default='windows')
+    parser.add_argument('--panel', help='Explicit native-panel ID for first install; recorded for repeat/recovery')
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--remove', action='store_true', help='Restore selected modules to first-install baseline; requires --apply')
     parser.add_argument('--recover', action='store_true', help='Retry pending module using existing conflict checks; requires --apply')
     parser.add_argument('--undo', metavar='TRANSACTION', help='Exact prior-upgrade restoration; requires --apply')
     parser.add_argument('--no-packages', action='store_true', help='Refuse missing packages instead of offering pacman')
     args = parser.parse_args(argv)
+    if args.panel is not None:
+        validate_panel(args.panel)
+        if args.undo: raise ValueError('--panel cannot be combined with --undo')
     home = args.home.absolute()
     safe(home, home)
     pointer = home/'.local/state/doroshell/deployment.json'; safe(pointer, home)
@@ -404,24 +481,36 @@ def main(argv=None):
         _, journal = load_journal(home, args.undo)
         if journal['status'] == 'pending': raise ValueError('Incomplete transaction: use --recover first')
     if args.recover:
-        _, journal = recovery_journal(home, previous)
+        journal_path, journal = recovery_journal(home, previous)
         request = journal['request']
+        if args.panel is not None and args.panel != request.get('panel'):
+            raise ValueError('Recovery needs the recorded panel choice; no prerequisites or files were changed')
+        args.panel = request.get('panel')
         if args.modules is None: args.modules = request['modules']
         args.theme = request['theme']; args.remove = request['remove']
     defaults = previous.get('modules', list(dict.fromkeys([*CORE, *installed_modules(home)])))
     selected = select_modules(args.modules if args.modules is not None else defaults, args.extras, not args.remove)
+    if args.panel is not None and 'native-panel' not in selected and not args.recover:
+        raise ValueError('--panel requires the native-panel module')
+    if previous.get('panel') is not None and args.panel not in (None, previous['panel']):
+        raise ValueError('Panel selection differs from the recorded choice; restore before changing panels')
+    panel = args.panel if args.panel is not None else previous.get('panel')
     if args.recover and selected != request['modules']:
         raise ValueError('Recovery needs the recorded module set; no prerequisites or files were changed')
     if args.remove and 'menu' in selected:
         from input_preferences import Preferences
         Preferences(home).require_inactive()
     capability_modules = selected
-    if args.recover and 'native-panel' in journal['done']:
-        # Validated completed outputs are retained; recovery will not read the stock layout.
+    completed_panel = args.recover and 'native-panel' in journal['done']
+    if completed_panel or panel is not None:
+        # Completed steps retain outputs; explicit choices use adapter preflight below.
         capability_modules = [name for name in selected if name != 'native-panel']
     report = compatibility.inspect(home, capability_modules)
+    if panel is not None and 'native-panel' in selected and not (args.remove or args.undo or completed_panel):
+        try: panel_preflight(home, panel, journal_path if args.recover else None)
+        except (OSError, ValueError, RuntimeError) as error: report['issues'].append(str(error))
     packages = packages_for(selected); versions = compatibility.package_versions(packages)
-    print(json.dumps(dict(platform=report, package_versions=versions, modules=selected), indent=2))
+    print(json.dumps(dict(platform=report, package_versions=versions, modules=selected, panel=panel), indent=2))
     if not args.apply:
         print('Plan only. Add --apply. Optional modules: '+', '.join(OPTIONAL))
         if args.undo: print('Would undo transaction:', args.undo)
@@ -455,7 +544,7 @@ def main(argv=None):
                     path = state/(name+'.lock'); safe(path, home)
                     handle = locks.enter_context(path.open('a')); fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             if args.undo: undo(home, args.undo); return 0
-            deploy(home, selected, binaries, args.theme, args.remove, args.recover)
+            deploy(home, selected, binaries, args.theme, args.remove, args.recover, panel=panel)
     return 0
 
 

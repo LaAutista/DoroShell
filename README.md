@@ -16,14 +16,15 @@ bash -c 'set -e; f=$(mktemp); trap "rm -f -- \"$f\"" EXIT; curl --fail --locatio
 ```
 
 The repository is **public**: no GitHub account, token or GitHub CLI is needed.
-The command requires `curl`, downloads the complete installer before executing it,
+The command requires `curl`, Git and Python, downloads the complete installer before executing it,
 and fetches a specific Git revision into a permanent user source directory, then
 verifies its source/asset inventory. It installs the core modules: Start/settings,
 native taskbar/tray, themes,
 loading cursors, snapping, a single desktop (multiple desktops off; re-enable in
 DoroShell Settings), screenshots, and update/removal commands. Missing official
-packages are offered through `sudo pacman -Syu --needed`; **review pacman's full-system
+runtime/build packages are offered after layout validation through `sudo pacman -Syu --needed`; **review pacman's full-system
 update prompt**. There is no AUR helper, unattended package approval, or package removal.
+If Git or Python is missing, bootstrap stops with a separate prerequisite command.
 
 Desktop components are staged for your **next normal login**. The installer never logs
 you out, restarts the panel/desktop, changes refresh rate/VSync, or closes applications.
@@ -49,6 +50,12 @@ python deploy.py --with clipboard --apply     # optional session-only history
 python deploy.py --with wallpaper --apply     # native Background controls; video stays opt-in
 python deploy.py --with display --apply       # optional guarded Advanced controls
 ```
+
+For a standard multi-panel layout, explicitly choose the existing panel ID with
+`--panel panel2` (also accepted by bootstrap). Preview first; apply retains other
+panel/plugin sections and the chosen panel's geometry. Selection validation requires
+PySide6 and GIO already installed. Repeat/recovery uses the recorded choice; no panel
+is guessed or silently changed. [Selection and limits](docs/INSTALL.md#explicit-panel-selection).
 
 Keep the source checkout if installing directly from it; maintenance commands refer
 to it. Bootstrap stores revisions under `~/.local/share/doroshell/sources/` for you.

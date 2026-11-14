@@ -174,6 +174,7 @@
     "tests/test_clipboard.py",
     "tests/test_cursor.py",
     "tests/test_cursor_recovery.py",
+    "tests/test_deploy_panels.py",
     "tests/test_deployment.py",
     "tests/test_deployment_recovery.py",
     "tests/test_display.py",
@@ -222,8 +223,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 221,
-  "source_payload_count": 219,
+  "file_count": 222,
+  "source_payload_count": 220,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

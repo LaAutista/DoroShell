@@ -55,6 +55,23 @@ elif a[0]=='status':print(os.environ.get('DIRTY',''))
         self.assertNotIn('DEPLOY',result.stdout)
         self.assertEqual(list((self.home/'.local/share/doroshell/sources').iterdir()),[])
 
+    def test_panel_selection_is_forwarded_as_one_argument(self):
+        for panel in ('panel2', 'panel2; touch '+str(self.home/'should-not-run')):
+            result=self.run_bootstrap('--apply','--modules','native-panel','--panel',panel)
+            forwarded=json.loads(next(line[7:] for line in result.stdout.splitlines() if line.startswith('DEPLOY ')))
+            self.assertEqual(forwarded,['--apply','--modules','native-panel','--panel',panel])
+        self.assertFalse((self.home/'should-not-run').exists())
+
+    def test_missing_acquisition_tools_never_install_before_layout_validation(self):
+        self.env['PATH']=str(self.home/'bin')  # Fake Git exists, Python is unavailable by PATH.
+        for name in ('sudo','pacman'):
+            path=self.home/'bin'/name
+            path.write_text('#!/bin/sh\necho invoked > "$HOME/package-invoked"\nexit 1\n');path.chmod(0o755)
+        result=self.run_bootstrap('--apply','--panel','panel2',ok=False)
+        self.assertIn('before layout validation',result.stderr)
+        self.assertFalse((self.home/'package-invoked').exists())
+        self.assertFalse((self.home/'.local').exists())
+
     def test_dirty_sources_stable_mislabel_and_bad_ref_refuse(self):
         self.run_bootstrap('--plan');self.env['DIRTY']=' M custom.py'
         self.assertIn('local edits',self.run_bootstrap('--apply',ok=False).stderr)

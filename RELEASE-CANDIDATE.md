@@ -1,3 +1,33 @@
+# Deploy/bootstrap explicit-panel checkpoint — 2026-11-14
+
+Based on `df1d976666924ae4c8c3f09a581b4475f0786204`, preserving the prior
+panel-selection adapter, public bootstrap and recovery fixes. Bootstrap/deploy now
+accept `--panel panelN` and validate it before package offers, builds or managed-file
+writes. Source download/cache creation still precedes that check in bootstrap.
+No panel is guessed; unrelated source sections and selected geometry are retained.
+Pointer format 2/journal format 3 preserve explicit choices across repeat, scoped
+updates and recovery; older installers refuse those versions. Legacy single-panel
+records remain supported. Interrupted first staging resumes its saved preparation.
+
+The **373-test full suite passes** with disposable HOME/runtime, offscreen Qt and
+no personal display/session bus. Eleven new deploy CLI tests and two bootstrap tests
+cover plan/apply/repeat/recover/remove, exact upgrade undo, unchanged unrelated sections,
+wrong/missing/shared choices, input/source/output conflicts, malformed records,
+missing validation bindings and safe argument forwarding. Real temporary-home profile
+and journal adapters run; package inventory/build execution are mocked and binary
+paths are inert. The initial baseline reproduction confirms both missing CLI selection
+and interrupted first staging wrongly taking the upgrade path.
+
+Git/Python must be available before bootstrap, and PySide6/GIO before explicit panel
+validation. Missing acquisition/validation tools stop without package changes.
+Source/archive round-trip hashes and an applicable patch are included in the durable
+private review bundle. No native build/launch, package install, hardware, login,
+personal deployment or new authentication test occurred. Custom XDG roots, arbitrary
+layout grammars and real multi-monitor/session behavior remain unsupported/unverified.
+No unpublished input-helper code is included. Publication requires independent review
+and a fresh remote-head check; the attempted read-only GitHub check could not resolve
+the host in this environment. No push was attempted.
+
 # Explicit native-panel selection checkpoint — 2026-11-14
 
 Based on published `010af6a77040169eac7133d38d7573e9c602ec23`, preserving completed-step

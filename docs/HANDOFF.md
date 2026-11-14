@@ -80,8 +80,8 @@ The bounded multi-panel recovery follow-up on `c87ff151` skips the stock-layout
 capability check only when the validated recovery journal says native-panel already
 completed. A later second panel in the stock file is preserved during recovery and
 exact undo. Completed output content/mode/symlink edits still refuse before prerequisites
-or writes. First/unfinished native-profile work and custom XDG roots remain unsupported;
-this is not a general multi-panel adapter. Recovery still requires its creating source
+or writes. That checkpoint alone did not support first/unfinished multi-panel work;
+custom XDG roots remain unsupported. Recovery still requires its creating source
 revision; do not edit an old pending journal's source hash to force migration.
 
 The next bounded adapter, based on `010af6a`, adds `panel/profile.py prepare --panel
@@ -89,10 +89,20 @@ panelN`. Only explicit selection allows multiple source panels. It preserves
 unrelated INI sections byte-for-byte and selected geometry, refusing shared widgets,
 foreign reserved IDs and ambiguous syntax. Settings already accepts the prepared
 plan; no second selector was added. Toolkit packaging includes `panel/layout.py`,
-and sizing/clipboard/Quick Launch lookup use the unique owned taskbar panel. Full
-bootstrap/deploy remains single-panel-only: do not remove that gate without its own
-adapter/journal tests. Private setup repeat/restoration, interrupted staging/retry,
+and sizing/clipboard/Quick Launch lookup use the unique owned taskbar panel. Private
+setup repeat/restoration, interrupted staging/retry,
 upgrade undo and installed offscreen UI checks pass; no native/login/hardware claim.
+
+The follow-up on `df1d976` integrates that adapter into deploy/bootstrap with explicit
+`--panel panelN`. Validate before package offers/build/managed writes; bootstrap needs
+Git/Python first, and selection validation needs PySide6/GIO already importable.
+Pointer format 2/journal format 3 retain the choice through repeat, scoped update and
+recovery; old installers refuse these schemas. Legacy single-panel schemas remain
+supported. Recover unfinished first staging using its saved plan rather than upgrading
+an incomplete manifest. Do not infer a choice, replace unrelated sections, or migrate
+old pending journals. The 373-test suite covers invalid selection, source/output edits,
+interruption, exact undo/removal and safe bootstrap forwarding in disposable homes.
+No real native process, package or session change was performed. See INSTALL for limits.
 
 Input preferences from `0cf6019` are integrated on top of `e18026e`. The helper now
 ships in the menu toolkit with declared Xlib/udev prerequisites. DoroShell Settings

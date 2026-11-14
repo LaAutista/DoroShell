@@ -4,23 +4,19 @@
 
 Use a normal user account that has already started an LXQt/X11 session on Arch,
 CachyOS or EndeavourOS. Other Arch derivatives pass the same capability checks.
-Core setup currently needs a single `panel1` and Openbox configuration (LXQt's default
-layout without a `panels=` line counts as a single `panel1`). Missing or
-custom layouts produce a specific refusal. DoroShell does not install a display
+Core setup needs Openbox configuration and either a single `panel1` or an explicitly
+selected panel in a supported standard layout. LXQt's default layout without a
+`panels=` line counts as a single `panel1`. Missing or ambiguous layouts produce a
+specific refusal. DoroShell does not install a display
 manager, switch desktop environments, or claim Wayland support. Custom XDG roots
 remain unsupported by the older installation adapters and are refused explicitly.
 
-For first-time native-panel preparation only, the [explicit panel-selection workflow](../panel/README.md#explicit-selection-in-a-multi-panel-profile)
-can preserve other standard panels while adapting a named `panelN`. Use its prepared
-plan with `setup.py native-panel --prepared` or the Settings plan picker. Full
-bootstrap/deploy still refuses multi-panel layouts; it does not choose or normalize
-a panel automatically. Existing rollback and conflict checks apply to the complete
-staged profile, while the stock profile remains unchanged.
-
 The repository is public. The bootstrap command in [README](../README.md) uses
-`curl` and requires no GitHub account, token or GitHub CLI. Git fetch uses anonymous
+`curl`, Git and Python and requires no GitHub account, token or GitHub CLI. Git fetch uses anonymous
 HTTPS with credential helpers disabled for that command; persistent Git configuration
-is unchanged. Install `curl` first if it is unavailable, or use the documented Git clone.
+is unchanged. Missing acquisition tools must be installed separately: bootstrap
+refuses before package changes so layout validation cannot be bypassed by an early
+package offer. It prints the Git/Python prerequisite command for separate review.
 The command downloads to a temporary
 file before execution, fetches the complete Git revision, checks its inventory and
 keeps the source at `~/.local/share/doroshell/sources/COMMIT`. About 80 MB of bundled
@@ -29,7 +25,7 @@ too; keep that checkout because maintenance launchers reference it.
 
 ## Preview, installation and package boundaries
 
-`python deploy.py` reports the distribution/session, selected modules and installed
+`python deploy.py` reports the distribution/session, selected modules/panel and installed
 package versions without changing files. `--apply` performs the plan. `--modules`
 selects a scope; without it, an existing deployment reuses its recorded module set,
 and a first installation uses `core`. `--with clipboard`, `--with wallpaper`,
@@ -39,7 +35,7 @@ part of the wallpaper native build; clipboard needs the native panel and Start.
 cursor and glass selections are retained on update; change them explicitly in
 Settings or with the existing `setup.py` interface.
 
-Missing official packages trigger `sudo pacman -Syu --needed ...` and pacman's
+After layout validation, missing official packages trigger `sudo pacman -Syu --needed ...` and pacman's
 normal confirmation. `--no-packages` refuses instead. This updates the whole system
 when necessary; it is not an isolated Python dependency installation. No AUR
 helper or repository is added. Packages are never removed during DoroShell rollback.
@@ -67,6 +63,37 @@ Alt+F1 mappings are not silently replaced: the new orchestration provides the St
 button; use the existing reviewed shortcut-integration workflow separately if needed.
 Screenshots configure Print on disk; running shortcut daemons may require the next
 normal login to pick up changes. No process is restarted by `deploy.py`.
+
+## Explicit panel selection
+
+First-time native-panel setup can select a standard `panelN` by its existing INI ID:
+
+```sh
+python deploy.py --modules native-panel --panel panel2         # plan only
+python deploy.py --modules native-panel --panel panel2 --apply
+bash bootstrap.sh --panel panel2 --plan                       # core plan
+bash bootstrap.sh --panel panel2 --apply
+```
+
+This reuses the [prepared-profile adapter](../panel/README.md#explicit-selection-in-a-multi-panel-profile).
+The stock LXQt file is never written. Unselected panel/plugin sections and unrelated
+settings remain byte-identical in the staged profile; selected geometry is retained.
+The adapter requires a `panels=` list for multiple panels and unique widget ownership.
+Wrong/missing panels, shared widgets and ambiguous syntax refuse before package
+offers, builds or managed-file writes. No panel is chosen automatically. Bootstrap
+still downloads and caches the source before that validation.
+
+PySide6 and GIO must already be importable for explicit-selection validation; if
+absent, the command stops with a prerequisite diagnostic without offering packages.
+Install those prerequisites separately before retrying. The default single-panel1
+workflow retains its existing behavior and geometry defaults.
+
+Repeat and recovery reuse the saved panel choice; omit `--panel`. Scoped updates
+retain that choice while native-panel remains installed. A different choice is
+refused; restore the previous native-panel staging before choosing another panel.
+Personal edits to the staged profile survive runtime upgrades but can block removal.
+No new monitor mapping, custom-XDG adapter or actual multi-monitor/login acceptance
+is claimed.
 
 ## One desktop and restoring multiple desktops
 
@@ -141,8 +168,8 @@ After correcting the reported prerequisite, use the **same source revision**:
 python deploy.py --apply --recover
 ```
 
-Recovery uses the recorded module set/theme/action and existing module conflict
-checks. Journal format 2 saves each completed module's output bytes and modes;
+Recovery uses the recorded module set/theme/action/panel and existing module conflict
+checks. Journal formats 2 and 3 save each completed module's output bytes and modes;
 recovery and finalization verify that evidence instead of adopting current edits.
 Unknown versions, invalid progress/request/snapshot records, and changed completed
 files are refused before recovery writes. Cursor writes retain pending hashes/modes
@@ -152,10 +179,17 @@ If native-panel already completed, recovery does not require its separate stock 
 configuration to remain a single-panel layout: that completed step is skipped, so
 recovery will not read or rewrite the stock profile. Its recorded managed files must
 still match exactly. A second panel subsequently added to the stock file survives
-recovery and exact undo. First-time or unfinished native-panel work still requires
-the supported single-panel layout, and custom XDG roots remain refused. The same-source
+recovery and exact undo. An interrupted first-time native-panel stage resumes its
+saved preparation rather than treating a partly written manifest as a finished
+installation. Its source, selected panel, prepared bytes and managed files must
+still validate. Custom XDG roots remain refused. The same-source
 requirement still applies; this change does not migrate pending journals from older
 revisions or justify changing their recorded source hashes.
+
+Explicit choices use deployment pointer format 2 and journal format 3. Older
+installers refuse these versions; use this source or a compatible newer release.
+Legacy single-panel transactions keep pointer format 1 and journal format 2.
+No old pending transaction is silently migrated or assigned a guessed panel.
 
 Legacy format-1 **pending** journals have no completed-step evidence and require
 manual inspection; no safe history can be reconstructed from current files alone.

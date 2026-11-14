@@ -65,9 +65,10 @@ or DoroShell identifiers owned elsewhere are refused. It does not infer which ph
 monitor a panel occupies. Omit `--panel` only for the existing single-panel1 workflow;
 that legacy workflow retains its existing default geometry changes.
 
-The full `deploy.py`/bootstrap layout gate remains single-panel-only. This addition
-uses the prepared-profile/setup workflow; it does not enable automatic multi-panel
-deployment or migrate installed layouts. Restore before selecting a different plan.
+`deploy.py` and bootstrap also accept `--panel panelN`, validate it before package
+offers/builds and record it for repeat/recovery. See the [installer workflow](../docs/INSTALL.md#explicit-panel-selection).
+The validation needs PySide6 and GIO already installed. Neither workflow chooses
+among panels or migrates installed layouts. Restore before selecting a different plan.
 Custom XDG roots, arbitrary INI grammars, actual multi-monitor/login behavior and
 native runtime acceptance remain unverified or unsupported. Toolkit imports and the
 new panel-selection helper are installed together; multi-panel sizing requires PySide6.
