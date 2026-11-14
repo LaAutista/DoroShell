@@ -213,12 +213,62 @@ def worker(mpv, evidence, comparison='fixture60'):
         check(8 <= transitions/elapsed <= 12,'sampled cadence remains near synthetic 10 fps')
         first.configure(width=360,height=200);connection.sync()
         check(wait_for(lambda:any(w.get_geometry().width==360 and w.get_geometry().height==200 for w in first.query_tree().children)),'renderer follows parent resize')
+        # The host remains mapped; only its supplied rendering target is hidden.
+        first.unmap();connection.sync()
+        check(first.get_attributes().map_state==X.IsUnmapped and
+              all(w.get_attributes().map_state==X.IsUnviewable for w in first.query_tree().children),
+              'unmapping target hides renderer descendants')
+        host_box=(30,55,390,255)  # Root coordinates after the resize above.
+        check(image(root).crop(host_box).getextrema()==((48,48),(48,48),(48,48)),
+              'unmapped target reveals only synthetic host background')
+        check(process.poll() is None,'renderer survives target unmap')
+        started=time.monotonic();first.map();connection.sync()
+        check(wait_for(lambda:colorful(first)),'target remap restores rendered pixels')
+        results['measurements']['remap_to_color_ms']=(time.monotonic()-started)*1000
+        remapped=[]
+        for _ in range(12):
+            remapped.append(hashlib.sha256(image(first).tobytes()).hexdigest());time.sleep(.05)
+        check(len(set(remapped))>=3,'animation continues after target remap')
+        check(connection.get_input_focus().focus.id==initial_focus,'unmap/remap preserves host focus')
+        # A fixture-owned sibling above the renderer, explicitly not authentication UI.
+        overlay=first.create_window(20,40,320,100,0,connection.screen().root_depth,
+                                    X.InputOutput,X.CopyFromParent,background_pixel=0xffffff)
+        overlay.set_wm_name('SYNTHETIC GRAPHICS OVERLAY - NOT AUTHENTICATION')
+        overlay.map();overlay.configure(stack_mode=X.Above);connection.sync()
+        gc=overlay.create_gc(foreground=0x000000)
+        overlay.draw_text(gc,8,30,'SYNTHETIC GRAPHICS OVERLAY')
+        overlay.draw_text(gc,8,55,'NOT AUTHENTICATION');gc.free();connection.sync()
+        overlay_box=(50,95,370,195)
+        expected_overlay=image(root).crop(overlay_box).tobytes()
+        check(image(root).getpixel((52,97))==(255,255,255),'overlay covers renderer pixels')
+        for _ in range(10):
+            time.sleep(.05)
+            check(image(root).crop(overlay_box).tobytes()==expected_overlay,
+                  'overlay coverage stable sample %d'%_)
+        check(first.query_tree().children[-1].id==overlay.id,'host overlay remains above render child')
+        check(connection.get_input_focus().focus.id==initial_focus,'overlay does not take focus')
+        grabbed=frame.grab_keyboard(False,X.GrabModeAsync,X.GrabModeAsync,X.CurrentTime)
+        connection.ungrab_keyboard(X.CurrentTime)
+        pointer=frame.grab_pointer(False,0,X.GrabModeAsync,X.GrabModeAsync,X.NONE,X.NONE,X.CurrentTime)
+        connection.ungrab_pointer(X.CurrentTime);connection.sync()
+        check(grabbed==X.GrabSuccess and pointer==X.GrabSuccess,'overlay phase holds no keyboard/pointer grab')
+        image(root).save(evidence/'synthetic-overlay.png')
         second=target(frame,410);other=spawn(second.id,media)
         check(wait_for(lambda:colorful(second)) and colorful(first),'two synthetic targets animate independently')
         image(root).save(evidence/'fake-host.png')
         check(not Path('/proc/%s/task/%s/children'%(process.pid,process.pid)).read_text().strip(),'no decoder subprocess before termination')
         results['measurements']['sigterm_exit_ms']=stop(process)
         check(process.poll() is not None,'SIGTERM reaps decoder within 3s')
+        check(wait_for(lambda:[w.id for w in first.query_tree().children]==[overlay.id]),
+              'terminated renderer removes only its child')
+        check(first.get_attributes().map_state==X.IsViewable,'target remains mapped after renderer termination')
+        check(image(root).crop(overlay_box).tobytes()==expected_overlay,
+              'host overlay survives renderer termination')
+        overlay.destroy();connection.sync()
+        check(image(root).crop(host_box).getextrema()==((0,0),(0,0),(0,0)),
+              'mapped target provides black coverage without renderer or overlay')
+        check(connection.get_input_focus().focus.id==initial_focus,'termination preserves host focus')
+        image(root).save(evidence/'host-after-renderer-exit.png')
         # Natural parent destruction behavior is observed, not emulated by a watchdog.
         second.destroy();connection.sync();started=time.monotonic()
         check(wait_for(lambda:other.poll() is not None),'decoder exits after target destruction within 3s')
@@ -240,6 +290,10 @@ def worker(mpv, evidence, comparison='fixture60'):
         check(not any((home/p).exists() for p in ['.xscreensaver','.config/autostart','.config/mpv']), 'no locker/autostart/player config created')
         check(all(p.poll() is not None for p in processes),'all owned decoder processes exited')
         results['result']='PASS'
+    except Exception as exc:
+        results['result']='FAIL'
+        results['failure']=str(exc)
+        raise
     finally:
         for process in processes:
             if process.poll() is None:

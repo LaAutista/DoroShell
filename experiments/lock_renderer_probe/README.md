@@ -120,6 +120,48 @@ an upstream root cause in source code or generalize to real X servers. GIF loopi
 and decoding are unchanged and inexpensive in the fixed run. This resolves the
 observed fixture cost without broadening the experiment into a renderer framework.
 
+## Host lifecycle and synthetic overlay checkpoint
+
+The extended fixture unmaps/remaps the supplied rendering parent while the outer
+fake host stays mapped. It checks descendant visibility, exact background pixels,
+continued process life, new animated frames on remap and unchanged focus. It then
+creates and raises a fixture-owned sibling above the render child, visibly labelled
+**SYNTHETIC GRAPHICS OVERLAY / NOT AUTHENTICATION**. Ten 50 ms pixel samples check
+stable overlay coverage, alongside hierarchy/stacking, focus and grab checks.
+
+With that overlay still present, the fixture terminates its decoder. It requires
+only the decoder child to disappear, the supplied parent to remain viewable and
+the overlay pixels to remain unchanged. Removing the overlay must reveal exact
+black pixels across the entire 360×200 parent, without clearing it in the test.
+The existing restart, invalid backend/media and final process-reaping assertions
+then run unchanged. Assertion-phase exceptions now record `result: FAIL` and the failure message
+in the evidence JSON before propagating a nonzero exit.
+
+The first extended run passed 59 assertions (including ten individual overlay
+stability samples), with no forced cleanup. The measured remap-to-colored-pixels
+interval was 94.0 ms; first frame 93.8 ms; SIGTERM exit 7.3 ms; target-destroy exit
+25.2 ms. The unchanged two-second warm-up/eight-second sample measured 0.06 CPU
+seconds over 8.175 seconds, 81 frame transitions/eight distinct hashes and
+85,192 kB RSS. Private screenshot inspection confirmed the synthetic labels,
+overlay coverage and black parent after decoder exit.
+
+A second run also passed all 59 assertions with no forced cleanup: first frame
+94.2 ms, remap 124.9 ms, SIGTERM 7.2 ms and target destruction 25.3 ms. It measured
+0.08 CPU seconds over 8.174 seconds, 81 transitions/eight hashes and 84,536 kB RSS.
+All four probe unit tests and 263 repository tests passed. No failed assertion
+occurred in either extended run; snapshots and polling cannot exclude every
+transient between observations.
+
+This proves host graphics observations only. The overlay is created and raised
+**after** the renderer; overlay ordering across a new renderer launch, real
+password dialogs, focus routing under an actual host grab, asynchronous crash
+races and real XScreenSaver coverage remain untested. The overlay is destroyed
+before the existing restart test. The supplied parent is deliberately black and
+owned by the fixture; this result does not prove how a real locker maintains its
+covering windows. No locker process, authentication, registration, personal
+session or clipboard is involved. The refresh override remains private-fixture
+behavior, not a production default.
+
 ## Limits and integration decision
 
 No failed assertion remains in the final run. Untested: actual XScreenSaver host
