@@ -184,3 +184,14 @@ separate. Installed toolkit CLI is tested in disposable homes without Qt/PATH to
 No live shortcut reload, login acceptance or package authentication occurred. See
 INSTALL for supported syntax and recovery limits; preserve the independent disabled
 experimental input-helper work and its real authentication blocker.
+
+
+Config-root follow-up on `72833d0`: read docs/config-roots.md before extending paths.
+The inventory shows mixed fixed installer paths and environment/Qt runtime resolution;
+do not remove compatibility refusal globally. The new CLI-only subset is single-desktop
+with an initialized home-contained root, spaces supported, no overlapping/symlink roots.
+State/data/cache/runtime paths remain unchanged. Root choice is stored in phased module
+ownership and journal 5, reused for repeat/recovery/removal; changed roots, metadata,
+pre-ownership config and managed values/modes refuse. Old schemas remain supported.
+Use scoped source/installed CLI, not Settings GUI or core presets, for this adapter.
+Actual Openbox startup with the custom root is unverified. No live/package changes.

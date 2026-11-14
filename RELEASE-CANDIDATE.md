@@ -1,3 +1,36 @@
+# Explicit config-root checkpoint — 2026-11-14
+
+Based on published `72833d01815ea8b544f11414d8b15003ec208fb8`. The source inventory
+in docs/config-roots.md identifies mixed fixed config/data/state paths and separate
+runtime environment/Qt resolution. This candidate supports a coherent config-only
+subset: `single-desktop` with an explicitly selected initialized Openbox config root
+inside the user's home, including spaces. Broad core/mixed-module, custom data/state,
+GUI and outside-home relocation remain unsupported.
+
+Reuse existing XML ownership/editing, backup, transaction, snapshot and undo code.
+Record the relative root and phased module ownership; journal 5 binds the root and
+pre-ownership file snapshot. Reject changed roots, missing/corrupt metadata, symlink
+paths, overlap with default or configured cache/runtime paths, stale pre-write review,
+managed desktop edits and chmod conflicts. Preserve unrelated XML/files and original
+bytes/modes. Repeat/recovery/remove reuse the recorded root. No file is moved and no
+environment or live process changes. Unsupported/legacy default ownership is never
+silently migrated. Old module code refuses the new root-specific edit kinds; old
+deployment code refuses journal 5. Same-source recovery remains required.
+
+**429 full-suite tests pass** in disposable HOME/runtime with offscreen Qt and no
+personal display/session bus. Fifteen new config-root tests and one bootstrap test
+exercise real fixture files, installed toolkit CLI without Qt/PATH tools, safe argv,
+root and metadata conflicts, failed/interrupted apply/restore/finalization and exact
+undo. Package/build commands are mocked; old-engine refusal is separately verified
+with the actual baseline source. Inventory, archive round-trip, patch reproduction
+and standalone bundle checks are recorded in the durable private handoff.
+
+The adapter stages the selected XML only: actual Openbox startup must separately
+resolve to that config root. No startup environment, login, live workspace, package,
+input/display or native UI/build test is claimed. Original dirty checkout, prior
+source/evidence, disabled unpublished input helper, artwork and licenses stay intact.
+This source candidate awaits independent review; no push or live deployment.
+
 # Optional Alt+F1 ownership checkpoint — 2026-11-14
 
 Based on published `4e608edb6c8cc69aa5fd66eceaa75e0a1839ba43`. Add optional

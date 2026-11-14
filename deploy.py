@@ -183,13 +183,13 @@ def panel_preflight(home, panel, journal_path=None):
 
 def validate_journal(home, journal, identifier):
     """Validate every consumed field before recovery, finalization or undo writes."""
-    if (not isinstance(journal, dict) or type(journal.get('format')) is not int or journal['format'] not in (1, 2, 3, 4)
+    if (not isinstance(journal, dict) or type(journal.get('format')) is not int or journal['format'] not in (1, 2, 3, 4, 5)
             or journal.get('status') not in ('pending', 'complete', 'undoing', 'undone')):
         raise ValueError('Unsupported or invalid deployment journal')
     if journal['format'] == 1 and journal['status'] == 'pending':
         raise ValueError('Legacy pending journal has no completed-step evidence; preserve it for manual inspection')
     request = journal.get('request')
-    fields = {'modules', 'remove', 'theme', 'source'} | ({'panel'} if journal['format'] in (3,4) else set()) | ({'replace_start_shortcut','shortcut_before'} if journal['format']==4 else set())
+    fields = {'modules', 'remove', 'theme', 'source'} | ({'panel'} if journal['format'] in (3,4) else set()) | ({'replace_start_shortcut','shortcut_before'} if journal['format']==4 else set()) | ({'config_root','config_before'} if journal['format']==5 else set())
     if (not isinstance(request, dict) or set(request) != fields
             or type(request.get('remove')) is not bool
             or request.get('theme') not in ('windows', 'polar', 'heretic', 'spring')
@@ -197,6 +197,13 @@ def validate_journal(home, journal, identifier):
         raise ValueError('Invalid recovery request')
     if journal['format'] == 3 or (journal['format']==4 and request['panel'] is not None): validate_panel(request['panel'])
     selected = module_list(request.get('modules'))
+    if journal['format']==5:
+        from config_root import recorded
+        custom=recorded(home,request['config_root'])
+        if request['remove']:
+            if request['config_before'] is not None:raise ValueError('Invalid removal configuration snapshot')
+        else:validate_snapshot(home,{str((custom/'openbox/rc.xml').relative_to(home)):request['config_before']})
+        if selected!=['single-desktop']:raise ValueError('Custom-root journal has unsupported modules')
     if ('start-shortcut' in selected) != (journal['format']==4):
         raise ValueError('Start shortcut requires its reviewed-choice journal schema')
     if journal['format']==4 and (type(request['replace_start_shortcut']) is not bool or 'start-shortcut' not in selected or (request['remove'] and request['replace_start_shortcut'])):
@@ -367,6 +374,13 @@ def stock_start_icon(home, manifest):
     return icons == [str(home/'.local/share/lxqt-comfort/start.svg')]
 
 
+def check_config_review(home, request):
+    if 'config_root' in request and not request['remove'] and not manifest_for(home,'single-desktop').exists():
+        name=str(Path(request['config_root'])/'openbox/rc.xml')
+        if file_state(home,name)!=request['config_before']:
+            raise RuntimeError('Selected configuration changed before ownership; recovery refused')
+
+
 def check_shortcut_review(home, request):
     if not manifest_for(home,'start-shortcut').exists():
         from integrate import shortcut_fingerprint
@@ -374,7 +388,7 @@ def check_shortcut_review(home, request):
             raise RuntimeError('Alt+F1 changed since review; replacement refused, original journal retained')
 
 
-def step(home, name, binaries, theme, remove=False, job=None, panel=None, replace_start_shortcut=False):
+def step(home, name, binaries, theme, remove=False, job=None, panel=None, replace_start_shortcut=False, config_root=None):
     """Return the managed path inventory and the existing adapter operation."""
     import install, modules
     manifest = manifest_for(home, name)
@@ -405,6 +419,7 @@ def step(home, name, binaries, theme, remove=False, job=None, panel=None, replac
     else:
         kwargs = dict(theme=theme, wallpaper_binary=binaries.get('wallpaper'))
         if name=='start-shortcut':kwargs['replace_start_shortcut']=replace_start_shortcut
+        if config_root is not None:kwargs['config_root']=config_root
         edits = json.loads(manifest.read_text())['edits'] if remove and manifest.exists() else [] if remove else modules.plans(home, name, **kwargs)
         paths.update(home/e['file'] for e in edits)
         if manifest.exists(): paths.update(home/p for p in json.loads(manifest.read_text())['backup'])
@@ -412,10 +427,13 @@ def step(home, name, binaries, theme, remove=False, job=None, panel=None, replac
     return [str(p.relative_to(home)) for p in sorted(paths)], operation
 
 
-def deploy(home, selected, binaries, theme='windows', remove=False, recover=False, panel=None, replace_start_shortcut=False):
+def deploy(home, selected, binaries, theme='windows', remove=False, recover=False, panel=None, replace_start_shortcut=False, config_root=None):
     if remove and 'menu' in selected:
         from input_preferences import Preferences
         Preferences(home).require_inactive()
+    from config_root import choose
+    root=choose(home,selected,config_root)
+    config_root=root if root!=home/'.config' else None
     state = home/'.local/state/doroshell'
     pointer = state/'deployment.json'
     safe(pointer, home)
@@ -436,11 +454,21 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     path = job/'journal.json'; safe(path, home)
     source = hashlib.sha256((ROOT/'SHA256SUMS').read_bytes()).hexdigest()
     request = dict(modules=selected, remove=remove, theme=theme, source=source)
+    if config_root is not None:
+        if panel is not None:raise ValueError('Panel selection cannot combine with a custom configuration root')
+        request['config_root']=str(config_root.relative_to(home))
+        request['config_before']=None if remove else file_state(home,str((config_root/'openbox/rc.xml').relative_to(home)))
     if panel is not None: request['panel'] = panel
     if 'start-shortcut' in selected:
         request.update(panel=panel,replace_start_shortcut=replace_start_shortcut)
+    if config_root is not None:
+        import modules
+        modules.run(home,'single-desktop',rollback=remove,config_root=config_root,preview=True)
     if recover:
         path, journal = recovery_journal(home, previous)
+        if config_root is not None:
+            request['config_before']=journal['request']['config_before']
+            check_config_review(home,request)
         if 'start-shortcut' in selected:request['shortcut_before']=journal['request']['shortcut_before']
         if journal['request'] != request: raise ValueError('Recovery needs the same revision, modules, theme and action')
         if journal['status'] == 'complete':
@@ -464,7 +492,7 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
             import modules
             modules.run(home,'start-shortcut',replace_start_shortcut=replace_start_shortcut)
         job.mkdir(parents=True); job.chmod(0o700)
-        journal = dict(format=4 if 'start-shortcut' in selected else 3 if panel is not None else 2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
+        journal = dict(format=5 if config_root is not None else 4 if 'start-shortcut' in selected else 3 if panel is not None else 2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
                        before={str(pointer.relative_to(home)):file_state(home, str(pointer.relative_to(home)))}, after={})
         validate_journal(home, journal, identifier)
         atomic(path, json.dumps(journal).encode())
@@ -481,7 +509,10 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
             atomic(path, json.dumps(journal).encode()); continue
         print(f'[{index}/{len(sequence)}] {"Restore" if remove else "Install/update"} {name}', flush=True)
         if name=='start-shortcut' and not remove:check_shortcut_review(home,journal['request'])
-        names, operation = step(home, name, binaries, theme, remove, job, panel=panel, replace_start_shortcut=replace_start_shortcut)
+        check_config_review(home,journal['request'])
+        step_options=dict(panel=panel,replace_start_shortcut=replace_start_shortcut)
+        if config_root is not None:step_options['config_root']=config_root
+        names, operation = step(home, name, binaries, theme, remove, job, **step_options)
         if journal['active'] == name and set(names) != set(journal['active_files']):
             raise ValueError('Changed pending module inventory; preserve the journal for inspection')
         for target in names:
@@ -518,6 +549,7 @@ def main(argv=None):
     parser.add_argument('--modules', nargs='+', help='Default: recorded modules, or core on first install')
     parser.add_argument('--with', dest='extras', action='append', choices=OPTIONAL, default=[])
     parser.add_argument('--home', type=Path, default=Path.home())
+    parser.add_argument('--config-root',type=Path,help='Explicit home-contained configuration root for single-desktop only')
     parser.add_argument('--theme', choices=('windows','polar','heretic','spring'), default='windows')
     parser.add_argument('--replace-start-shortcut', action='store_true', help='Explicitly replace the reviewed existing Alt+F1 binding; requires start-shortcut')
     parser.add_argument('--panel', help='Explicit native-panel ID for first install; recorded for repeat/recovery')
@@ -528,6 +560,8 @@ def main(argv=None):
     parser.add_argument('--no-packages', action='store_true', help='Refuse missing packages instead of offering pacman')
     parser.add_argument('--prerequisites', action='store_true', help='Print scoped Arch package guidance only; no probes, downloads or installation')
     args = parser.parse_args(argv)
+    if args.config_root is not None and (args.panel is not None or args.undo or args.prerequisites):
+        raise ValueError('--config-root cannot combine with panel/undo/prerequisites')
     if args.panel is not None:
         validate_panel(args.panel)
         if args.undo: raise ValueError('--panel cannot be combined with --undo')
@@ -553,6 +587,12 @@ def main(argv=None):
     if args.recover:
         journal_path, journal = recovery_journal(home, previous)
         request = journal['request']
+        check_config_review(home,request)
+        from config_root import recorded, validate
+        recovery_root=recorded(home,request['config_root']) if 'config_root' in request else home/'.config'
+        if args.config_root is not None and validate(home,args.config_root)!=recovery_root:
+            raise ValueError('Recovery needs the recorded configuration root')
+        args.config_root=recovery_root if 'config_root' in request else args.config_root
         if args.panel is not None and args.panel != request.get('panel'):
             raise ValueError('Recovery needs the recorded panel choice; no prerequisites or files were changed')
         args.panel = request.get('panel')
@@ -575,12 +615,20 @@ def main(argv=None):
     if args.remove and 'menu' in selected:
         from input_preferences import Preferences
         Preferences(home).require_inactive()
+    from config_root import choose
+    root=choose(home,selected,args.config_root) if not args.undo else home/'.config'
+    config_root=root if root!=home/'.config' else None
+    reviewed_config=None
+    if config_root is not None and not args.undo:
+        import modules
+        modules.run(home,'single-desktop',rollback=args.remove,config_root=config_root,preview=True)
+        reviewed_config=file_state(home,str((config_root/'openbox/rc.xml').relative_to(home)))
     capability_modules = selected
     completed_panel = args.recover and 'native-panel' in journal['done']
     if completed_panel or panel is not None:
         # Completed steps retain outputs; explicit choices use adapter preflight below.
         capability_modules = [name for name in selected if name != 'native-panel']
-    report = compatibility.inspect(home, capability_modules)
+    report = compatibility.inspect(home, capability_modules,config_root=config_root) if config_root is not None else compatibility.inspect(home, capability_modules)
     panel_prerequisites = None
     if panel is not None and 'native-panel' in selected and not (args.remove or args.undo or completed_panel):
         try: panel_preflight(home, panel, journal_path if args.recover else None)
@@ -597,7 +645,7 @@ def main(argv=None):
         except (OSError,ValueError,RuntimeError) as error: report['issues'].append(str(error))
     packages = packages_for(selected); versions = compatibility.package_versions(packages)
     issues = report['issues'] + ([panel_prerequisites] if panel_prerequisites else [])
-    print(json.dumps(dict(platform={**report, 'issues':issues}, package_versions=versions, modules=selected, panel=panel), indent=2))
+    print(json.dumps(dict(platform={**report, 'issues':issues}, package_versions=versions, modules=selected, panel=panel, config_root=str(root)), indent=2))
     if not args.apply:
         print('Plan only. Add --apply. Optional modules: '+', '.join(OPTIONAL))
         if issues:
@@ -644,18 +692,21 @@ def main(argv=None):
         binaries = {} if args.remove or args.undo else build_native(home, selected, versions)
         # Lock the existing optional-module writer locks too, retaining their inodes.
         with contextlib.ExitStack() as locks:
-            for name in ('theme', 'wallpaper', 'clipboard', 'start-shortcut'):
+            for name in ('theme', 'wallpaper', 'clipboard', 'start-shortcut', 'single-desktop'):
                 if name in selected or args.undo:
+                    if name=='single-desktop' and config_root is None and not (args.undo and journal['format']==5):continue
                     if name=='start-shortcut' and name not in selected and name not in journal['request']['modules']:
                         continue
                     path = state/(name+'.lock'); safe(path, home)
                     handle = locks.enter_context(path.open('a')); fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             if args.undo: undo(home, args.undo); return 0
+            if reviewed_config is not None and file_state(home,str((config_root/'openbox/rc.xml').relative_to(home)))!=reviewed_config:
+                raise RuntimeError('Selected configuration changed during prerequisite/build work; review again')
             if reviewed_shortcut is not None:
                 from integrate import shortcut_fingerprint
                 if shortcut_fingerprint(home)!=reviewed_shortcut:
                     raise RuntimeError('Alt+F1 changed during prerequisite/build work; review again before applying')
-            deploy(home, selected, binaries, args.theme, args.remove, args.recover, panel=panel, replace_start_shortcut=args.replace_start_shortcut)
+            deploy(home, selected, binaries, args.theme, args.remove, args.recover, panel=panel, replace_start_shortcut=args.replace_start_shortcut,config_root=config_root)
     return 0
 
 

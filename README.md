@@ -78,7 +78,8 @@ installation. Bootstrap plan can download/cache source when its tools are presen
 Temporary-home install/repeat/upgrade/recovery/removal and build checks are recorded
 in [STATUS](docs/STATUS.md). Actual clean Arch/CachyOS/EndeavourOS installation and normal
 login remain unverified. Supported configuration capabilities are checked; arbitrary
-LXQt layouts, custom XDG roots and Wayland are not claimed to work. The same checks
+LXQt layouts, broad XDG relocation and Wayland are not claimed to work. A bounded
+[explicit config-root adapter](docs/config-roots.md) supports only `single-desktop`. The same checks
 apply to other Arch derivatives. [Full installation and troubleshooting](docs/INSTALL.md).
 
 ## Clone, choose modules, update or remove

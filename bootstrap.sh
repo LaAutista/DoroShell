@@ -3,8 +3,9 @@
 set -euo pipefail
 main() (
     local channel=development ref=main apply=false allow_packages=true arg root tmp revision destination
-    local plan=false guidance=false remove=false recover=false help=false undo='' panel=''
-    local modules_set=false panel_module=false clipboard_module=false extra_clipboard=false
+    local plan=false guidance=false remove=false recover=false help=false undo='' panel='' config_root=''
+    local modules_set=false panel_module=false clipboard_module=false extra_clipboard=false config_module=false
+    local module_count=0 extra_count=0
     local shortcut_module=false extra_shortcut=false replace_shortcut=false
     local -a forwarded=() missing=()
     invalid() { echo "Bootstrap arguments: $1. No prerequisites requested." >&2; exit 2; }
@@ -12,14 +13,15 @@ main() (
     # Layout, saved-state and ownership semantics still belong to deploy/profile.
     while (($#)); do
         case "$1" in
-            --channel|--ref|--home|--theme|--panel|--with|--undo)
+            --channel|--ref|--home|--theme|--panel|--config-root|--with|--undo)
                 (($# >= 2)) && [[ -n "$2" && "$2" != -* && ! "$2" =~ [[:cntrl:]] ]] || invalid "Missing or invalid value for $1"
                 case "$1" in
                     --channel) channel=$2 ;;
                     --ref) ref=$2 ;;
                     --panel) [[ "$2" =~ ^panel[1-9][0-9]*$ ]] || invalid 'Choose an existing panelN ID with --panel'; panel=$2 ;;
+                    --config-root) [[ "$2" == /* && "$2" != / && "$2" != */ && "$2" != *//* && "$2" != */../* && "$2" != */.. && "$2" != */./* && "$2" != */. ]] || invalid "Configuration root must be an absolute canonical path"; config_root=$2 ;;
                     --theme) case "$2" in windows|polar|heretic|spring) ;; *) invalid 'Unknown theme' ;; esac ;;
-                    --with) case "$2" in clipboard) extra_clipboard=true ;; start-shortcut) extra_shortcut=true ;; wallpaper|wallpaper-glass|display) ;; *) invalid 'Unknown optional module' ;; esac ;;
+                    --with) extra_count=$((extra_count+1)); case "$2" in clipboard) extra_clipboard=true ;; start-shortcut) extra_shortcut=true ;; wallpaper|wallpaper-glass|display) ;; *) invalid 'Unknown optional module' ;; esac ;;
                     --undo) [[ "$2" =~ ^[0-9]{8}T[0-9]{6}-[0-9a-f]{12}$ ]] || invalid 'Invalid undo transaction ID'; undo=$2 ;;
                 esac
                 case "$1" in --channel|--ref) ;; *) forwarded+=("$1" "$2") ;; esac
@@ -27,16 +29,17 @@ main() (
             --modules)
                 forwarded+=(--modules); shift
                 (($#)) && [[ "$1" != -* ]] || invalid 'Missing module list'
-                modules_set=true; panel_module=false; clipboard_module=false; shortcut_module=false
+                modules_set=true; panel_module=false; clipboard_module=false; shortcut_module=false; config_module=false; module_count=0
                 while (($#)) && [[ "$1" != -* ]]; do
                     case "$1" in
                         core|native-panel) panel_module=true ;;
                         clipboard) clipboard_module=true ;;
                         start-shortcut) shortcut_module=true ;;
-                        menu|theme|cursor|snapping|single-desktop|screenshots|maintenance|wallpaper|wallpaper-glass|display) ;;
+                        single-desktop) config_module=true ;;
+                        menu|theme|cursor|snapping|screenshots|maintenance|wallpaper|wallpaper-glass|display) ;;
                         *) invalid 'Unknown module' ;;
                     esac
-                    forwarded+=("$1"); shift
+                    module_count=$((module_count+1)); forwarded+=("$1"); shift
                 done ;;
             --apply) apply=true; forwarded+=(--apply); shift ;;
             --replace-start-shortcut) replace_shortcut=true; forwarded+=(--replace-start-shortcut); shift ;;
@@ -61,11 +64,15 @@ main() (
     if [[ -n "$panel" ]] && "$modules_set" && ! "$panel_module" && ! "$recover"; then
         if "$remove" || { ! "$clipboard_module" && ! "$extra_clipboard"; }; then invalid '--panel requires the native-panel module'; fi
     fi
+    if [[ -n "$config_root" ]]; then
+        if "$guidance" || "$help" || [[ -n "$undo" || -n "$panel" ]]; then invalid 'Config root cannot combine with guidance/help/undo/panel'; fi
+        if ((extra_count)) || { ! "$recover" && { ! "$config_module" || ((module_count!=1)); }; }; then invalid 'Config root requires only --modules single-desktop'; fi
+    fi
     case "$channel" in development) ;; stable) ref=stable ;; *) invalid 'Choose development or stable' ;; esac
     [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$ref" != *..* ]] || invalid 'Invalid revision'
     if "$help"; then
         echo 'Usage: bash bootstrap.sh [--plan | --apply] [--no-packages] [--panel panelN]'
-        echo 'Also: --modules NAME... --with NAME --theme NAME --home PATH --channel development|stable --ref REV'
+        echo 'Also: --modules NAME... --with NAME --theme NAME --home PATH --config-root PATH --channel development|stable --ref REV'
         echo 'Guidance: --prerequisites. Maintenance: --remove --recover --undo TRANSACTION. Use separate option values.'
         return 0
     fi

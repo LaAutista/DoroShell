@@ -14,7 +14,7 @@ separate from this pass. Source publication does not imply live activation.
 | Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
 | Optional Alt+F1 | Explicit deploy/bootstrap/setup selection, custom replacement choice, next-startup disk binding | Disposable-home apply/repeat/recovery/remove/undo and installed-toolkit CLI; Qt reads private binding fixtures. Whole-file ownership refuses later shortcut edits. No live daemon reload or login acceptance. |
 | Installer | Bootstrap, approved automatic prerequisite stages, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and fake-command missing-capability/cancellation/fault tests; see release evidence for final counts. Actual package/authentication and clean-machine acceptance remain separate. Existing adapters remain the persistence engines. |
-| Compatibility | Arch lineage/pacman, LXQt/X11, Openbox; single panel1 or bounded explicit multi-panel selection through setup/deploy/bootstrap; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Custom XDG roots/Wayland refused. Explicit panelN selection preserves other standard panels; shared widgets/ambiguous layouts remain unsupported. |
+| Compatibility | Arch lineage/pacman, LXQt/X11, Openbox; single panel1 or bounded explicit multi-panel selection through setup/deploy/bootstrap; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Wayland and broad XDG relocation refused; bounded explicit single-desktop config-root support only. Explicit panelN selection preserves other standard panels; shared widgets/ambiguous layouts remain unsupported. |
 | Lock-screen animation | Design only | [Separate design](animated-lock-screen-design.md); no authentication/locker changes or claim of implementation. |
 
 The inherited 262-test suite passed before installer edits; the portable installer
@@ -133,3 +133,15 @@ bindings; installed CLI preview/apply/rollback works without Qt/PATH commands.
 The older independent-module test excludes this dependent adapter, whose combined
 lifecycle now has separate coverage. No native process/build, live shortcut/input,
 package authentication, fresh OS or login test occurred.
+
+
+The explicit-config-root follow-up on `72833d0` passes **429 tests**: 15 added
+config-root tests plus one bootstrap forwarding test, retaining all 413 prior cases.
+Only single-desktop is supported with an alternate home-contained config root.
+Disposable fixtures cover spaces, missing/changed/overlapping roots, configured
+cache/runtime overlap, symlinks, invalid/missing ownership metadata, unrelated file/XML
+preservation, legacy default ownership, installed CLI packaging, repeat, interruption,
+completed finalization, removal and exact upgrade undo. Existing module code from
+`72833d0` separately refuses the new edit kinds for apply/rollback without changing
+fixture bytes/modes. No native UI/build, actual custom-root Openbox startup, clean OS,
+packages/authentication or live session acceptance occurred. See [path inventory](config-roots.md).

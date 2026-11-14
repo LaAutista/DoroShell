@@ -42,7 +42,9 @@ def ini_set(text, section, key, value):
     return text[:match.end()]+body+text[stop:]
 
 
-def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None, replace_start_shortcut=False):
+def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None, replace_start_shortcut=False, config_root=None):
+    from config_root import choose
+    root=choose(home,[module],config_root)
     if module == 'start-shortcut':
         from integrate import shortcut_plan
         return shortcut_plan(home, replace_start_shortcut)
@@ -125,8 +127,12 @@ def plans(home, module, taskbar_style="icons", taskbar_size="medium", native_pre
                 'inode/directory' if module=='dolphin' else 'text/plain',
                 'org.kde.'+module+'.desktop;')
     elif module=='single-desktop':
-        edits.append({'file':'.config/openbox/rc.xml','kind':'desktop','after':'1'})
-        edits.append({'file':'.config/openbox/rc.xml','kind':'firstdesk','after':'1'})
+        target=root/'openbox/rc.xml';safe(target,home)
+        if not target.is_file():raise ValueError('An initialized Openbox rc.xml is required in the selected configuration root')
+        name=str(target.relative_to(home))
+        prefix='root-' if root!=home/'.config' else ''
+        edits.append({'file':name,'kind':prefix+'desktop','after':'1'})
+        edits.append({'file':name,'kind':prefix+'firstdesk','after':'1'})
     elif module=='taskbar-size':
         from panel.layout import installed_panel
         if not (home/'.local/state/doroshell/native-panel.json').is_file():
@@ -199,23 +205,24 @@ def openbox_theme_spans(text):
 
 
 def read_value(edit, data):
-    if edit['kind']=='file':
+    kind=edit['kind'].removeprefix('root-')
+    if kind=='file':
         return base64.b64encode(data).decode() if data is not None else None
     text=(data or b'').decode()
-    if edit['kind']=='ini':
+    if kind=='ini':
         return ini_value(text,edit['section'],edit['key'])
-    if edit['kind'] == 'obtheme':
+    if kind == 'obtheme':
         if not text.strip():
             raise RuntimeError('An existing Openbox rc.xml is required; start an LXQt/Openbox session first')
         raw, theme, name = openbox_theme_spans(text)
         return raw[name[1]:name[2]].decode() if name else None
-    if edit['kind'] in ('desktop', 'firstdesk'):
+    if kind in ('desktop', 'firstdesk'):
         # Validate XML, but edit only the owned element to preserve formatting/comments.
         tree = ET.fromstring(text)
         blocks = re.findall(r'<desktops\b[^>]*>(.*?)</desktops>', text, re.S)
         if len(blocks) != 1:
             raise RuntimeError('Expected one Openbox desktops section')
-        tag = 'number' if edit['kind']=='desktop' else 'firstdesk'
+        tag = 'number' if kind=='desktop' else 'firstdesk'
         values = re.findall(r'<'+tag+r'>\s*(\d+)\s*</'+tag+r'>', blocks[0])
         if len(values)>1 or (tag=='number' and not values):
             raise RuntimeError('Expected one Openbox '+tag)
@@ -231,7 +238,7 @@ def read_value(edit, data):
 
 
 def write_value(edit, data, value):
-    kind=edit['kind']
+    kind=edit['kind'].removeprefix('root-')
     if kind=='file':
         return base64.b64decode(value) if value is not None else None
     text=(data or b'').decode()
@@ -365,7 +372,7 @@ def validate_module_record(saved):
     for edit in saved['edits']:
         if not isinstance(edit, dict) or not isinstance(edit.get('file'), str) or edit['file'] not in saved['backup']:
             raise ValueError('Missing module backup; preserve the recovery manifest')
-        if edit.get('kind') not in ('file', 'ini', 'obtheme', 'desktop', 'firstdesk', 'snapkeys'):
+        if edit.get('kind') not in ('file', 'ini', 'obtheme', 'desktop', 'firstdesk', 'snapkeys', 'root-desktop', 'root-firstdesk'):
             raise ValueError('Invalid module edit kind; preserve the recovery manifest')
         for field in ('before', 'after'):
             if field not in edit or (edit[field] is not None and not isinstance(edit[field], str)):
@@ -377,14 +384,35 @@ def validate_module_record(saved):
         if edit['kind'] == 'ini' and any(not isinstance(edit.get(k), str) for k in ('section', 'key')):
             raise ValueError('Invalid module INI target; preserve the recovery manifest')
 
-def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None, replace_start_shortcut=False):
+def run(home, module, apply=False, rollback=False, taskbar_style="icons", active_print=False, taskbar_size="medium", native_preview=None, theme="windows", wallpaper_binary=None, replace_start_shortcut=False, config_root=None, preview=False):
     if module not in MODULES:
         raise ValueError("Unknown module")
     manifest=home/'.local/state/doroshell'/f'{module}.json'
     safe(manifest,home)
     saved=json.loads(manifest.read_text()) if manifest.exists() else None
+    from config_root import choose
+    root=choose(home,[module],config_root)
+    custom=root!=home/'.config'
+    if custom:print('Configuration root: '+str(root)+'; staged file only, no environment/session change')
     if saved is not None:
         validate_module_record(saved)
+        if module=='single-desktop' and not custom:
+            if ('phase' in saved or set(saved['backup'])!={'.config/openbox/rc.xml'}
+                    or any(e['file']!='.config/openbox/rc.xml' for e in saved['edits'])):
+                raise ValueError('Configuration-root metadata is missing or conflicts with legacy ownership')
+        if custom:
+            target=str((root/'openbox/rc.xml').relative_to(home))
+            if (set(saved['backup'])!={target} or len(saved['edits'])!=2
+                    or [e['kind'] for e in saved['edits']]!=['root-desktop','root-firstdesk']
+                    or any(e['file']!=target or e['after']!='1' for e in saved['edits'])
+                    or saved.get('phase') not in ('pending','complete','restoring')):
+                raise ValueError('Invalid custom-root ownership/recovery record')
+            if saved['phase']=='restoring' and not rollback:raise RuntimeError('Finish custom-root restoration before applying again')
+            if saved['phase']=='complete':
+                path=home/target;safe(path,home)
+                current=path.read_bytes() if path.exists() else None
+                if any(read_value(e,current)!=e['after'] for e in saved['edits']):
+                    raise RuntimeError('Edited managed desktop values; custom-root restoration/update refused')
         if module=='start-shortcut':
             name='.config/lxqt/globalkeyshortcuts.conf'
             if len(saved['edits'])!=1 or saved['edits'][0]['kind']!='file' or saved['edits'][0]['file']!=name or set(saved['backup'])!={name}:
@@ -425,7 +453,7 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
                     edit['section'] = groups[0]
                     if read_value(edit,current)!=edit['after']:
                         raise RuntimeError('The renumbered Print shortcut was edited; refusing to change it.')
-    edits=saved['edits'] if rollback else plans(home,module,taskbar_style,taskbar_size,native_preview,theme,wallpaper_binary,replace_start_shortcut)
+    edits=saved['edits'] if rollback else plans(home,module,taskbar_style,taskbar_size,native_preview,theme,wallpaper_binary,replace_start_shortcut,root if custom else None)
     if not edits:
         print(module+': existing icon taskbar retained')
         return
@@ -467,7 +495,7 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
         safe(shortcut_owner,home)
         if shortcut_owner.exists():
             raise RuntimeError('Restore start-shortcut before changing other shortcuts; its full-file backup must remain exact')
-    if not apply and not rollback:
+    if preview or (not apply and not rollback):
         print('Plan only. Add --apply.')
         return
     if module=='start-shortcut' and apply and not rollback:
@@ -492,7 +520,7 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
     update_print = None
     if active_print and original[shortcuts] != changed[shortcuts]:
         update_print = live_print_change(shortcuts, original[shortcuts], changed[shortcuts])
-    transaction = theme_transaction(manifest, original, changed, modes) if module in ('theme','wallpaper','clipboard','start-shortcut') else nullcontext()
+    transaction = theme_transaction(manifest, original, changed, modes) if custom or module in ('theme','wallpaper','clipboard','start-shortcut') else nullcontext()
     with transaction as attempted:
         modes.update(restore_modes)
         if not rollback:
@@ -500,10 +528,14 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
             for p,v in original.items():
                 backup.setdefault(str(p.relative_to(home)), {'data':base64.b64encode(v).decode() if v is not None else None,'mode':modes[p]})
             data_record={'edits':record,'backup':backup}
+            if custom:data_record.update(config_root=str(root.relative_to(home)),phase='pending')
             if module=='start-shortcut':
                 previous=next(iter(original.values()))
                 data_record.update(phase='pending',pending_from=base64.b64encode(previous).decode() if previous is not None else None)
             atomic(manifest,(json.dumps(data_record,indent=2)+'\n').encode())
+        elif custom:
+            saved['phase']='restoring'
+            atomic(manifest,(json.dumps(saved,indent=2)+'\n').encode())
         elif module=='start-shortcut':
             saved['phase']='restoring'
             previous=next(iter(original.values()))
@@ -512,10 +544,10 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
         if rollback and update_print:
             update_print()
         for path,data in changed.items():
-            if module=='start-shortcut':
+            if custom or module=='start-shortcut':
                 safe(path,home)
                 if (path.read_bytes() if path.exists() else None)!=original[path] or (path.exists() and path.stat().st_mode & 0o777 != modes[path]):
-                    raise RuntimeError('Concurrent shortcut-file edit; recovery evidence retained')
+                    raise RuntimeError('Concurrent managed-file edit; recovery evidence retained')
             if path == shortcuts and update_print:
                 if not rollback:
                     update_print()
@@ -530,9 +562,9 @@ def run(home, module, apply=False, rollback=False, taskbar_style="icons", active
                 atomic(path,data,modes[path])
         if rollback:
             manifest.unlink()
-        elif module=='start-shortcut':
+        elif custom or module=='start-shortcut':
             data_record['phase']='complete'
-            data_record.pop('pending_from')
+            data_record.pop('pending_from',None)
             atomic(manifest,(json.dumps(data_record,indent=2)+'\n').encode())
 
 
@@ -548,6 +580,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--home',type=Path,default=Path.home())
+    parser.add_argument('--config-root',type=Path,help='Explicit config root for single-desktop only; existing ownership retains it')
     parser.add_argument('--live',action='store_true')
     parser.add_argument('--replace-start-shortcut',action='store_true')
     parser.add_argument('--wallpaper-binary', type=Path)
@@ -563,12 +596,17 @@ def main():
         parser.error('--replace-start-shortcut requires start-shortcut without rollback')
     if os.geteuid()==0:
         parser.error('Run as your desktop user, not root')
+    from config_root import choose
+    root=choose(args.home,[args.module],args.config_root)
+    if root!=args.home/'.config':
+        if args.live:parser.error('Custom configuration is saved only; no live activation')
+        run(args.home,args.module,rollback=args.rollback,config_root=root,preview=True)
     components={'screenshots':['lxqt-globalkeysd'], 'taskbar':['lxqt-panel']}.get(args.module,[])
-    if args.module in ('theme', 'wallpaper', 'wallpaper-glass', 'clipboard', 'start-shortcut'):
+    if root!=args.home/'.config' or args.module in ('theme', 'wallpaper', 'wallpaper-glass', 'clipboard', 'start-shortcut'):
         if args.live:
             parser.error('Theme settings apply on normal application/desktop startup; --live is unsupported')
         if not (args.apply or args.rollback):
-            run(args.home, args.module, theme=args.theme, wallpaper_binary=args.wallpaper_binary, replace_start_shortcut=args.replace_start_shortcut)
+            run(args.home, args.module, theme=args.theme, wallpaper_binary=args.wallpaper_binary, replace_start_shortcut=args.replace_start_shortcut,config_root=root)
             raise SystemExit(0)
         # Serialize theme switch/restore against another setup process.
         import fcntl
@@ -577,7 +615,7 @@ def main():
         lock.parent.mkdir(parents=True, exist_ok=True)
         with lock.open('a') as stream:
             fcntl.flock(stream, fcntl.LOCK_EX)
-            run(args.home, args.module, args.apply, args.rollback, theme=args.theme, wallpaper_binary=args.wallpaper_binary, replace_start_shortcut=args.replace_start_shortcut)
+            run(args.home, args.module, args.apply, args.rollback, theme=args.theme, wallpaper_binary=args.wallpaper_binary, replace_start_shortcut=args.replace_start_shortcut,config_root=root)
         if args.module == 'clipboard' and args.rollback and args.home.resolve() == Path.home().resolve():
             subprocess.run([sys.executable, str(ROOT/'clipboard/clipboard.py'), '--stop'], check=True)
         raise SystemExit(0)

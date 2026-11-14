@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add bounded explicit config-root support for the config-only single-desktop adapter
+  through deploy/setup/local bootstrap, with recorded choice, root/path conflict refusal,
+  phased recovery and exact undo. Preserve default configs and unrelated XML; no
+  runtime/data/state relocation or live activation. Other custom-root combinations refuse.
+
 - Add optional `start-shortcut` deployment/bootstrap/setup support for Alt+F1, with
   current/proposed preview, explicit custom replacement, recorded review/ownership,
   interrupted recovery and exact restoration. Preserve unrelated bytes and refuse

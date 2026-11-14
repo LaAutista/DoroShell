@@ -28,7 +28,7 @@ def package_versions(packages):
     return result
 
 
-def inspect(home, selected, environ=None, release=None):
+def inspect(home, selected, environ=None, release=None, config_root=None):
     env = os.environ if environ is None else environ
     release = os_release() if release is None else release
     distro = release.get('ID', 'unknown')
@@ -40,8 +40,13 @@ def inspect(home, selected, environ=None, release=None):
     if not shutil.which('pacman'): issues.append('pacman is unavailable; no alternative package manager is guessed.')
     if 'lxqt' not in desktop.casefold().split(':'): issues.append('Run from your existing LXQt session.')
     if session != 'x11': issues.append('This release supports X11 only; Wayland is not implemented.')
+    if config_root is not None:
+        from config_root import validate
+        config_root=validate(home,config_root)
+        if selected!=['single-desktop']:raise ValueError('Custom configuration roots support only single-desktop')
     for variable, default in [('XDG_CONFIG_HOME', '.config'), ('XDG_DATA_HOME', '.local/share'), ('XDG_STATE_HOME', '.local/state')]:
-        if env.get(variable) and Path(env[variable]) != home/default:
+        expected=config_root if variable=='XDG_CONFIG_HOME' and config_root is not None else home/default
+        if env.get(variable) and Path(env[variable]) != expected:
             issues.append(variable+' must use the default home layout for these existing installers.')
     if 'native-panel' in selected:
         path = home/'.config/lxqt/panel.conf'

@@ -8,8 +8,10 @@ Core setup needs Openbox configuration and either a single `panel1` or an explic
 selected panel in a supported standard layout. LXQt's default layout without a
 `panels=` line counts as a single `panel1`. Missing or ambiguous layouts produce a
 specific refusal. DoroShell does not install a display
-manager, switch desktop environments, or claim Wayland support. Custom XDG roots
-remain unsupported by the older installation adapters and are refused explicitly.
+manager, switch desktop environments, or claim Wayland support. Broad XDG relocation
+remains unsupported. The [explicit config-root adapter](config-roots.md) supports only
+`single-desktop` in an initialized home-contained Openbox config directory; core and
+other module combinations still refuse custom roots.
 
 The repository is public. The bootstrap command in [README](../README.md) uses
 `curl`, Git and Python and requires no GitHub account, token or GitHub CLI. The apply
@@ -289,7 +291,7 @@ still match exactly. A second panel subsequently added to the stock file survive
 recovery and exact undo. An interrupted first-time native-panel stage resumes its
 saved preparation rather than treating a partly written manifest as a finished
 installation. Its source, selected panel, prepared bytes and managed files must
-still validate. Custom XDG roots remain refused. The same-source
+still validate. Custom roots remain refused for native-panel. The same-source
 requirement still applies; this change does not migrate pending journals from older
 revisions or justify changing their recorded source hashes.
 
