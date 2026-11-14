@@ -20,7 +20,8 @@ access when prompted. The command installs GitHub CLI if missing, then downloads
 the complete installer before executing it. It fetches a specific Git
 revision into a permanent user source directory, and verifies its source/asset
 inventory. It installs the core modules: Start/settings, native taskbar/tray, themes,
-loading cursors, snapping, screenshots, and update/removal commands. Missing official
+loading cursors, snapping, a single desktop (multiple desktops off; re-enable in
+DoroShell Settings), screenshots, and update/removal commands. Missing official
 packages are offered through `sudo pacman -Syu --needed`; **review pacman's full-system
 update prompt**. There is no AUR helper, unattended package approval, or package removal.
 

@@ -21,7 +21,7 @@ OPTIONS = [
     ('taskbar-drag', 'DockBarX icon dragging'),
     ('snapping', 'Drag windows to screen edges'),
     ('screenshots', 'Print Screen capture overlay'),
-    ('single-desktop', 'One desktop (next login)'),
+    ('single-desktop', 'One desktop — multiple desktops off (choose Restore to switch them back on; next login)'),
     ('kate', 'Kate for plain text'),
     ('dolphin', 'Dolphin for folders'),
     ('kate-dark', 'Kate: Breeze Dark'),
