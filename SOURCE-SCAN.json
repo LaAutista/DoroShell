@@ -20,6 +20,7 @@
     "display/build_candidate.py",
     "display/dorodisplaycontrols.h",
     "display/pcmanfm-advanced.patch",
+    "docs/animated-lock-screen-design.md",
     "docs/app-search.md",
     "docs/assets.md",
     "docs/clean-environment-simulation.md",
@@ -187,8 +188,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 186,
-  "source_payload_count": 184,
+  "file_count": 187,
+  "source_payload_count": 185,
   "checks": [
     "Tracked regular UTF-8 source files; no NUL binaries or symlinks",
     "Payload hashes and complete file inventory checked",

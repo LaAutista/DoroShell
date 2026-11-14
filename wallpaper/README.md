@@ -47,7 +47,7 @@ python tests/check_wallpaper_x11.py --run --xvfb /path/to/Xvfb \
 
 It requires Python Xlib, PySide6, PyGObject and Pillow, Openbox, Xvfb and xauth. It tests moving video beneath a clickable native folder, real fullscreen state, a mock login lock service, overlapping pause reasons, private X screen-saver state, synthetic GIF frames, error handling and original-background restoration. It never locks a real session or uses the personal clipboard. The supplied test video is read unchanged and is not packaged.
 
-Physical DPMS power-off, multiple physical monitors, normal login, clean installation and long-session performance remain unverified. No lock-screen animation or changes to locking/authentication are included. A separate XScreenSaver renderer is a possible future integration, not a tested capability of this candidate.
+Physical DPMS power-off, multiple physical monitors, normal login, clean installation and long-session performance remain unverified. No lock-screen animation or changes to locking/authentication are included. A separate XScreenSaver renderer is a possible future integration, not a tested capability of this candidate. See the [design and isolated acceptance gate](../docs/animated-lock-screen-design.md); desktop animation does not establish lock-screen support.
 
 The controls distinguish **staged for next desktop startup** from an **active native renderer**. Active status requires a fresh report from the matching live process and display; closing the native desktop clears its report even if file-manager windows remain open. Staging preserves autostart metadata and the recognized existing Dolphin service startup hook without running it during setup. Animation remains disabled until explicitly enabled.
 

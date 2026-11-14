@@ -1,10 +1,20 @@
 # Verification status and historical checkpoints
 
-## Current status — 2026-11-10
+## Current status — 2026-11-14
 
-The published core archive passed 84 tests. The local, unpublished optional source archive passes 99 tests after extraction. The updated menu/helpers and Pin/Unpin panel are active on the development installation; wallpaper is staged only, disabled and muted. See [final optional verification](#final-optional-candidate-verification) for the runtime evidence and [installation/restore](optional-installation.md) for dependencies and reversible setup.
+Current source was reconciled from published `fd1859d`, preserving the later Start,
+screenshot and display-diagnostic work. Read-only executable/hash checks confirm
+the selected and running panel is the tested ten-patch shortcut runtime; its patch
+notices match current source. Installed Start/search and capture payload bytes also
+match current source, without implying resident-process reload or fresh UI acceptance.
+Private hashes and paths remain outside the repository. See the [acceptance record](final-acceptance.md).
 
-Still unverified: user-chosen normal login, clean CachyOS installation/upgrade/rollback, physical multi-monitor/mixed-DPI wallpaper operation, physical DPMS, broader locker compatibility and long-session performance. Private X11, temporary-home and mock-lock checks are not substitutes. No lock-screen animation is implemented.
+No lock-screen animation is implemented. The [bounded integration design](animated-lock-screen-design.md)
+identifies an optional existing-locker graphics-client route and a fake-host test gate.
+No real lock, locker/authentication change or animation prototype was executed.
+Clean-system/login, physical mixed-DPI/DPMS, broader locker compatibility and long-session
+acceptance remain unverified/deferred. Gamebox staging was reported separately;
+its actual login remains unverified and no Gamebox work was modified here.
 
 The sections below record successive checkpoints. Counts, deployment states and remaining-work lists describe that checkpoint unless explicitly marked current; later evidence supersedes them without erasing it.
 

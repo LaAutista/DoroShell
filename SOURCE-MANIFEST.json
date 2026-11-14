@@ -1,7 +1,7 @@
 {
   "format": 8,
-  "candidate": "doroshell-source-20261111-display-diagnostic-phases",
-  "published_ancestor": "958248b6e1f158e95cabf0cba21cbda6e95134bd",
+  "candidate": "doroshell-source-20261114-lock-decoration-design",
+  "published_ancestor": "fd1859d26a6277ec3ea7a1ca5b5256567a171aca",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
     "start_rendering": "983ac44",
@@ -15,7 +15,8 @@
     "keyboard_entry_probe": "d525ae4",
     "display_failure_visibility": "Persistent Close-only failure UI and bounded redacted record; see display/README.md and RELEASE-CANDIDATE.md",
     "screenshot_window_capture": "0e66e29179051a5eb7459afe003e5a2e9ca19958",
-    "display_diagnostic_phases": "Private schema-2 phase/property diagnostics; exact state equivalence retained; see RELEASE-CANDIDATE.md"
+    "display_diagnostic_phases": "Private schema-2 phase/property diagnostics; exact state equivalence retained; see RELEASE-CANDIDATE.md",
+    "native_tray_shortcut": "d7279a62921cb3fb7e6a4907a4c3e40e1b919736"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -50,20 +51,20 @@
     },
     {
       "path": "README.md",
-      "sha256": "ee115c978fba83ca500c3b6f2b06f29d9626d97e2dfe59bd4387974feaa6c740",
-      "size": 41629,
+      "sha256": "e2ed19a4232f84074e5c97534f12bff279e4d98f4159c72a48e66f56d81de697",
+      "size": 41794,
       "mode": "0o644"
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "1ab19dc02e226c136e84ca4456284a2e9a88259a9f75ff098ddb148d3c1c164c",
-      "size": 10952,
+      "sha256": "c048a02c593b2de99e998c5c9d5920ed410e30f84eaba10b9428db663e388d83",
+      "size": 11691,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "6f4187a3de2a4c1a9e7c59e5c71297778363dd7d0ec4e174538929475fe74237",
-      "size": 6751,
+      "sha256": "2e067203cd7f470d27729f503a05ced4341140a5bbb5315826f3dc61ec593f2b",
+      "size": 6794,
       "mode": "0o644"
     },
     {
@@ -133,6 +134,12 @@
       "mode": "0o644"
     },
     {
+      "path": "docs/animated-lock-screen-design.md",
+      "sha256": "7bf49a2b9ec0ad7e7871195d9195e7c587d125a67800838d9f171005543485c2",
+      "size": 7502,
+      "mode": "0o644"
+    },
+    {
       "path": "docs/app-search.md",
       "sha256": "b00a6086e1e78c9104b3c6f980a7c0399ff42ccbafe74d106105f10061b87d2a",
       "size": 4924,
@@ -158,8 +165,8 @@
     },
     {
       "path": "docs/final-acceptance.md",
-      "sha256": "77389b4d3262845c2270674de448361f58e4a5affbcdba0120b3d8a936b1e442",
-      "size": 6672,
+      "sha256": "559cabbfca5dbd4f3cfe8497cb308f3d7c0ab624da79089cffe5da157cc4c92b",
+      "size": 7143,
       "mode": "0o644"
     },
     {
@@ -206,8 +213,8 @@
     },
     {
       "path": "docs/roadmap.md",
-      "sha256": "4587c1331cc67e3f5731ffed2905d546f284a78dd192dde1f1529c9403855251",
-      "size": 4488,
+      "sha256": "190e5a64bdd04d99be4b17183b16a4e8699de41673b853145aacfa494abe6b84",
+      "size": 4936,
       "mode": "0o644"
     },
     {
@@ -254,8 +261,8 @@
     },
     {
       "path": "docs/verification.md",
-      "sha256": "61149139a262fc72763276b5b4190d7f55cd4bcd62aab0f54cf6fe1ff5be2b9d",
-      "size": 27842,
+      "sha256": "964fee49d9d89da2cfc46a308f8b6d80772e33e0e15c393fe2ab9cd6835ce586",
+      "size": 28108,
       "mode": "0o644"
     },
     {
@@ -1064,8 +1071,8 @@
     },
     {
       "path": "wallpaper/README.md",
-      "sha256": "8fcd2c65528517164a68e70c44b897aa37d0bcaf3e3a3461980d69da48a9f7af",
-      "size": 12443,
+      "sha256": "795bcc51a5f329eb9f32c7d9b7a2cf1b032d4fca3d3eb8f561132d8a731e0b77",
+      "size": 12588,
       "mode": "0o644"
     },
     {
