@@ -45,8 +45,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "012971bc015299891bddef9dfe7ff349fd60dbc368d123a42c573ef0e2c0654b",
-      "size": 3397,
+      "sha256": "5374d7e7bb11f67461ee1a5feac65ec1ced16f5e51c54a72968552f6e479850d",
+      "size": 3842,
       "mode": "0o644"
     },
     {
@@ -63,8 +63,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "867f62654cb0d35516540327e87a2e7c41bb1a6d3938ba32669f1cafb9ffdd2d",
-      "size": 6438,
+      "sha256": "0606a32ab861d4fa82bc7d95e669fe534b8e92087b2cd32cfd1ca1e69ff5842f",
+      "size": 6513,
       "mode": "0o644"
     },
     {
@@ -171,8 +171,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "19386796396fa23ccc2c57c790f74f601779301b89f5875c18da4c15e23fc4e4",
-      "size": 26571,
+      "sha256": "9ab59ef1ca0b66cec293da9a30f0fc018aa64a27122bfbb7a703993f7b8f5b32",
+      "size": 26589,
       "mode": "0o644"
     },
     {
@@ -657,8 +657,8 @@
     },
     {
       "path": "settings.py",
-      "sha256": "dbe0a5ca6a99bf221c931e745f2c8fd6d83b4a37fcf284c03c1049283a02cc1c",
-      "size": 20943,
+      "sha256": "9162cfcc89725a1b8621321fcabcf293bf43be4a3fbb3ea35244a57f8b1f3a06",
+      "size": 21008,
       "mode": "0o644"
     },
     {
