@@ -13,6 +13,14 @@ runtime observations below describe their original checkpoints, not a fresh live
 comparison. The published sequence has 500 independently verified unit tests;
 unchanged runtime suites were not repeated for this documentation pass.
 
+The subsequent Start-rendering candidate is based on published `27cfea1`. It fixes
+a reproduced pre-map versus first-paint wallpaper sampling discrepancy, retaining
+the earlier readiness/fringe fixes, theme/transparency and X11 mask. The synthetic
+four-scale matrix has 96 source and 72 temporary-installed openings with matching
+first-callback/settled captures after correction. Two regression tests cover mapped
+coordinates, fractional alpha and texture scale. Live color/edge symptoms remain
+unverified; see [rendering evidence](wallpaper-glass.md#mapped-position-first-frame-follow-up).
+
 | Area | Implemented | Evidence / remaining boundary |
 | --- | --- | --- |
 | Source/art baseline | Complete published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Artwork/source baseline `dee97b4`, current source checkpoint `660de77`. Shared older dirty checkout preserved. Historical installed comparisons do not establish that the live installation includes later published features. |

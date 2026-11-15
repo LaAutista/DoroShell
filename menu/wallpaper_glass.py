@@ -133,6 +133,9 @@ class MenuGlassController(QObject):
         menu.destroyed.connect(self.shutdown)
         self.source_changed()
     def eventFilter(self,obj,event):
+        if obj is self.menu and event.type()==QEvent.Type.ShowToParent:
+            # Mapping can adjust global coordinates; sample them before the first paint.
+            self.geometry_changed()
         if event.type() in (QEvent.Type.Show,QEvent.Type.Move,QEvent.Type.Resize,QEvent.Type.ScreenChangeInternal):
             self.coalesce.start()
         if obj is self.menu and event.type()==QEvent.Type.Hide:self.backdrop.hide()

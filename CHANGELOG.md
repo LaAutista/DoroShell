@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Refresh Start's cached wallpaper surface after Qt's initial show completes so
+  the first backdrop paint uses the mapped popup coordinates. Add first-paint and
+  fractional-alpha/texture tests; retain decode fallback, themes and X11 mask.
+  Synthetic evidence does not establish the cause of reported live color/edge issues.
+
 - Record combined cross-revision upgrade/recovery/removal and installed-toolkit
   acceptance on `660de77`, without runtime changes. Clarify old-program retention
   limits, full-source versus reduced-toolkit entrypoints and current publication

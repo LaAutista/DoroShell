@@ -1,4 +1,41 @@
-# Combined release integration checkpoint — 2026-11-15
+# Start first-frame sampling checkpoint — 2026-11-15
+
+Source follow-up to published `27cfea1927a5dea44466a220162e7fcc2b905039`.
+The earlier `983ac44` readiness/fringe fix is already present. This increment fixes
+one separately reproduced discrepancy: the first glass paint sampled pre-map
+coordinates, before Qt adjusted the popup origin. A three-line event-filter addition
+resamples on ShowToParent, reusing the cached atlas before queued paints. Ordinary
+Show was too early in the failing regression. No theme, layout, opacity, mask,
+installer schema or decoding/fallback behavior is redesigned.
+
+**502 full-suite tests pass (27.221s)** in disposable HOME/XDG with offscreen Qt
+and private nonexistent bus addresses. Two new tests cover actual first backdrop
+paint across three openings, plus fractional alpha and texture scale at DPR
+1/1.25/1.5/2. The coordinate test fails on baseline with `(2,224)` versus `(4,226)`.
+An independent synthetic matrix exercises two themes and four modes across all four
+scales and three cycles: 96 source openings have identical first-callback/settled
+captures after the fix. Baseline differences affected eight cold-glass cases, up
+to 12/255 per channel; no full palette flash was reproduced.
+
+The actual temporary-installed runtime/toolkit additionally passes 72 openings,
+including simulated compositor detection/translucent-theme selection. Helper
+bytes/imports, repeat/first-record preservation, edited-helper rollback refusal
+and exact baseline restoration pass at each scale. Preferences remain untouched
+by removal. Existing artwork, license notices, old builds/evidence, original dirty
+checkout and disabled input-helper branch remain preserved.
+
+Curve alpha is unchanged from baseline in the inspected opaque/glass fixtures;
+no new white outline was reproduced outside the intentionally overlapping portrait.
+X11 binary curved-mask steps remain a limitation. Offscreen captures may trigger
+another paint and are not scanout or real compositor/X11 evidence. The reported
+personal color/edge symptom is not established as fixed. No live session/display,
+input, power, package, authentication or blocked-Xvfb action occurred.
+
+See [rendering observations and Qt implementation reference](docs/wallpaper-glass.md#mapped-position-first-frame-follow-up).
+Source inventory/checksums and archive/bundle/exact-base patch round-trips are
+verified. This local source candidate awaits independent review; no push/deployment.
+
+## Historical combined release integration checkpoint — 2026-11-15
 
 Documentation-only follow-up to published
 `660de7737cc5df522f781c1ff377a4ee99b6895d`. Runtime, tests, artwork and licenses

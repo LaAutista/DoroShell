@@ -217,6 +217,7 @@
     "tests/test_settings.py",
     "tests/test_source_release.py",
     "tests/test_start_keyboard.py",
+    "tests/test_start_rendering.py",
     "tests/test_start_resident.py",
     "tests/test_start_shortcut.py",
     "tests/test_taskbar_drag.py",
@@ -239,8 +240,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 238,
-  "source_payload_count": 236,
+  "file_count": 239,
+  "source_payload_count": 237,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

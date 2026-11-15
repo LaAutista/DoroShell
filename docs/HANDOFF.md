@@ -52,6 +52,14 @@ next-login and restoration boundaries are documented in INSTALL.
 
 ## Known issues and recent evidence
 
+The mapped-position Start follow-up to published `27cfea1` is a three-line glass
+handler correction: refresh after Qt's show helper rather than waiting for the
+queued geometry timer. A failing first-backdrop-paint test establishes the old/new
+origin discrepancy. Two new tests and synthetic four-scale source/installed render
+matrices cover it; see [precise observations and limits](wallpaper-glass.md#mapped-position-first-frame-follow-up).
+Existing `983ac44` readiness and fringe fixes already remain. No mask/opacity/layout
+redesign, live deployment or confirmation of the personal color/edge symptom.
+
 Laptop follow-up (2026-11-14): stock LXQt panel files without `panels=` were wrongly
 refused; Quick Launch apps were duplicated beside taskbar pins; upgrades from the
 older installer kept the plain Start icon. All three are fixed with unit/temporary-home

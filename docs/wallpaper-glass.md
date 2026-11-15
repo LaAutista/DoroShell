@@ -65,6 +65,41 @@ QT_SCALE_FACTOR=1 python tests/check_glass_edges_x11.py --run --xvfb /path/to/Xv
 QT_SCALE_FACTOR=1.5 python tests/check_glass_edges_x11.py --run --xvfb /path/to/Xvfb --output /tmp/start-render-evidence
 ```
 
+## Mapped-position first-frame follow-up
+
+The earlier `983ac44` readiness/fringe fix already exists in current source; it was
+not reimplemented. A later offscreen regression reproduced a smaller issue: Qt
+adjusted the popup's global origin during its initial show, after the first glass
+surface had been sampled. The first backdrop paint used the old origin; a queued
+geometry update corrected it afterward. At 100%, the fixture sampled `(2, 224)`
+before painting at `(4, 226)`. This is a coordinate discrepancy, not proof of the
+reported live whole-menu color flash.
+
+The controller now refreshes its cached surface on the menu's `ShowToParent` event,
+before queued paints. Qt's [QWidget implementation](https://github.com/qt/qtbase/blob/6.10/src/widgets/kernel/qwidget.cpp)
+sends that event after its show helper; merely handling `Show` was too early in
+the regression. Existing coalesced move/resize handling, asynchronous decode,
+250 ms fallback, transparency choices and X11 mask remain unchanged. No new
+decoding, background polling or compositor is introduced by this event handler.
+
+Two regression tests cover actual first-backdrop-paint coordinates across three
+openings, plus fractional-alpha curves and texture scaling at DPR 1, 1.25, 1.5 and
+2. A separate synthetic offscreen matrix compares first-paint-callback captures
+with settled images: 96 source openings across two themes, four scales, ready
+glass/opaque/slow/error modes and three cycles. Before the fix, eight cold-glass
+cases differed by at most 12/255 per channel; afterward all pairs match exactly.
+Seventy-two actual temporary-installed openings also match, including simulated
+compositor detection selecting the existing translucent theme. Installed helper
+hashes/imports, repeat, edited-helper refusal and exact baseline rollback pass.
+
+No additional white outline or alpha-edge change was reproduced; portrait artwork
+is excluded from frame-edge color samples. Fractional-alpha/texture tests pass
+without changing the curve drawing. Offscreen captures can cause another paint
+and are not native first-scanout measurements. X11's binary mask cannot express
+fractional coverage at curved corners; it was not changed. No live X11/compositor,
+mixed-monitor or physical edge acceptance is claimed, and the reported personal
+session symptom remains unverified. No blocked Xvfb retry or live activation occurred.
+
 ## Repeated-opening performance
 
 The first request starts Start normally; there is no autostart change. Thereafter a lightweight Unix-socket request runs before Qt/GIO imports and toggles one resident menu. Hiding leaves no polling/repaint timer. Reopening resets launch protection, search and category, recomputes screen placement, reloads managed glass configuration, and retries a prior failed/timed-out decode.

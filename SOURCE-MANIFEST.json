@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-release-integration-20261115",
+  "candidate": "doroshell-start-rendering-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -36,7 +36,8 @@
     "start_keyboard": "Bounded search/results keyboard navigation on baa0a23b7c1c1c506bdac46f934136c5f94f1076: widget-local arrows/Home/End, native Tab chain and focused rebuild selection; docs/start-keyboard.md. No global key/session change.",
     "start_separators": "Bounded editable folder-link separators on 474cf6c67aae58050d9427b0f742c55667058846: local version 2 only for separators, path-free portable version 2 with legacy version-1 import preservation, noninteractive collapsed lines; docs/start-separators.md. No general command/tree or live change.",
     "power_capabilities": "Read-only optional logind Can-method snapshots on 1533623d43c49a8c98bd5ec017a88f473e27d3dc; no service auto-start/interactive authorization, bounded async queries, conservative unknown/denied/unsupported/inhibited UI and retained primary/native confirmation; docs/power-capabilities.md. Mocked buses only.",
-    "combined_release_integration": "Documentation-only integration follow-up on published 660de7737cc5df522f781c1ff377a4ee99b6895d: 27 cross-revision subprocess steps plus seven installed-toolkit boundary checks; runtime unchanged. See docs/release-integration.md."
+    "combined_release_integration": "Documentation-only integration follow-up on published 660de7737cc5df522f781c1ff377a4ee99b6895d: 27 cross-revision subprocess steps plus seven installed-toolkit boundary checks; runtime unchanged. See docs/release-integration.md.",
+    "start_first_mapped_frame": "Three-line cached-surface resampling on ShowToParent, based on published 27cfea1927a5dea44466a220162e7fcc2b905039; first-backdrop-paint regression, fractional-alpha/texture coverage and four-scale offscreen matrix. Existing 983ac44 readiness/fringe fixes and mask unchanged; live symptom unverified."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -59,8 +60,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "edff082f7dbe1bd6b50d8efa521e3f135476a8f063ac0ffc5fea2917442112bf",
-      "size": 8773,
+      "sha256": "056e34ad637ad24a1abc7d1d6501288bda5183ac651070b1f3fe6afd5fe51c50",
+      "size": 9101,
       "mode": "0o644"
     },
     {
@@ -83,14 +84,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "1e31bbf405211344219736ed62a42768de76262c6e1c374679a4326604dfce50",
-      "size": 53600,
+      "sha256": "47102d11ba1965fd6cd470cd32be62bfe3fe31593c2569d5c92cc41beaebcb1c",
+      "size": 56074,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "e51862aaaecb2c76d45276ef31cf890f57e194fce837106fb8850a7bd3e58cae",
-      "size": 8452,
+      "sha256": "2d3d6a3fef32565e0254d13f67355fa6f5ae76d2750ec46ab62351ff89396ac4",
+      "size": 8489,
       "mode": "0o644"
     },
     {
@@ -245,8 +246,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "189e015474d577d00193853e075eaba5cf6f4332b5f46f52f084e927faaf2792",
-      "size": 21158,
+      "sha256": "34d5ae677c5fa9e18c6f30b87726556dd30801410826db04458eabc67c47f8bd",
+      "size": 21764,
       "mode": "0o644"
     },
     {
@@ -269,8 +270,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "98e030d9e2ccd16b1b6581c8f6c568c631c6467c741bca06f5473ade1a7ae8e4",
-      "size": 20179,
+      "sha256": "7a26192cada8aa0b4dbf264b921a002379ccdd42a6e0be111a5d09b0d3248ae7",
+      "size": 20771,
       "mode": "0o644"
     },
     {
@@ -449,8 +450,8 @@
     },
     {
       "path": "docs/wallpaper-glass.md",
-      "sha256": "991e1c22e14a9d23070fec4127c6acd1d295214714d79782b95bacde718868c0",
-      "size": 10333,
+      "sha256": "811696b13b57eefaa00ed7e2f883f872de3d378d3b6d2e9a6444a9e089449fa1",
+      "size": 12719,
       "mode": "0o644"
     },
     {
@@ -539,8 +540,8 @@
     },
     {
       "path": "menu/wallpaper_glass.py",
-      "sha256": "72b4d96c90f66395dea4b5820d3f78e76fd0aeda96a90dbc960eb1b1a587e995",
-      "size": 15723,
+      "sha256": "742fee5db01192f5c6fff7ebd8c1f1fe695f28a5a1fbc53e0df1e4c4e988249c",
+      "size": 15920,
       "mode": "0o644"
     },
     {
@@ -1333,6 +1334,12 @@
       "path": "tests/test_start_keyboard.py",
       "sha256": "7f41266ba14ba8b1a6addad9de363718f6254f0202d5624568ca07b53e94d697",
       "size": 12307,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_start_rendering.py",
+      "sha256": "1ea86787adea3d4ba002e13c9a52dfa66a50d18b7d63018299717dc7c16c755d",
+      "size": 5048,
       "mode": "0o644"
     },
     {
