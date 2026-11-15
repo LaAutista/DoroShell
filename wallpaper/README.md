@@ -23,7 +23,35 @@ Video repaint caps are 15/30/60 fps. Lower values reduce frame conversion/painti
 
 ## Pause and recovery
 
-Fullscreen applications pause playback on overlapping monitors when they are on the current workspace. Manual pause, logind LockedHint, the X screen saver and DPMS display-off state are independent reasons. Clearing one reason does not clear others. If logind cannot establish the caller's session lock state, playback stays paused. Polling adds up to roughly a second of delay; this is a resource-saving feature, not a lock or security boundary. Lockers that do not report either logind or X screen-saver state require separate compatibility testing.
+**Automatic fullscreen pause is enabled by default** (`pause_fullscreen=true`);
+animation itself remains opt-in. Uncheck **Pause when fullscreen** in Desktop
+Preferences → Background, or **Pause for fullscreen apps on this monitor** in the
+standalone controller, then Apply to opt out. Both edit the same setting.
+
+The renderer checks the window manager's reported fullscreen state on the current
+workspace, including windows on all workspaces, and tests overlap with each selected
+monitor. A fullscreen window on another workspace or a non-overlapping monitor does
+not add that monitor's fullscreen pause reason. This is window-state/geometry
+detection, not application-specific game detection; physical multi-monitor behavior
+remains unverified.
+
+Manual pause, logind LockedHint, the X screen saver and DPMS display-off state are
+independent reasons. Exiting fullscreen or opting out removes only the fullscreen
+reason; playback resumes only when no other reason remains. If logind cannot
+establish the caller's session lock state, playback stays paused. The renderer
+checks every 500 ms; response is normally within about a second, but event-loop or
+helper delays can make it longer. This is not a hard deadline, a lock or security
+boundary. Lockers that do not report either logind or X screen-saver state require
+separate compatibility testing. Pause retains decoder resources for resume;
+**Off** releases them.
+
+Source: [renderer](dorowallpaper.cpp), [controller defaults/checkbox](control.py)
+and [native checkbox](dorowallpapercontrols.h). The existing
+[private-X11 harness](../tests/check_wallpaper_x11.py) exercises fullscreen,
+mock-lock/manual pause composition and resume. Its recorded
+[isolation acceptance](../docs/wallpaper-isolation-verification.md) and earlier
+[resource sample](../docs/wallpaper-resource-verification.md) are historical
+private tests, not a new live-session or hardware check.
 
 **Off — restore static wallpaper now** terminates the video helper and releases its decoder/backend resources (a stopped helper is killed after one second), then restores PCManFM's existing static background; its wallpaper preferences were never changed. The equivalent is:
 
@@ -53,11 +81,19 @@ The controls distinguish **staged for next desktop startup** from an **active na
 
 The private `tests/check_wallpaper_handoff_x11.py` check confirmed that `--desktop-off` preserves an existing file-manager window, but a candidate `--desktop` invocation still forwards to the existing stock PCManFM D-Bus owner, even with another profile. It cannot replace that renderer while preserving its owner process. Use the next normal desktop startup; no live handoff is performed.
 
-## Decoder isolation acceptance (source candidate)
+## Decoder isolation acceptance (published source)
 
 The standard source build now produces both executables. Authenticated private-X11 tests cover actual staged launch, repeat installation, stock fallback for a non-executable helper, exact autostart rollback while preserving media choices, clickable desktop icons, pause reasons, GIF/error/static restoration, stopped-helper timeout, repeated toggles, crash/retry, parent-death cleanup and desktop-off with a surviving file-manager window. Tests: `check_wallpaper_install_x11.py`, `check_wallpaper_lifecycle_x11.py`, `check_wallpaper_controls_x11.py`, `check_wallpaper_isolated_resources_x11.py`.
 
-The earlier in-process optional archive and personal staged renderer are unchanged. This checkout is a newer, unpublished isolation candidate. Short Xvfb/llvmpipe measurements showed Off at about 70 MiB with no decoder process versus roughly 425 MiB retained previously. Playing CPU was similar, not faster; summed process RSS includes shared pages more than once. These are not hardware-acceleration or input-latency measurements. Pause intentionally retains decoder memory for resume; Off releases it. Physical/audio-device, normal-login, clean-system and long-session checks remain separate gates.
+The November 10 isolation acceptance was recorded before publication, without
+replacing the then-existing optional archive or personal staged renderer. The
+isolated renderer and worker are now in published source history (`fad281f`), with
+native Background controls added in `a0f82f9`; both precede the coordinator-verified
+published checkpoint `28bfcd8`. Source publication does not establish which build
+is currently running. The controlled deployment below is a separate historical
+observation, not a fresh runtime check.
+
+Short Xvfb/llvmpipe measurements showed Off at about 70 MiB with no decoder process versus roughly 425 MiB retained previously. Playing CPU was similar, not faster; summed process RSS includes shared pages more than once. These are not hardware-acceleration or input-latency measurements. Pause intentionally retains decoder memory for resume; Off releases it. Physical/audio-device, normal-login, clean-system and long-session checks remain separate gates.
 
 Private null-only audio acceptance also passed (`tests/check_wallpaper_audio_x11.py`): default mute, pause, remute and Off produced silent captured samples; unmute/resume produced the synthetic tone; Off removed the helper and audio stream. No physical audio device or user audio session was used. This does not test real-device routing or perceived latency. See [integration evidence](../docs/wallpaper-isolation-verification.md).
 

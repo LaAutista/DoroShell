@@ -17,7 +17,13 @@ and deployment notes do not describe current main.
 - Screenshots: full desktop/window/area capture, editable annotations, text controls,
   redaction/blur/pixelate, delayed recapture and optional native ScreenGrab import.
 - Native wallpaper: isolated decoder and Background controls with static fallback,
-  mute/volume/pause/Off; guarded optional Advanced display controls are separate.
+  mute/volume/manual pause/Off and **automatic fullscreen pause, on by default**.
+  Both controls allow opting out. Reported fullscreen windows on the current
+  workspace (including all-workspace windows) pause animation on overlapping
+  selected monitors. Other pause reasons remain independent; the 500 ms polling
+  cadence is not an immediate response guarantee. See [pause behavior and historical
+  private acceptance](../wallpaper/README.md#pause-and-recovery).
+  Guarded optional Advanced display controls are separate.
 - Setup: selected modules, previews, original backups, conflict refusal and rollback.
   No desktop reset. The local `setup.py` reports package requirements; the explicitly
   requested bootstrap/deploy apply flow can offer official prerequisites and module

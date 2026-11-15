@@ -12,7 +12,7 @@ The repository is public: no GitHub authentication is required. Use
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen
-design. The current coordinator-verified published checkpoint is `012aa93`, including automatic
+design. The current coordinator-verified published checkpoint is `28bfcd8`, including automatic
 prerequisites, optional Alt+F1, bounded custom-root snapping/single-desktop,
 retention, separators, keyboard navigation and power capability states. The
 [release integration pass](release-integration.md) checks their combined installed
@@ -51,6 +51,13 @@ next-login and restoration boundaries are documented in INSTALL.
   asserted artwork rights. Keep third-party/component notices unchanged.
 
 ## Known issues and recent evidence
+
+Documentation now explicitly inventories the already-shipped
+[automatic fullscreen wallpaper pause](../wallpaper/README.md#pause-and-recovery):
+default-on/opt-out, monitor/workspace scope, independent pause reasons and polling
+delay. Isolated-decoder publication is confirmed by local ancestry; its earlier
+private acceptance and controlled deployment remain historical. Runtime source,
+tests and installed files are unchanged; no new live/hardware acceptance.
 
 The application-properties candidate on published `012aa93` adds a read-only
 modal to the existing context menu, native keyboard-context invocation, bounded selectable

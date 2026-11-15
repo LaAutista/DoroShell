@@ -1,6 +1,11 @@
 # Decoder-isolation integration acceptance
 
-2026-11-10. Unpublished source candidate; no personal desktop, autostart or existing optional archive replacement.
+Historical acceptance recorded on 2026-11-10, while this source candidate was
+unpublished; that test did not replace the personal desktop, autostart or existing
+optional archive. The isolated renderer/worker subsequently shipped in `fad281f`,
+an ancestor of published `28bfcd8`. The counts and runtime observations below remain
+those of the original private tests; this documentation reconciliation did not rerun
+them. See [current pause behavior](../wallpaper/README.md#pause-and-recovery).
 
 ## Built and verified
 

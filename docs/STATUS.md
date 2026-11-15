@@ -4,6 +4,14 @@ This is a portable development baseline, not a finished desktop or a certified
 stable installer. [Detailed historical acceptance](final-acceptance.md) remains
 separate from this pass. Source publication does not imply live activation.
 
+Documentation-only reconciliation explicitly lists the already-implemented
+[automatic fullscreen wallpaper pause](../wallpaper/README.md#pause-and-recovery),
+enabled by default with an opt-out in both controls. Current/all-workspace windows
+pause overlapping selected monitors; independent reasons and the 500 ms polling
+cadence are documented without a hard response guarantee. Earlier private-X11
+acceptance remains historical, and physical multi-monitor behavior remains
+unverified. No runtime code, test, installation or live-session change.
+
 Read-only [application properties](app-properties.md), based on published `012aa93`,
 adds the selected app's available GIO fields and native keyboard context invocation.
 It preserves menu/pin state without source-file probes, command interpretation or
@@ -33,7 +41,7 @@ unusable rows skipped, rebuild retention and popup/modal ownership. No new layou
 global shortcut, preference schema or live input/session action. Actual AT-SPI,
 screen-reader, global-input and live X11 acceptance remain outstanding.
 
-Current published checkpoint: `012aa9318841eca4aae2aa5d511043c4309b4ba1`, as
+Current published checkpoint: `28bfcd83d741c0000f2db69b38f221bcf251c97d`, as
 independently verified by the release coordinator. The earlier follow-up to `660de77`
 [release integration pass](release-integration.md) found no runtime regression in
 27 cross-revision subprocess steps and seven installed-toolkit boundary checks.
@@ -57,7 +65,7 @@ unverified; see [rendering evidence](wallpaper-glass.md#mapped-position-first-fr
 | Start/search/folders/portable preferences | Implemented, including optional age retention, separators and bounded keyboard navigation | Actual temporary installed toolkit imports, combined offscreen controls and preference-preserving cross-revision lifecycle checks. No new live interaction or login test. |
 | Mouse & Touchpad | DoroShell Settings page, installed opt-in X11 helper, login intent, restoration and guarded removal/undo; read-only capability/configuration-intent status | 35 input unit/lifecycle/diagnostic tests and private rendered installed-toolkit acceptance; evdev profile support only when exposed. Current initialization remains unverified; stale logs cannot establish it. Native LXQt is linked, not patched. No physical input or login acceptance. |
 | Panel/tray | Ten-patch native panel, profile-preserving updates, Quick Launch apps merged into taskbar pins (opt-in command for existing installs) | Read-only running path confirms ten-patch runtime. New upgrade tests preserve config and baseline and cover interrupted writes. No panel refresh performed. |
-| Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
+| Wallpaper/display | Native Background controls, isolated decoder, default-on/opt-out automatic fullscreen pause, guarded Advanced UI and schema-2 diagnostics | Historical private-X11 pause composition/resume and read-only schema-2 desktop provenance; no fresh runtime comparison. Physical multi-monitor pause and mode-transition mismatch remain unverified; user previously restored rate manually. No hardware test in this pass. |
 | Optional Alt+F1 | Explicit deploy/bootstrap/setup selection, custom replacement choice, next-startup disk binding | Disposable-home apply/repeat/recovery/remove/undo and installed-toolkit CLI; Qt reads private binding fixtures. Whole-file ownership refuses later shortcut edits. No live daemon reload or login acceptance. |
 | Installer | Bootstrap, approved automatic prerequisite stages, capability/package checks, scoped modules, versioned builds, next-login staging, update/removal, journal and exact completed-upgrade undo | Disposable-home and fake-command missing-capability/cancellation/fault tests; see release evidence for final counts. Actual package/authentication and clean-machine acceptance remain separate. Existing adapters remain the persistence engines. |
 | Compatibility | Arch lineage/pacman, LXQt/X11, Openbox; single panel1 or bounded explicit multi-panel selection through setup/deploy/bootstrap; native CMake check | CachyOS development host. Arch/EndeavourOS detection is fixture-tested, not clean-OS installation-tested. Wayland and broad XDG relocation refused; bounded explicit single-desktop/snapping config-root support only. Explicit panelN selection preserves other standard panels; shared widgets/ambiguous layouts remain unsupported. |

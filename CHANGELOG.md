@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Document already-shipped automatic fullscreen wallpaper pause: default-on with
+  opt-out, monitor/workspace scope, independent reasons and polling delay. Correct
+  stale unpublished-isolation wording using source history; retain historical
+  private-test and live-deployment boundaries. No runtime behavior change.
+
 - Add read-only application Properties with selectable bounded GIO metadata,
   explicit missing/stale status and native keyboard-context invocation. Preserve
   native popup/modal ownership, preferences and return focus; no Exec/file access

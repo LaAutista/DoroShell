@@ -1,4 +1,24 @@
-# Read-only application properties checkpoint — 2026-11-15
+# Fullscreen wallpaper pause documentation — 2026-11-15
+
+Documentation-only candidate on coordinator-verified published
+`28bfcd83d741c0000f2db69b38f221bcf251c97d`. The roadmap and source-shipped summary now
+explicitly include existing automatic fullscreen pause, default-on/opt-out,
+monitor/workspace applicability, independent pause reasons and the 500 ms polling
+cadence without a hard deadline. [Behavior and evidence](wallpaper/README.md#pause-and-recovery).
+
+The isolated renderer/worker already occur in `fad281f`; native Background controls
+occur in `a0f82f9`. Local ancestry confirms both precede this published base. Stale
+unpublished-candidate wording is replaced with historical context; the original
+private-test counts and controlled-deployment observations are retained.
+
+Verification covers documentation links, exact unchanged non-documentation bytes
+and modes, source inventory/checksums and bundle/archive/patch round trips. The
+**540 full-suite/nine installed tests** below belong to the unchanged base and were
+not rerun for this documentation-only increment. No personal-media access/playback, X11 retry,
+runtime build/deployment or live session/hardware check. Physical multi-monitor,
+DPMS, normal-login and clean-OS limits remain. Independent review before publication.
+
+## Historical read-only application properties checkpoint — 2026-11-15
 
 Source candidate on published `012aa9318841eca4aae2aa5d511043c4309b4ba1` adds
 Properties to the existing app context menu and native keyboard-context invocation. A native
@@ -582,7 +602,7 @@ build/archive evidence below remains historical. No live activation was retried.
 
 ## Subsequent keyboard-entry acceptance
 
-After `f26f439`, the [entry probe](docs/tray-lifecycle.md#keyboard-only-entry-known-limitation)
+After `f26f439`, the [entry probe](docs/tray-lifecycle.md#keyboard-only-entry-historical-native-limitation)
 confirms the no-focus dock has no normal keyboard-only route to overflow under
 Openbox. No notifier shortcut action exists in the inspected source. This increment
 changes tests/docs only, preserves all nine patches, and reruns the full 237-test

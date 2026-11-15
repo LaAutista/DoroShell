@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-app-properties-20261115",
+  "candidate": "doroshell-wallpaper-pause-docs-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -41,13 +41,15 @@
     "start_column_navigation": "Bounded widget-local results-Right/places-Left focus adapter on published 0c50da54f9a09499c780796eab8bbfce277e91f8; usable target filtering, in-memory rebuild retention and popup/modal/hidden/drag guards. Ten new source and twenty installed keyboard cases; no settings, layouts or global keys. See docs/start-keyboard.md.",
     "app_catalog_acceptance": "Acceptance-only follow-up on published da49537f618b14d88676cfd7202e9f6f5cc9bd39: actual GIO discovery/notifications in fresh disposable HOME/XDG processes, desktop override/visibility, duplicate IDs/names, localization/Unicode and registered Flatpak-shaped exports, pin/selection/column-focus preservation. Runtime unchanged; three source and three actual installed scenarios; docs/app-search.md.",
     "recent_documents": "Optional default-off shared XBEL submenu on published 5cc96a4982aa2547d58079adc3722d70c1248549. Bounded/cancellable on-demand reader, private-marker/URI filtering, no target probes/shared writes, availability unverified and explicit GIO dispatch. Boolean-only separate preference excluded from portable export; runtime/toolkit helper lifecycle and native-menu keyboard fixtures. See docs/recent-documents.md.",
-    "app_properties": "Read-only Properties on published 012aa9318841eca4aae2aa5d511043c4309b4ba1: four bounded/selectable GIO fields, explicit missing/stale status, native keyboard/mouse context-event routing, modal lifetime/focus preservation. No file probe/Exec handling, new helper/schema or preference write. Docs/app-properties.md; roadmap package wording corrected."
+    "app_properties": "Read-only Properties on published 012aa9318841eca4aae2aa5d511043c4309b4ba1: four bounded/selectable GIO fields, explicit missing/stale status, native keyboard/mouse context-event routing, modal lifetime/focus preservation. No file probe/Exec handling, new helper/schema or preference write. Docs/app-properties.md; roadmap package wording corrected.",
+    "fullscreen_wallpaper_documentation": "Documentation-only follow-up on published 28bfcd83d741c0000f2db69b38f221bcf251c97d: existing default-on/opt-out fullscreen pause, monitor/workspace scope, independent pause reasons and 500 ms polling cadence. Renderer/worker ancestry fad281f and native Background controls a0f82f9; historical acceptance retained. See wallpaper/README.md and docs/roadmap.md."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
     "passed": 540,
     "command": "python -m unittest discover -s tests -v",
-    "note": "540 tests passed in 35.204s with disposable HOME/XDG, offscreen Qt and nonexistent private buses. Nine new metadata/Qt cases include actual GIO fixture files/keyfiles, duplicate names, deleted source, non-file data, bounds/escapes, native keyboard/mouse context events, modal/read-only/accessibility and state preservation. Nine installed-copy tests passed in 0.156s; runtime/toolkit bytes/import, rendered dialog/focus, repeat, edit conflict and exact rollback. Actual platform key generation/live X11/AT-SPI, login and clean OS remain unverified. No real app/clipboard/session/device or package changes."
+    "note": "540 tests passed in 35.204s with disposable HOME/XDG, offscreen Qt and nonexistent private buses. Nine new metadata/Qt cases include actual GIO fixture files/keyfiles, duplicate names, deleted source, non-file data, bounds/escapes, native keyboard/mouse context events, modal/read-only/accessibility and state preservation. Nine installed-copy tests passed in 0.156s; runtime/toolkit bytes/import, rendered dialog/focus, repeat, edit conflict and exact rollback. Actual platform key generation/live X11/AT-SPI, login and clean OS remain unverified. No real app/clipboard/session/device or package changes.",
+    "documentation_followup": "Runtime/test bytes and modes unchanged from 28bfcd83d741c0000f2db69b38f221bcf251c97d; the 540 unit/nine installed counts above are that prior run, not rerun here. Relative documentation links, source inventory/checksums, archive/patch/bundle round trips checked. No native/live/hardware or media test."
   },
   "source_payloads": [
     {
@@ -64,8 +66,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "4f3d774d409802184ac6d05f2bcffef09ddffdb22685491b4946603f1b4e3ba4",
-      "size": 10475,
+      "sha256": "78ca9c89d2cee64ad9517c4c815208672e197493a555dcfde7ab8caacbca4ea6",
+      "size": 10793,
       "mode": "0o644"
     },
     {
@@ -88,8 +90,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "3c96821d7f34a99e4b742cca71139d5667c9245ccab84e07067763cda240d427",
-      "size": 64489,
+      "sha256": "276419fbeefccd6d544df5663017579de5a772dc8def5b2ce8d4cb6fe2753234",
+      "size": 65809,
       "mode": "0o644"
     },
     {
@@ -250,8 +252,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "85540eacd46b2ab3c4c64be3341803cde271a3b3c51a9f870a3c4c47ad715818",
-      "size": 24168,
+      "sha256": "04ac5318ea7b13e032ce45e493aff90614f87cb23dccacc1979c66d7c13a656f",
+      "size": 24630,
       "mode": "0o644"
     },
     {
@@ -274,8 +276,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "2f877533da3e56ac783b3b745278b1eec5950731201bf1fec66d9f398ac2f9c4",
-      "size": 22817,
+      "sha256": "ebfda90058d1e47aca8569451f127c4445b6479bc7e318d4ffa7c363b692ad76",
+      "size": 23507,
       "mode": "0o644"
     },
     {
@@ -400,8 +402,8 @@
     },
     {
       "path": "docs/roadmap.md",
-      "sha256": "01381be103c5a4a6da57df90e775efb8a57fefcf63b8e6facfeb1951dd8a59e3",
-      "size": 5191,
+      "sha256": "b534463ab01d7a652cb56fa54f9c83e787fca9aaa88cd0afd6799e70282fcb8d",
+      "size": 5635,
       "mode": "0o644"
     },
     {
@@ -472,8 +474,8 @@
     },
     {
       "path": "docs/wallpaper-isolation-verification.md",
-      "sha256": "f538620715bcaad7729ca4c88897caf823f73243f7b4619646da39d3c27b62b4",
-      "size": 6535,
+      "sha256": "67e33d24bdcf9d2631b330bc8b31d75dfd86df2bc70222939375258fc2361378",
+      "size": 6912,
       "mode": "0o644"
     },
     {
@@ -1456,8 +1458,8 @@
     },
     {
       "path": "wallpaper/README.md",
-      "sha256": "795bcc51a5f329eb9f32c7d9b7a2cf1b032d4fca3d3eb8f561132d8a731e0b77",
-      "size": 12588,
+      "sha256": "e2db6ecfc5f45cd21181cf880dd15bd6dc2100a27a664ec23524b8391d1e597a",
+      "size": 14333,
       "mode": "0o644"
     },
     {
