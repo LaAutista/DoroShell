@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-app-catalog-20261115",
+  "candidate": "doroshell-recent-documents-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -39,13 +39,14 @@
     "combined_release_integration": "Documentation-only integration follow-up on published 660de7737cc5df522f781c1ff377a4ee99b6895d: 27 cross-revision subprocess steps plus seven installed-toolkit boundary checks; runtime unchanged. See docs/release-integration.md.",
     "start_first_mapped_frame": "Three-line cached-surface resampling on ShowToParent, based on published 27cfea1927a5dea44466a220162e7fcc2b905039; first-backdrop-paint regression, fractional-alpha/texture coverage and four-scale offscreen matrix. Existing 983ac44 readiness/fringe fixes and mask unchanged; live symptom unverified.",
     "start_column_navigation": "Bounded widget-local results-Right/places-Left focus adapter on published 0c50da54f9a09499c780796eab8bbfce277e91f8; usable target filtering, in-memory rebuild retention and popup/modal/hidden/drag guards. Ten new source and twenty installed keyboard cases; no settings, layouts or global keys. See docs/start-keyboard.md.",
-    "app_catalog_acceptance": "Acceptance-only follow-up on published da49537f618b14d88676cfd7202e9f6f5cc9bd39: actual GIO discovery/notifications in fresh disposable HOME/XDG processes, desktop override/visibility, duplicate IDs/names, localization/Unicode and registered Flatpak-shaped exports, pin/selection/column-focus preservation. Runtime unchanged; three source and three actual installed scenarios; docs/app-search.md."
+    "app_catalog_acceptance": "Acceptance-only follow-up on published da49537f618b14d88676cfd7202e9f6f5cc9bd39: actual GIO discovery/notifications in fresh disposable HOME/XDG processes, desktop override/visibility, duplicate IDs/names, localization/Unicode and registered Flatpak-shaped exports, pin/selection/column-focus preservation. Runtime unchanged; three source and three actual installed scenarios; docs/app-search.md.",
+    "recent_documents": "Optional default-off shared XBEL submenu on published 5cc96a4982aa2547d58079adc3722d70c1248549. Bounded/cancellable on-demand reader, private-marker/URI filtering, no target probes/shared writes, availability unverified and explicit GIO dispatch. Boolean-only separate preference excluded from portable export; runtime/toolkit helper lifecycle and native-menu keyboard fixtures. See docs/recent-documents.md."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 515,
+    "passed": 531,
     "command": "python -m unittest discover -s tests -v",
-    "note": "515 tests passed in 33.612s with disposable HOME/XDG, offscreen Qt, memory GSettings and private nonexistent bus addresses. Three new cases use actual GIO desktop-entry discovery and notifications in fresh subprocesses. Three scenarios also pass from the actual temporary-installed menu, checking seven runtime/helper imports, runtime/toolkit byte identity, repeat ownership and preference-preserving removal. No runtime changes, personal catalog or actual app/package/input/session actions. Real Flatpak installation/launch, live X11, login and clean OS remain unverified."
+    "note": "531 tests passed in 34.827s with disposable HOME/XDG, offscreen Qt and nonexistent private buses; includes 16 new synthetic XBEL/URI/preferences/worker/UI/lifecycle cases. Eight actual temporary-installed UI tests passed in 0.453s, with helper runtime/toolkit import/hash closure, native submenu rendering, repeat and exact rollback. Actual document opening, personal shared history, live X11, AT-SPI, login and clean OS remain unverified. No package, auth, input/display/session changes or deployment."
   },
   "source_payloads": [
     {
@@ -62,8 +63,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "6ccb68074990afb07ff5cb0c54b9c932345f742980f7ff2c44c59bfd8b97352b",
-      "size": 9747,
+      "sha256": "d975ac102b90abc3fbb2c423b319c6aa5d065026d467c5fea1dbec59cfe8374c",
+      "size": 10150,
       "mode": "0o644"
     },
     {
@@ -86,14 +87,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "9b9ff381433678aab85bee92a800fb065fff03a580432d16e475f819ffabc2b4",
-      "size": 60736,
+      "sha256": "265252acd028049ac91cd1a4791ac71b8506c954b4b7c868b30a816dc9dcddc0",
+      "size": 62502,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "40eb19bebb259d9497b551dca863b25d2b45ebcd95f95c47dde25badcb0f882b",
-      "size": 8601,
+      "sha256": "6f3aadb2a34b568c5b7e9677331f8ec96803788d2b4f55ba6e764021c1d2a263",
+      "size": 8703,
       "mode": "0o644"
     },
     {
@@ -248,8 +249,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "147d0b074ae40d1a8de50fd853ee9a70dde0254343b34261cb4a70fece8362e2",
-      "size": 23071,
+      "sha256": "d62895ff1e679d97456864542c670a859d2e326dcae849797ed51f4da2c57daa",
+      "size": 23585,
       "mode": "0o644"
     },
     {
@@ -272,8 +273,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "6817655c11a6ab171be2509a7b72d816de781a2bae29d74febd9e7b7d778d50a",
-      "size": 21877,
+      "sha256": "62d52d57c4b5cc9acc21c258304875a4437976190e91adc8a5606d955018da07",
+      "size": 22357,
       "mode": "0o644"
     },
     {
@@ -344,8 +345,8 @@
     },
     {
       "path": "docs/open-shell-parity.md",
-      "sha256": "94547a1d0947fdd1ea6e645833c6789c739683b36a8e2a0c79c526c48a1cbcda",
-      "size": 12083,
+      "sha256": "01b6c1af75e5704fa542b10d77af4ddaa8c23d108561b698774c08551979cad7",
+      "size": 12374,
       "mode": "0o644"
     },
     {
@@ -376,6 +377,12 @@
       "path": "docs/recent-apps.md",
       "sha256": "287569e0b39b44d29c7588b5c8f3542bfff105a26029de5eb5c2ec7656bc6889",
       "size": 4792,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/recent-documents.md",
+      "sha256": "40f30a199c5d9469fc77c8dea9c8286624a4c891ef3b851e4da855a80c775d21",
+      "size": 5148,
       "mode": "0o644"
     },
     {
@@ -494,8 +501,8 @@
     },
     {
       "path": "install.py",
-      "sha256": "010935259b7f383d6859ed18d962cf900d5f1ad56f08cdbcf946f58da6b38440",
-      "size": 17819,
+      "sha256": "2aa109bf1f9b4da1c867e84f9f529b8e300e645f437ff98d5f323fb07e8252c2",
+      "size": 17981,
       "mode": "0o644"
     },
     {
@@ -529,6 +536,12 @@
       "mode": "0o644"
     },
     {
+      "path": "menu/recent_documents.py",
+      "sha256": "28729ec14fe67683835aa29cf45172da0267e67b3d091d81afaf9b3dc4c80c89",
+      "size": 9969,
+      "mode": "0o644"
+    },
+    {
       "path": "menu/start.svg",
       "sha256": "69c1bfd0ea9ef0a52a8712f0d3302c7786e4e7034ba43c050113cfa8cfd66314",
       "size": 319,
@@ -536,8 +549,8 @@
     },
     {
       "path": "menu/start_menu.py",
-      "sha256": "5ac9a045082ba578612d731d646c33b1582a34f7a067145f4f26042b6266af8c",
-      "size": 87056,
+      "sha256": "f8e1deae6c99bcfe7f952d798c10a93c733abb3076110e918b12e1c4b65b449c",
+      "size": 90388,
       "mode": "0o644"
     },
     {
@@ -1238,8 +1251,8 @@
     },
     {
       "path": "tests/test_menu.py",
-      "sha256": "8d1677e4eeaa49cb2fe7489cb771e0f5eb44d19b4c688798e96a48622f461cf8",
-      "size": 37828,
+      "sha256": "9ddfd6db6dd6309da07b52d8c1310431db2642b945a01e3fbbfc8471599e17ba",
+      "size": 37937,
       "mode": "0o644"
     },
     {
@@ -1318,6 +1331,12 @@
       "path": "tests/test_readability.py",
       "sha256": "5d2debf6f71fd07f5e22761e03b679dd803c345a6309da12a0d254481f17222e",
       "size": 5765,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_recent_documents.py",
+      "sha256": "57399b1872e1c51b237bcb44000e33ac434914077c1f31e594f410cdee9944a0",
+      "size": 15912,
       "mode": "0o644"
     },
     {

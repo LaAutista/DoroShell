@@ -12,7 +12,7 @@ The repository is public: no GitHub authentication is required. Use
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen
-design. The current coordinator-verified published checkpoint is `da49537`, including automatic
+design. The current coordinator-verified published checkpoint is `5cc96a4`, including automatic
 prerequisites, optional Alt+F1, bounded custom-root snapping/single-desktop,
 retention, separators, keyboard navigation and power capability states. The
 [release integration pass](release-integration.md) checks their combined installed
@@ -51,6 +51,14 @@ next-login and restoration boundaries are documented in INSTALL.
   asserted artwork rights. Keep third-party/component notices unchanged.
 
 ## Known issues and recent evidence
+
+The next source candidate adds [optional Recent Documents](recent-documents.md)
+on published `5cc96a4`: default-off, explicit read of shared desktop XBEL in a
+bounded cancellable worker, no target probes or shared-store writes. Supported
+local URI entries remain availability-unverified; selection uses GIO. Paths/history
+never enter preferences/backups/portable export. Native submenu keyboard ownership
+and installed helper lifecycle pass 531 full-suite/eight installed UI tests; real
+documents are not opened.
 
 The catalog follow-up on published `da49537` adds real GIO/offscreen fixture
 acceptance only: no production catalog/search/installer defect was reproduced.

@@ -1,4 +1,29 @@
-# Real GIO catalog acceptance checkpoint — 2026-11-15
+# Optional Recent Documents checkpoint — 2026-11-15
+
+Source candidate on published `5cc96a4982aa2547d58079adc3722d70c1248549` adds a
+default-off native submenu and separate boolean-only preference. The worker reads
+shared desktop XBEL only on explicit submenu open, with bounded bytes/records/output
+and cancellation/timeout. Private markers and unsupported URIs are omitted; no
+target stat, content, icon, thumbnail or mount probing. Actual availability remains
+unknown. Explicit selection dispatches through GIO; it does not prove app success.
+
+No shared-history deletion/copying, personal document indexing, default enablement
+or portable-history export. The installer includes the new helper in both runtime
+and toolkit; runtime signatures detect upgrades. Existing baseline ownership and
+rollback semantics remain. Document preference survives menu removal; no history
+is included in the managed-file manifest. See [limits and reproduction scope](docs/recent-documents.md).
+
+**531 full-suite tests pass (34.827s)**, including 16 new cases. Eight installed
+UI tests pass (0.453s). Synthetic reader/UI tests include hostile XML/URI input, private duplicates, missing
+targets without probing, no-read default, cancellation/late results, native keys,
+fake GIO errors, invalid/future settings, exact installer rollback and history
+privacy. Eight UI tests also pass using actual temporary-installed code and helper
+imports, with synthetic screenshots inspected outside the source archive. No actual
+document opening, personal history read, live deployment, package/authentication,
+session/device action, Xvfb retry, login or clean-OS claim. Original source, prior
+evidence and disabled helper remain preserved. Independent review precedes publication.
+
+## Historical real GIO catalog acceptance checkpoint — 2026-11-15
 
 Tests/documentation-only follow-up to published
 `da49537f618b14d88676cfd7202e9f6f5cc9bd39`; no catalog runtime defect reproduced.

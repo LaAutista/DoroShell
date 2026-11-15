@@ -17,7 +17,7 @@ def runtime_signature():
     import hashlib
     root = Path(__file__).resolve().parent
     paths = [root / name for name in ('start_menu.py', 'wallpaper_glass.py', 'app_search.py',
-                                     'folder_cascade.py', 'portrait_crop.py', 'power_capabilities.py', 'themes.py')]
+                                     'folder_cascade.py', 'portrait_crop.py', 'power_capabilities.py', 'recent_documents.py', 'themes.py')]
     paths.append(root.parent / 'themes.py')
     return hashlib.sha256(repr([(str(p), file_stamp(p)) for p in paths]).encode()).hexdigest()
 
@@ -59,6 +59,7 @@ from app_search import AppSearchIndex, is_visible
 from portrait_crop import PortraitCropDialog, validate_crop, load_image, render_crop
 from folder_cascade import FolderCascadeMenu
 from power_capabilities import PowerCapabilities, METHODS as POWER_ACTIONS
+import recent_documents
 
 import gi
 gi.require_version('Gio', '2.0')
@@ -756,6 +757,8 @@ class StartMenu(QWidget):
         self.favorites = []
         self.state_original = None
         self.recent = RecentPrograms(self.state.with_name('recent.json'))
+        self.documents_path = self.state.with_name('recent-documents.json')
+        self.documents_enabled, self.documents_original, self.documents_error = recent_documents.preference(self.documents_path)
         self.power_capabilities = PowerCapabilities(self)
         self.primary_action = 'shutdown'
         self.primary_path = self.state.with_name('session-button.json')
@@ -870,6 +873,14 @@ class StartMenu(QWidget):
         area.setWidget(contents)
         right.addWidget(area, 1)
         self.refresh_folders()
+        self.documents_button = QPushButton('Recent documents')
+        self.documents_button.setObjectName('menuControl')
+        self.documents_button.setAccessibleName('Recent documents from shared desktop history')
+        self.documents_button.setToolTip(recent_documents.NOTICE)
+        self.documents_menu = recent_documents.make_menu(self.documents_button, lambda: self.documents_enabled, self.open_document)
+        self.documents_button.setMenu(self.documents_menu)
+        self.documents_button.setVisible(self.documents_enabled)
+        right.addWidget(self.documents_button)
         self.edit_links_button = QPushButton('Edit folder links…')
         self.edit_links_button.setObjectName('menuControl')
         self.edit_links_button.clicked.connect(self.edit_folders)
@@ -877,6 +888,15 @@ class StartMenu(QWidget):
         options = QPushButton('Menu options…')
         options.setObjectName('menuControl')
         options_menu = QMenu(options)
+        documents_options = options_menu.addMenu('Recent documents (shared history)')
+        documents_options.addAction('Reads shared desktop history only when opened').setEnabled(False)
+        documents_options.addAction('Local file URIs only; availability is unverified').setEnabled(False)
+        documents_options.addAction('Disable hides this view; it does not clear shared history').setEnabled(False)
+        self.show_documents = documents_options.addAction('Enable Recent documents view')
+        self.show_documents.setCheckable(True)
+        self.show_documents.setChecked(self.documents_enabled)
+        self.show_documents.setToolTip(self.documents_error or 'Off by default. No indexing, target scans or history copies.')
+        self.show_documents.toggled.connect(self.set_documents_enabled)
         self.remember = options_menu.addAction('Remember recent programs')
         self.remember.setCheckable(True)
         self.remember.setChecked(self.recent.value['enabled'])
@@ -942,7 +962,7 @@ class StartMenu(QWidget):
         self.power_arrow.setMenu(self.power_menu)
         power.addWidget(self.power_arrow)
         right.addLayout(power)
-        for key, control in (('edit', self.edit_links_button), ('options', options),
+        for key, control in (('documents', self.documents_button), ('edit', self.edit_links_button), ('options', options),
                              ('session', self.session_button), ('power', self.power_arrow)):
             self.fixed_places_controls.append((key, control))
             control.installEventFilter(self)
@@ -1263,6 +1283,8 @@ class StartMenu(QWidget):
     def hideEvent(self, event):
         super().hideEvent(event)
         self.power_capabilities.cancel()
+        self.documents_menu.close()
+        self.documents_menu.cancel()
         if self.exit_on_hide:
             QTimer.singleShot(0, QApplication.instance().quit)
 
@@ -1301,6 +1323,30 @@ class StartMenu(QWidget):
             self.remember.blockSignals(False)
             self.error(str(error))
         self.refresh()
+
+    def set_documents_enabled(self, enabled):
+        try:
+            if self.documents_error: raise ValueError(self.documents_error)
+            self.documents_original = save_json(self.documents_path, {'version': 1, 'enabled': bool(enabled)}, self.documents_original, backup=False)
+            self.documents_enabled = bool(enabled)
+        except (OSError, ValueError) as error:
+            self.error('Recent documents were not changed: ' + str(error))
+        self.show_documents.blockSignals(True)
+        self.show_documents.setChecked(self.documents_enabled)
+        self.show_documents.blockSignals(False)
+        self.documents_button.setVisible(self.documents_enabled)
+        if not self.documents_enabled:
+            self.documents_menu.close(); self.documents_menu.cancel(); self.documents_menu.clear()
+
+    def open_document(self, uri):
+        if not self.documents_enabled or self.launching: return
+        try:
+            uri, _ = recent_documents.local_uri(uri)
+            if not Gio.AppInfo.launch_default_for_uri(uri, None): raise RuntimeError()
+            self.launching = True
+            self.close()
+        except (GLib.Error, ValueError, RuntimeError):
+            self.error('The document could not be opened. It may be missing, unavailable, or have no default application. Shared history was not changed.')
 
     def set_recent_limit(self, limit):
         try:
@@ -1694,6 +1740,8 @@ class ResidentMenu:
             except OSError:
                 different = True
             changed.append((str(path), different))
+        _, document_data, document_error = recent_documents.preference(self.window.documents_path)
+        changed.append((str(self.window.documents_path), bool(document_error) or document_data != self.window.documents_original))
         return [(str(p), file_stamp(p)) for p in paths] + changed
 
     def accept(self):

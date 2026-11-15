@@ -493,7 +493,8 @@ class MenuTests(unittest.TestCase):
             window.show()
             self.app.processEvents()
             area = window.findChild(menu.QScrollArea)
-            controls = window.findChildren(menu.QPushButton, 'menuControl')
+            self.assertTrue(window.documents_button.isHidden())
+            controls = [button for button in window.findChildren(menu.QPushButton, 'menuControl') if button.isVisible()]
             self.assertEqual(len(controls), 3)
             self.assertEqual(area.verticalScrollBar().maximum(), 0)
             portrait = window.findChild(menu.QLabel, 'personalStartImage')

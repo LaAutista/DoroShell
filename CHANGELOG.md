@@ -2,6 +2,12 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add a default-off Recent Documents submenu reading bounded shared desktop XBEL
+  metadata on explicit open. Use a cancellable worker, omit private/unsupported
+  entries, keep availability unverified and launch only through GIO on selection.
+  No target scans, shared-history changes or portable history export. Install the
+  helper in runtime/toolkit with existing conflict-aware lifecycle handling.
+
 - Add actual GIO disposable catalog acceptance for desktop overrides, duplicate
   names, Unicode/localized search, registered Flatpak export roots and event-driven
   updates with pin/focus retention. Verify installed helpers and repeat/removal;
