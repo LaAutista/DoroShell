@@ -334,6 +334,17 @@ panel and change only the staged runtime reference. Unknown deployment schemas a
 refused; no speculative migration or downgrade is attempted. Portable preferences
 have their own validated format and import/restore lifecycle.
 
+Program undo/removal preserves saved Start preferences. An older program may not
+implement a newer preference: in particular, revisions before recent-app age
+retention do not enforce that policy even when its fields survive. Unsupported
+folder/portable versions refuse writes. See [retention and backups](recent-apps.md).
+
+The installed toolkit contains the Settings/setup/module helpers needed by its
+supported actions; it is not a complete release checkout. Full deployment,
+maintenance, source verification and native builds use the retained complete source
+revision. Do not move `deploy.py` alone into the reduced toolkit or delete that
+source while its maintenance launchers still reference it.
+
 `release.json` labels this work development. The bootstrap accepts `--ref COMMIT|TAG`
 for a reviewed version. `--channel stable` requires an actual `stable` tag and a
 stable declaration; no current stable portable installer is claimed. Do not force

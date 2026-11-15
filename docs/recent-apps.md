@@ -63,6 +63,12 @@ the original portable shape; older readers refuse exports containing the new fie
 instead of ignoring it. The portable undo record remains private and can contain
 history, as documented in [portable settings](portable-settings.md).
 
+Deployment undo restores program files, not saved Start preferences. Undoing to a
+revision before age retention preserves the newer policy fields, but that older
+program does not enforce expiry. Removal also leaves the history file intact.
+Use a retention-capable revision to enforce the policy; code rollback is not a
+privacy purge. Older folder/portable readers separately refuse unsupported formats.
+
 Tests use synthetic launch records, controlled clocks, offscreen menus and temporary
 installed toolkits. Real session/input interaction and long-running login acceptance
 are not part of this feature's verification.

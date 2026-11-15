@@ -1,14 +1,23 @@
-# Current development status — 2026-11-14
+# Current development status — 2026-11-15
 
 This is a portable development baseline, not a finished desktop or a certified
 stable installer. [Detailed historical acceptance](final-acceptance.md) remains
 separate from this pass. Source publication does not imply live activation.
 
+Current published checkpoint: `660de7737cc5df522f781c1ff377a4ee99b6895d`, as
+independently verified by the release coordinator. The follow-up
+[release integration pass](release-integration.md) found no runtime regression in
+27 cross-revision subprocess steps and seven installed-toolkit boundary checks.
+Its changes are documentation and source inventories only. Historical counts and
+runtime observations below describe their original checkpoints, not a fresh live
+comparison. The published sequence has 500 independently verified unit tests;
+unchanged runtime suites were not repeated for this documentation pass.
+
 | Area | Implemented | Evidence / remaining boundary |
 | --- | --- | --- |
-| Source/art baseline | Complete current published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Baseline `dee97b4`; incorporates upstream `36929b2`. Shared older dirty checkout retained without overwriting it. Installed Start helper bytes match the published source. |
+| Source/art baseline | Complete published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Artwork/source baseline `dee97b4`, current source checkpoint `660de77`. Shared older dirty checkout preserved. Historical installed comparisons do not establish that the live installation includes later published features. |
 | Artwork reproduction | Portable relative source paths and exact catalog hashes | Bundled Start image matches installed pixels. APNG regenerates installed wait/progress cursor bytes exactly. Native binaries/caches/private configs excluded. |
-| Start/search/folders/portable preferences | Implemented | Existing unit/private UI coverage; installed file comparison in this pass. No new live interaction or login test. |
+| Start/search/folders/portable preferences | Implemented, including optional age retention, separators and bounded keyboard navigation | Actual temporary installed toolkit imports, combined offscreen controls and preference-preserving cross-revision lifecycle checks. No new live interaction or login test. |
 | Mouse & Touchpad | DoroShell Settings page, installed opt-in X11 helper, login intent, restoration and guarded removal/undo; read-only capability/configuration-intent status | 35 input unit/lifecycle/diagnostic tests and private rendered installed-toolkit acceptance; evdev profile support only when exposed. Current initialization remains unverified; stale logs cannot establish it. Native LXQt is linked, not patched. No physical input or login acceptance. |
 | Panel/tray | Ten-patch native panel, profile-preserving updates, Quick Launch apps merged into taskbar pins (opt-in command for existing installs) | Read-only running path confirms ten-patch runtime. New upgrade tests preserve config and baseline and cover interrupted writes. No panel refresh performed. |
 | Wallpaper/display | Native Background controls, isolated decoder, guarded Advanced UI and schema-2 diagnostics | Read-only running path confirms schema-2 desktop. Physical mode-transition mismatch remains unknown; user previously restored rate manually. No hardware test in this pass. |
@@ -203,7 +212,8 @@ Keyboard verification: **467 full-suite tests pass** (25.515s); all 10 new widge
 cases also pass against the actual temporary installed Start (0.239s). Its source
 hash matches, and synthetic offscreen result-focus rendering was inspected. Tests
 block real app/session/URI dispatch and use no personal catalog/history or display.
-This source candidate awaits independent review; it is not deployed or pushed.
+This checkpoint was independently reviewed and published as `474cf6c`; no live
+deployment was performed by that increment.
 
 
 Folder-link separators follow up on published `474cf6c`: opt-in add/move/remove in
@@ -221,7 +231,8 @@ separator/keyboard cases (0.414s), path-free UI export, preview Cancel/Apply and
 exact Restore with mocked dialogs. Synthetic editor/menu rendering at 100% and
 150% scale was inspected. Exact old readers reject the new formats. This is
 offscreen acceptance, not live X11, screen-reader, physical DPI, login or clean-OS
-verification. Source-only candidate awaits independent review before publication.
+verification. This checkpoint was independently reviewed and published as `1533623`;
+publication does not establish live activation.
 
 
 Power availability follow-up on published `1533623`: only four read-only logind
@@ -240,4 +251,5 @@ Start/helper passes the same 19 cases (0.301s), toolkit imports/hashes and rende
 state inspection. Transport responses and dispatch are fake; private nonexistent
 system/session bus addresses additionally isolate subprocesses. No personal bus
 probe, actual power/lock call, authentication or live/session change. Source-only
-candidate awaits independent review; no live service/hardware/polkit acceptance.
+checkpoint was independently reviewed and published as `660de77`; no live
+service/hardware/polkit acceptance.

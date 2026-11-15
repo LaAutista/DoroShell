@@ -2,6 +2,12 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Record combined cross-revision upgrade/recovery/removal and installed-toolkit
+  acceptance on `660de77`, without runtime changes. Clarify old-program retention
+  limits, full-source versus reduced-toolkit entrypoints and current publication
+  versus historical live evidence. Restore the requested Windows 7-only layout
+  priority while keeping the full functionality/reference inventory.
+
 - Add bounded read-only power capability checks, truthful disabled/authorization
   states and primary-button consistency without changing native session dispatch.
 

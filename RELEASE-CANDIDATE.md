@@ -1,4 +1,28 @@
-# Read-only power capability checkpoint — 2026-11-15
+# Combined release integration checkpoint — 2026-11-15
+
+Documentation-only follow-up to published
+`660de7737cc5df522f781c1ff377a4ee99b6895d`. Runtime, tests, artwork and licenses
+are unchanged. New disposable-home evidence passes 27 cross-revision subprocess
+steps plus seven installed-toolkit boundary checks; no product regression reproduced.
+See [the exact integration scope and remaining gates](docs/release-integration.md).
+The prior independently verified 500-test suite was not repeated for unchanged code.
+
+Actual old-revision adapters exercise update, interrupted recovery, completed-output
+conflict refusal, old/future schema refusal, repeat, first-baseline restoration and
+exact upgrade undo. New preferences and unrelated files survive. Installed CLI/import
+closure and offscreen combined menu checks pass with fake packages/catalog/service
+and no real dispatch. Old-program undo retains preference data but cannot supply
+newer retention behavior; full maintenance still needs the complete source checkout.
+
+Windows 7 remains the requested layout scope; other layouts require an explicit
+request. Existing full functionality/reference comparisons are retained. The stale
+folder-cascade inventory and historical publication/live wording are corrected.
+Source inventories/checksums, archive/bundle and exact-base patch are checked for
+round-trip bytes/modes. No private fixture/evidence/screenshot enters the source.
+This candidate awaits independent review before publication; no personal installation,
+package/authentication, power/input/display/session action or blocked-Xvfb retry.
+
+## Historical read-only power capability checkpoint — 2026-11-15
 
 Source follow-up to published `1533623d43c49a8c98bd5ec017a88f473e27d3dc` in a new
 isolated checkout. Existing Start actions only checked installed LXQt entries.
@@ -35,7 +59,7 @@ No push, live installation/activation, blocked Xvfb retry, logout or desktop ref
 Mocked service and offscreen results do not establish live logind/LXQt/polkit,
 physical power/sleep/resume/inhibitors, AT-SPI/screen-reader, login or clean-OS
 acceptance. Replies are advisory; actual outcomes remain with LXQt and the system.
-This source candidate awaits independent review before publication.
+This checkpoint was subsequently independently verified and published as `660de77`.
 
 # Start folder-link separators checkpoint — 2026-11-14
 

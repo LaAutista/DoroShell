@@ -12,11 +12,17 @@ The repository is public: no GitHub authentication is required. Use
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen
-design. Later installer work is documented in CHANGELOG and Git history.
+design. The current published checkpoint is `660de77`, including automatic
+prerequisites, optional Alt+F1, bounded custom-root snapping/single-desktop,
+retention, separators, keyboard navigation and power capability states. The
+[release integration pass](release-integration.md) checks their combined installed
+lifecycle without changing runtime source or the personal installation. Later
+historical sections retain the tests/limits of their individual checkpoints.
 
 The shared original development checkout was older and dirty; it was preserved.
 New work was reconciled in a separate checkout instead of copying it over current
-main. Installed Start/search/folder/theme helpers matched published source. A stale
+main. Historical installed Start/search/folder/theme helpers matched their
+then-published source; this is not a current live comparison. A stale
 installed toolkit wallpaper controller lacked volume support; current source retains
 the newer controller. Do not downgrade it from an old local toolkit or archive.
 
@@ -29,6 +35,8 @@ next-login and restoration boundaries are documented in INSTALL.
 
 - LXQt/X11/Openbox is the working target. No required compositor. The user accepted
   wallpaper-derived glass; true moving-window Aero work was dropped.
+- Windows 7 is the current menu layout scope. Other menu styles are deferred until
+  explicitly requested; retain the broader function inventory without expanding layouts.
 - App launches use GIO, never shell-parsed desktop Exec strings. Search indexes only
   the installed-app catalog; folder browsing is lazy and bounded. No telemetry.
 - Native panel/PCManFM remain private builds, with system packages retained and
@@ -256,7 +264,8 @@ Keyboard verification: **467 full-suite tests pass** (25.515s); all 10 new widge
 cases also pass against the actual temporary installed Start (0.239s). Its source
 hash matches, and synthetic offscreen result-focus rendering was inspected. Tests
 block real app/session/URI dispatch and use no personal catalog/history or display.
-This source candidate awaits independent review; it is not deployed or pushed.
+This checkpoint was independently reviewed and published as `474cf6c`; no live
+deployment was performed by that increment.
 
 
 Folder-link separators follow up on published `474cf6c`: opt-in add/move/remove in
@@ -274,7 +283,8 @@ separator/keyboard cases (0.414s), path-free UI export, preview Cancel/Apply and
 exact Restore with mocked dialogs. Synthetic editor/menu rendering at 100% and
 150% scale was inspected. Exact old readers reject the new formats. This is
 offscreen acceptance, not live X11, screen-reader, physical DPI, login or clean-OS
-verification. Source-only candidate awaits independent review before publication.
+verification. This checkpoint was independently reviewed and published as `1533623`;
+publication does not establish live activation.
 
 
 Power availability follow-up on published `1533623`: only four read-only logind
@@ -293,4 +303,5 @@ Start/helper passes the same 19 cases (0.301s), toolkit imports/hashes and rende
 state inspection. Transport responses and dispatch are fake; private nonexistent
 system/session bus addresses additionally isolate subprocesses. No personal bus
 probe, actual power/lock call, authentication or live/session change. Source-only
-candidate awaits independent review; no live service/hardware/polkit acceptance.
+checkpoint was independently reviewed and published as `660de77`; no live
+service/hardware/polkit acceptance.

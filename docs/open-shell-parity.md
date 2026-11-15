@@ -1,6 +1,6 @@
 # Open-Shell parity plan
 
-Requested scope: account for all Open-Shell functionality, while retaining Windows 7 as the primary menu style. This is a feature-family inventory and implementation plan, not a claim of full parity or an exhaustive audit of every upstream setting. DoroShell is an LXQt toolkit, not a Windows shell implementation.
+Requested scope: account for all Open-Shell functionality, with Windows 7 as the current menu layout scope. The user explicitly selected Windows 7, not the other menu styles; Classic and other layouts are deferred unless explicitly requested. Keep the broader functionality inventory and reference comparisons below without treating other layouts as current delivery work. This is a feature-family inventory and implementation plan, not a claim of full parity or an exhaustive audit of every upstream setting. DoroShell is an LXQt toolkit, not a Windows shell implementation.
 
 ## Reference baseline
 
@@ -11,14 +11,14 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | Feature family | DoroShell evidence / gap | Next acceptance condition |
 | --- | --- | --- |
 | Windows 7 layout | Pink two-column menu, Home and All programs; geometry tests exist. Not pixel-identical. | Mouse/keyboard review at supported DPI, screen edges and sizes. |
-| Classic / two-column styles | Other styles absent; added to scope by the all-functionality request. | Shared behavior backend with separately tested layouts; Windows 7 remains default. |
+| Classic / other menu styles | Reference comparison only; other layouts are absent and outside the current Windows 7 layout scope. | Deferred pending an explicit request; the broad functionality goal does not authorize additional layouts. |
 | Program discovery / search | GIO application catalog, names/keywords/categories; automated and limited real search checks. | Refresh catalog after installs; test duplicate names, hidden entries and international text. |
 | Expanded search | Document/content/settings/provider search absent. | Explicit opt-in providers, cancellation and bounds; no unsolicited indexing of private files. |
 | Pins / organization | Ordered pins, Home/Pinned drag reordering and context-menu movement; conflict-safe saved order. Taskbar dragging is a separate feature. | Verified with synthetic real pointer dragging, Escape cancellation, keyboard move commands and reopening persistence; broader DPI/accessibility coverage remains. |
 | Recency / frequency | Recent apps with count, recording toggle, clear-history and optional [time-based retention](recent-apps.md); default has no age limit. | Frequency ranking and broader privacy controls; old backups/portable undo are outside active-history expiry. |
 | Recent documents | Absent. | Opt-in desktop recent-file store, unavailable-file handling and clear-history semantics. |
 | App tasks / jump lists | New desktop actions through GIO. This is only the common-task portion; Windows jump-list data is not read. | Real action dispatch plus action-less apps; later per-app documents with explicit backend support. |
-| Folder cascades | Folder links open the configured file manager; inline nested folders absent. | Lazy listing, symlink-loop handling, inaccessible/network paths, keyboard traversal. |
+| Folder cascades | [Lazy nested browsing](folder-cascades.md) is implemented with bounded helpers, cancellation, standard Qt keyboard traversal and separate folder-label opening. Symlinks/special files are omitted. | Existing synthetic/private checks do not establish actual handler, slow network-mount or clean-session acceptance. |
 | Custom shortcuts / commands | Folder-link add/rename/reorder/hide, standard XDG directories and [configurable separators](start-separators.md) with path-free portability. Arbitrary menu structure absent. | Composed submenus and desktop-entry-backed commands; no shell parsing of Exec strings. |
 | Item context operations | Pin/unpin/reorder and app tasks; rename/delete/sort/properties incomplete. | Edit only user-owned shortcuts; deleting a shortcut must never delete the application. |
 | Keyboard / activation | Existing activation/Escape plus bounded [search/results keyboard navigation](start-keyboard.md), enabled-row Home/End and focused rebuild retention; synthetic offscreen/installed tests. | Broader cross-column arrows, mnemonics, AT-SPI/screen-reader and live X11 acceptance for the new focus behavior. |
@@ -51,7 +51,7 @@ The upstream project includes **Classic Explorer** and **Classic IE**, not only 
 
 1. Preserve session safety and establish independent acceptance cases from the pinned upstream help/settings inventory. Record supported, partial, absent or incompatible for each case; don't mark a Windows-only feature implemented because a Linux tool has a similar name.
 2. Complete Windows 7 menu interactions: app actions (first increment here), keyboard behavior, program-tree/cascades, pin organization, configurable recent items, search providers and editable menu composition. Each needs offscreen regression tests and isolated real mouse/keyboard checks.
-3. Add native themes, button states, translations/accessibility, preference import/export and the other two optional styles. Keep the Windows 7 experience as the default.
+3. Complete native themes, button states, translations/accessibility and preference import/export for the Windows 7 experience. Other menu layouts remain deferred pending an explicit request.
 4. Build opt-in Dolphin/browser equivalents where public APIs exist. Unsupported Windows-specific behavior remains documented; exact full Windows binary compatibility would be a separate Windows product, not a CachyOS module.
 5. Verify clean CachyOS LXQt installation, repeat install, upgrade/rollback and a user-chosen fresh login. Test supported monitor/DPI layouts and dependencies. None of these release gates is satisfied merely by unit tests.
 

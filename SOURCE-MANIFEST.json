@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-power-capabilities-20261115",
+  "candidate": "doroshell-release-integration-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -35,7 +35,8 @@
     "recent_retention": "Follow-up on 09a013acad71c68943aba2b698082bd609153302: opt-in local recent-app expiry, default unchanged, policy-only portable export; docs/recent-apps.md",
     "start_keyboard": "Bounded search/results keyboard navigation on baa0a23b7c1c1c506bdac46f934136c5f94f1076: widget-local arrows/Home/End, native Tab chain and focused rebuild selection; docs/start-keyboard.md. No global key/session change.",
     "start_separators": "Bounded editable folder-link separators on 474cf6c67aae58050d9427b0f742c55667058846: local version 2 only for separators, path-free portable version 2 with legacy version-1 import preservation, noninteractive collapsed lines; docs/start-separators.md. No general command/tree or live change.",
-    "power_capabilities": "Read-only optional logind Can-method snapshots on 1533623d43c49a8c98bd5ec017a88f473e27d3dc; no service auto-start/interactive authorization, bounded async queries, conservative unknown/denied/unsupported/inhibited UI and retained primary/native confirmation; docs/power-capabilities.md. Mocked buses only."
+    "power_capabilities": "Read-only optional logind Can-method snapshots on 1533623d43c49a8c98bd5ec017a88f473e27d3dc; no service auto-start/interactive authorization, bounded async queries, conservative unknown/denied/unsupported/inhibited UI and retained primary/native confirmation; docs/power-capabilities.md. Mocked buses only.",
+    "combined_release_integration": "Documentation-only integration follow-up on published 660de7737cc5df522f781c1ff377a4ee99b6895d: 27 cross-revision subprocess steps plus seven installed-toolkit boundary checks; runtime unchanged. See docs/release-integration.md."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -58,8 +59,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "9d7a31f3888c5205fa73c942dc225323b14d1a1cbd1c894351ec2dc7d70c23ce",
-      "size": 8381,
+      "sha256": "edff082f7dbe1bd6b50d8efa521e3f135476a8f063ac0ffc5fea2917442112bf",
+      "size": 8773,
       "mode": "0o644"
     },
     {
@@ -82,14 +83,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "ca82634840c6cb13ee3b6f856094cbc17fbd7c13e3391d8df7fd772c1bcc16e4",
-      "size": 51973,
+      "sha256": "1e31bbf405211344219736ed62a42768de76262c6e1c374679a4326604dfce50",
+      "size": 53600,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "a31825f62f18ee7dd388cb3b055ae94f08f2b486de666c179e4d2ea255953f1a",
-      "size": 8417,
+      "sha256": "e51862aaaecb2c76d45276ef31cf890f57e194fce837106fb8850a7bd3e58cae",
+      "size": 8452,
       "mode": "0o644"
     },
     {
@@ -244,14 +245,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "c6d2be42185eacc2a9c6c137059acc3538d7b1dfceb4df912b55b24f3f898058",
-      "size": 20408,
+      "sha256": "189e015474d577d00193853e075eaba5cf6f4332b5f46f52f084e927faaf2792",
+      "size": 21158,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "79a4314829af6b98dd5ab39f78dc8feb549343d6ef845051f16ddfaf5b4c7969",
-      "size": 21566,
+      "sha256": "386e637381c92c8127cb89df46f95e3c66b3179746dc02da95864316688657a7",
+      "size": 22267,
       "mode": "0o644"
     },
     {
@@ -268,8 +269,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "a4f69f41649836d1393a091902326597b2a47871ba653137fec7275599c7afad",
-      "size": 19260,
+      "sha256": "98e030d9e2ccd16b1b6581c8f6c568c631c6467c741bca06f5473ade1a7ae8e4",
+      "size": 20179,
       "mode": "0o644"
     },
     {
@@ -340,8 +341,8 @@
     },
     {
       "path": "docs/open-shell-parity.md",
-      "sha256": "2a238a48deda0be0e97375b4d805743f803ac34ff0924db3e216406140c70298",
-      "size": 11266,
+      "sha256": "9ea2dd28538c33b3c76e7f45a26c4140ab1306688dfb702ffb41f7b25849e1aa",
+      "size": 11750,
       "mode": "0o644"
     },
     {
@@ -370,8 +371,14 @@
     },
     {
       "path": "docs/recent-apps.md",
-      "sha256": "7e58b28cba931af4cff1365f192a65103cf0435a98ecfc514f750f84986a742f",
-      "size": 4388,
+      "sha256": "287569e0b39b44d29c7588b5c8f3542bfff105a26029de5eb5c2ec7656bc6889",
+      "size": 4792,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/release-integration.md",
+      "sha256": "c01c8aeba308d88bf59b676d720c1a334e7cab02cef4f27dac4c94ee334aeeab",
+      "size": 5857,
       "mode": "0o644"
     },
     {

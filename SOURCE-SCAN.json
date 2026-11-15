@@ -57,6 +57,7 @@
     "docs/portable-settings.md",
     "docs/power-capabilities.md",
     "docs/recent-apps.md",
+    "docs/release-integration.md",
     "docs/roadmap.md",
     "docs/screenshot-verification.md",
     "docs/show-desktop.md",
@@ -238,8 +239,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 237,
-  "source_payload_count": 235,
+  "file_count": 238,
+  "source_payload_count": 236,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",
