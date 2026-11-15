@@ -36,7 +36,8 @@ in `CMAKE_PREFIX_PATH` is selected first, followed by pkg-config's `lxqt` prefix
 Supported prefix layouts are `share/cmake/lxqt`, `lib/cmake/lxqt` or
 `lib64/cmake/lxqt`; ambiguous layouts are refused. Linux environment prefix lists
 are colon-separated. Paths may contain spaces, but must be absolute and contain
-no CMake semicolon separator or control characters. A prepared dependency stack
+no CMake semicolon separator or control characters, both before and after symlink
+resolution. Unsafe aliases are refused before any work-directory creation. A prepared dependency stack
 may also need its own `PKG_CONFIG_PATH` for the declared Qt dependencies.
 
 The selected library and newly built tools are explicitly bound through their
@@ -71,7 +72,7 @@ revision verification, patching, CMake, compilation, linking and staging were re
 The official tools 2.5 clone was acquired separately and its exact commit verified.
 No executable was run and no personal profile or system package was installed.
 
-The complete disposable/offscreen suite passes **564 tests in 38.089s**.
+The complete disposable/offscreen suite passes **566 tests in 35.792s**.
 Unit fixtures cover both families, later patch numbers with the same reviewed
 tools requirement, missing/invalid/ambiguous metadata, changed dependencies/tags,
 failure/cancellation, provenance, cache reuse/invalidation and no-write CLI errors.

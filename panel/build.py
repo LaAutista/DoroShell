@@ -26,9 +26,13 @@ class BuildError(RuntimeError):
 
 def cmake_path(path):
     path = Path(path)
-    if not path.is_absolute() or any(c == ';' or ord(c) < 32 or ord(c) == 127 for c in str(path)):
-        raise BuildError('Use an absolute prefix/work path without CMake list separators or control characters')
-    return path.resolve()
+    def validate(candidate):
+        if not candidate.is_absolute() or any(c == ';' or ord(c) < 32 or ord(c) == 127 for c in str(candidate)):
+            raise BuildError('Use an absolute prefix/work path without CMake list separators or control characters')
+    validate(path)
+    resolved = path.resolve()
+    validate(resolved)
+    return resolved
 
 
 def config_dir(prefix):

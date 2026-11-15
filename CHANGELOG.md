@@ -2,6 +2,9 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Validate both supplied and resolved build/prefix paths; refuse symlink aliases
+  introducing CMake separators or control characters before build writes.
+
 - Select pinned build-tools 2.4/2.5 from liblxqt development metadata before
   acquisition. Add actionable read-only preflight, prepared-prefix selection,
   build provenance and dependency-aware deployment cache reuse. A real private

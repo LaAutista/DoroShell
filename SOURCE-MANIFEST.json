@@ -49,16 +49,17 @@
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 564,
+    "passed": 566,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Fresh 564 tests passed in 38.089s with disposable HOME/XDG, offscreen Qt and inaccessible buses. Includes 25 panel build and 18 deployment tests; no personal session or package mutation. The published hardcoded tools failure was reproduced in a private tree. Final builder completes all 1367 native steps against installed liblxqt 2.5.0 and pinned tools 2.5.0, with real private-prefix/DESTDIR staging; only Git transfer substituted pinned local clones. Official tools clone and revision verified separately. Executable not run; no clean OS/login/runtime claim. Earlier calendar 768-case and full 2.4 evidence preserved, not rerun.",
+    "note": "Fresh 566 tests passed in 35.792s with disposable HOME/XDG, offscreen Qt and inaccessible buses. Includes 27 panel build and 18 deployment tests; no personal session or package mutation. The published hardcoded tools failure was reproduced in a private tree. The earlier 83e194b builder completes all 1367 native steps against installed liblxqt 2.5.0 and pinned tools 2.5.0, with real private-prefix/DESTDIR staging; only Git transfer substituted pinned local clones. Official tools clone and revision verified separately. Executable not run; no clean OS/login/runtime claim. Earlier calendar 768-case and full 2.4 evidence preserved, not rerun. Review follow-up validates lexical and resolved paths. Four alias reproductions are blocked before writes; only cmake_path changed after the prior real native build. No duplicate independent build or live test.",
     "full_native_build": {
       "steps": 1367,
       "liblxqt": "2.5.0",
       "tools": "2.5.0",
       "tools_commit": "ca90f9b0c5eedc3ab89d4031811dff833392bf3b",
       "status": "passed, private staging only",
-      "runtime_acceptance": "not performed"
+      "runtime_acceptance": "not performed",
+      "source_commit": "83e194b3ca511869141f534c40d1f9d4405eef19"
     }
   },
   "source_payloads": [
@@ -76,8 +77,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "1bf79dcd2fcaf3a020761d920710135ca20de7557446c4ca4e12ed01c1c61620",
-      "size": 11633,
+      "sha256": "d3e41714edbb46d2ee8c4d197982b6b0177d865f8485f89b31e8301df5227dbf",
+      "size": 11789,
       "mode": "0o644"
     },
     {
@@ -100,8 +101,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "0ab8dbf96b0b16df7a26261009bccd5bf347f3efa245a2fd9f6b419811d6a77c",
-      "size": 69311,
+      "sha256": "011e3da9f32d612b211fcf46e48bc4331c174a078b96eaf93716360c4304aa04",
+      "size": 69575,
       "mode": "0o644"
     },
     {
@@ -262,8 +263,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "e482cdeb3f33f98a75d2a488a7e7869e92c695b9299f96cef585eab86e34864a",
-      "size": 26072,
+      "sha256": "c3c879eaee818a98b3003b1f16fefdf3fe07cbaa203a212201cde7e821156e32",
+      "size": 26312,
       "mode": "0o644"
     },
     {
@@ -286,7 +287,7 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "01412a50d7380d3e25ff1a89b1ed5cf2af58074602d2986ac17812f54cdca204",
+      "sha256": "5f76456ef509eabca31a292503d82d820dceef5acd2f3f188917f2d7741422e7",
       "size": 25112,
       "mode": "0o644"
     },
@@ -376,8 +377,8 @@
     },
     {
       "path": "docs/panel-build-dependencies.md",
-      "sha256": "b086d5b4b59aedb0352c4df95517c3711820c57f2d1b143c16717a349d0f02a8",
-      "size": 5398,
+      "sha256": "00361579146523652da4a569cd5f13292484a5841f5853ccc8d8797335ea69b3",
+      "size": 5503,
       "mode": "0o644"
     },
     {
@@ -604,8 +605,8 @@
     },
     {
       "path": "panel/build.py",
-      "sha256": "98444c84a2419ada999b3f6056e6f47f4b776f983ed1f29004d6acf428f5c0d2",
-      "size": 10786,
+      "sha256": "492b0b123dd185a0f2a707b10d24b171e247f04a572e5d39b04514f651644a5f",
+      "size": 10899,
       "mode": "0o644"
     },
     {
@@ -1336,8 +1337,8 @@
     },
     {
       "path": "tests/test_panel_build.py",
-      "sha256": "4f122b8e7b6ff1f347cab61fd040ce851d52e2284f1afe4d00873a0198b82b98",
-      "size": 13972,
+      "sha256": "9bc13a3f6606950b4dd348536e68d6671dabd999d5a02294f53b2aa9c89cf13d",
+      "size": 15665,
       "mode": "0o644"
     },
     {

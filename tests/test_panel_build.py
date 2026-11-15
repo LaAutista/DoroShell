@@ -247,6 +247,35 @@ class PanelDependenciesTests(unittest.TestCase):
         with self.assertRaisesRegex(build.BuildError, 'absolute prefix/work path'):
             build.dependencies(self.root/'ambiguous;prefix')
 
+    def test_prefix_alias_cannot_introduce_cmake_separator_or_control(self):
+        for name in ('bad;prefix', 'bad\tprefix'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory(dir=self.root) as tmp:
+                root=Path(tmp); target=root/name; target.mkdir()
+                alias=root/'alias'; alias.symlink_to(target, target_is_directory=True)
+                for prefix in (target, alias):
+                    with self.assertRaisesRegex(build.BuildError, 'absolute prefix/work path'):
+                        build.build(root/'work', 1, prefix)
+                self.assertFalse((root/'work').exists())
+                self.assertEqual(list(target.iterdir()), [])
+        self.query.assert_not_called()
+        self.pkg.assert_not_called()
+        self.run.assert_not_called()
+
+    def test_work_alias_cannot_introduce_cmake_separator_or_control(self):
+        for name in ('bad;prefix', 'bad\tprefix'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory(dir=self.root) as tmp:
+                root=Path(tmp); target=root/name; target.mkdir()
+                alias=root/'alias'; alias.symlink_to(target, target_is_directory=True)
+                with patch.object(build, 'dependencies') as dependencies:
+                    for work in (target/'work', alias/'work'):
+                        with self.assertRaisesRegex(build.BuildError, 'absolute prefix/work path'):
+                            build.build(work, 1)
+                    dependencies.assert_not_called()
+                self.assertEqual(list(target.iterdir()), [])
+        self.query.assert_not_called()
+        self.pkg.assert_not_called()
+        self.run.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

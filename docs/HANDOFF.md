@@ -25,7 +25,10 @@ acquisition and binds deployment cache reuse to that selection. A fresh full
 1,367-step build against installed liblxqt 2.5 and private tools 2.5 passed, with
 private staging only. The executable was not run. Earlier 2.4-only workarounds
 below describe historical evidence; no host downgrade or CMake bypass is needed
-for this tested 2.5 build. Independent review remains pending.
+for this tested 2.5 build. Independent review identified an alias-path validation gap; the follow-up validates
+both lexical and resolved paths before writes. The 566-test suite passes; the
+coordinator's independent native build remains separate and was not accessed.
+Independent review remains pending.
 
 The shared original development checkout was older and dirty; it was preserved.
 New work was reconciled in a separate checkout instead of copying it over current

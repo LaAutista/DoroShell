@@ -11,9 +11,12 @@ The old failure was reproduced against installed liblxqt 2.5. The corrected full
 native build passed all 1,367 steps and private-prefix/DESTDIR staging. Local pinned
 Git clones substituted transport only. No host package mutation or executable
 launch, no session/configuration changes, no clean-OS/login/runtime acceptance.
-The complete disposable/offscreen suite passed **564 tests in 38.089s**; targeted
-coverage includes 25 panel-builder and 18 deployment tests. Source review is pending;
-no push. Historical verification below is retained.
+The complete disposable/offscreen suite passed **566 tests in 35.792s**; targeted
+coverage includes 27 panel-builder and 18 deployment tests. Source review is pending;
+no push. The review follow-up rejects prefix/work aliases whose resolved paths
+introduce CMake separators or controls before any build-directory creation. The
+recorded 1,367-step native build is from `83e194b`; no duplicate build was run for
+this path-validation-only fix. Historical verification below is retained.
 
 Documentation follow-up to frozen source candidate
 `eec9ad84d7ba03c70dd43ebe00d3877db56227a1`, based on coordinator-verified published

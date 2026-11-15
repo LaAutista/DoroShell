@@ -10,7 +10,7 @@ acquisition and binds deployment cache reuse to that selection. A fresh full
 1,367-step build against installed liblxqt 2.5 and private tools 2.5 passed, with
 private staging only. The executable was not run. Earlier 2.4-only workarounds
 below describe historical evidence; no host downgrade or CMake bypass is needed
-for this tested 2.5 build. The full disposable/offscreen suite passed **564 tests in 38.089s**.
+for this tested 2.5 build. The full disposable/offscreen suite passed **566 tests in 35.792s**.
 Independent review remains pending.
 
 The [compact calendar bounds candidate](panel-calendar.md) fixes reproduced
