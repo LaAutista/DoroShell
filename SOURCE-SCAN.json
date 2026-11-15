@@ -118,6 +118,7 @@
     "settings.py",
     "setup.py",
     "source_release.py",
+    "tests/check_app_catalog_offscreen.py",
     "tests/check_app_catalog_x11.py",
     "tests/check_app_search_x11.py",
     "tests/check_clipboard_switch_x11.py",
@@ -176,6 +177,7 @@
     "tests/display_ui.cpp",
     "tests/native_display_buttons.cpp",
     "tests/native_wallpaper_buttons.cpp",
+    "tests/test_app_catalog.py",
     "tests/test_app_search.py",
     "tests/test_bootstrap.py",
     "tests/test_clean_environment.py",
@@ -241,8 +243,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 240,
-  "source_payload_count": 238,
+  "file_count": 242,
+  "source_payload_count": 240,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

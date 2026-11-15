@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-start-columns-20261115",
+  "candidate": "doroshell-app-catalog-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -38,13 +38,14 @@
     "power_capabilities": "Read-only optional logind Can-method snapshots on 1533623d43c49a8c98bd5ec017a88f473e27d3dc; no service auto-start/interactive authorization, bounded async queries, conservative unknown/denied/unsupported/inhibited UI and retained primary/native confirmation; docs/power-capabilities.md. Mocked buses only.",
     "combined_release_integration": "Documentation-only integration follow-up on published 660de7737cc5df522f781c1ff377a4ee99b6895d: 27 cross-revision subprocess steps plus seven installed-toolkit boundary checks; runtime unchanged. See docs/release-integration.md.",
     "start_first_mapped_frame": "Three-line cached-surface resampling on ShowToParent, based on published 27cfea1927a5dea44466a220162e7fcc2b905039; first-backdrop-paint regression, fractional-alpha/texture coverage and four-scale offscreen matrix. Existing 983ac44 readiness/fringe fixes and mask unchanged; live symptom unverified.",
-    "start_column_navigation": "Bounded widget-local results-Right/places-Left focus adapter on published 0c50da54f9a09499c780796eab8bbfce277e91f8; usable target filtering, in-memory rebuild retention and popup/modal/hidden/drag guards. Ten new source and twenty installed keyboard cases; no settings, layouts or global keys. See docs/start-keyboard.md."
+    "start_column_navigation": "Bounded widget-local results-Right/places-Left focus adapter on published 0c50da54f9a09499c780796eab8bbfce277e91f8; usable target filtering, in-memory rebuild retention and popup/modal/hidden/drag guards. Ten new source and twenty installed keyboard cases; no settings, layouts or global keys. See docs/start-keyboard.md.",
+    "app_catalog_acceptance": "Acceptance-only follow-up on published da49537f618b14d88676cfd7202e9f6f5cc9bd39: actual GIO discovery/notifications in fresh disposable HOME/XDG processes, desktop override/visibility, duplicate IDs/names, localization/Unicode and registered Flatpak-shaped exports, pin/selection/column-focus preservation. Runtime unchanged; three source and three actual installed scenarios; docs/app-search.md."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 500,
-    "command": "QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v",
-    "note": "500 tests passed in 26.618s using disposable HOME/XDG, offscreen Qt, memory GSettings and private nonexistent system/session bus addresses. Includes 19 new power-capability cases using fixed fake service/dispatch only. Actual temporary installed Start/helper passed all 19 cases (0.301s), runtime/toolkit imports/hashes and rendered power-state inspection. No personal bus probes, actual power/session/lock calls, authentication, package/service/security changes, live X11/AT-SPI, physical hardware, login or clean-OS testing."
+    "passed": 515,
+    "command": "python -m unittest discover -s tests -v",
+    "note": "515 tests passed in 33.612s with disposable HOME/XDG, offscreen Qt, memory GSettings and private nonexistent bus addresses. Three new cases use actual GIO desktop-entry discovery and notifications in fresh subprocesses. Three scenarios also pass from the actual temporary-installed menu, checking seven runtime/helper imports, runtime/toolkit byte identity, repeat ownership and preference-preserving removal. No runtime changes, personal catalog or actual app/package/input/session actions. Real Flatpak installation/launch, live X11, login and clean OS remain unverified."
   },
   "source_payloads": [
     {
@@ -61,8 +62,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "c2275456c008198d0d6fecc05123679bb97e5c3a8f51cc2c090529bb9586c4b7",
-      "size": 9427,
+      "sha256": "6ccb68074990afb07ff5cb0c54b9c932345f742980f7ff2c44c59bfd8b97352b",
+      "size": 9747,
       "mode": "0o644"
     },
     {
@@ -85,14 +86,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "0d3ccd103618ee3aa903c29363c8511e58eada0847c1b662cfcd84e52613f975",
-      "size": 58661,
+      "sha256": "9b9ff381433678aab85bee92a800fb065fff03a580432d16e475f819ffabc2b4",
+      "size": 60736,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "f618d9f17877bffdd3992f6ad11278ba537c0af62a989dc8ad75b35dfcd00914",
-      "size": 8524,
+      "sha256": "40eb19bebb259d9497b551dca863b25d2b45ebcd95f95c47dde25badcb0f882b",
+      "size": 8601,
       "mode": "0o644"
     },
     {
@@ -247,8 +248,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "b0ce880c7e059ec8674612df4a087b507d21f4888947e3b104937560285287e9",
-      "size": 22409,
+      "sha256": "147d0b074ae40d1a8de50fd853ee9a70dde0254343b34261cb4a70fece8362e2",
+      "size": 23071,
       "mode": "0o644"
     },
     {
@@ -271,8 +272,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "09ca460b8af42e3c7c227c2f562bd78b022cba17560450c8d89461816545b2a9",
-      "size": 21255,
+      "sha256": "6817655c11a6ab171be2509a7b72d816de781a2bae29d74febd9e7b7d778d50a",
+      "size": 21877,
       "mode": "0o644"
     },
     {
@@ -283,8 +284,8 @@
     },
     {
       "path": "docs/app-search.md",
-      "sha256": "b00a6086e1e78c9104b3c6f980a7c0399ff42ccbafe74d106105f10061b87d2a",
-      "size": 4924,
+      "sha256": "20f8be91fa3ce740570d01f2a5b6f6a4d5100d975d955cac9571cf64228b41ae",
+      "size": 8103,
       "mode": "0o644"
     },
     {
@@ -343,8 +344,8 @@
     },
     {
       "path": "docs/open-shell-parity.md",
-      "sha256": "491a56888675bf5147280aabc452cfd838cfbf4da4e9c233e05beba9322592b6",
-      "size": 11793,
+      "sha256": "94547a1d0947fdd1ea6e645833c6789c739683b36a8e2a0c79c526c48a1cbcda",
+      "size": 12083,
       "mode": "0o644"
     },
     {
@@ -744,6 +745,12 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/check_app_catalog_offscreen.py",
+      "sha256": "56abf98f3c2c4ef29306d76be12267bdf558bf110809d19d26512d854469b7b9",
+      "size": 13843,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/check_app_catalog_x11.py",
       "sha256": "0d9ddb02321acc0f1e6b1125573ac8817c0556ddbf26c9cc273ff9f12dde2529",
       "size": 2895,
@@ -1089,6 +1096,12 @@
       "path": "tests/native_wallpaper_buttons.cpp",
       "sha256": "8524ad0f1269e6459c4f82c2a7ab0cfc7da94522fd9336f0232e24dae2236128",
       "size": 6380,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_app_catalog.py",
+      "sha256": "0fa18678989cc34cf6a2eaf26d49a6ecf62fd98b8db55446fc2cf459d6c46c28",
+      "size": 656,
       "mode": "0o644"
     },
     {

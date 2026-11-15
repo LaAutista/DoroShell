@@ -4,6 +4,14 @@ This is a portable development baseline, not a finished desktop or a certified
 stable installer. [Detailed historical acceptance](final-acceptance.md) remains
 separate from this pass. Source publication does not imply live activation.
 
+Catalog acceptance on published `da49537` adds three real GIO fixture scenarios,
+also run from an actual temporary installation. Overrides, duplicate names,
+localized/Unicode search, registered Flatpak exports and bounded file notifications
+preserve pins/selection/column focus. No runtime defect reproduced; source changes
+are tests, documentation and inventory only. See [catalog evidence](app-search.md#real-catalog-fixture-acceptance--2026-11-15).
+No personal catalog, real package/app dispatch, login or clean-OS test.
+The complete **515-test suite passes in 33.612s**, including the three new cases.
+
 Cross-column candidate on published `0c50da5`: **512 full-suite tests** and **20
 temporary-installed keyboard tests** pass. Right from results and Left from places/
 options/session controls follow the bounded [focus paths](start-keyboard.md), with
@@ -11,14 +19,14 @@ unusable rows skipped, rebuild retention and popup/modal ownership. No new layou
 global shortcut, preference schema or live input/session action. Actual AT-SPI,
 screen-reader, global-input and live X11 acceptance remain outstanding.
 
-Current published checkpoint: `660de7737cc5df522f781c1ff377a4ee99b6895d`, as
-independently verified by the release coordinator. The follow-up
+Current published checkpoint: `da49537f618b14d88676cfd7202e9f6f5cc9bd39`, as
+independently verified by the release coordinator. The earlier follow-up to `660de77`
 [release integration pass](release-integration.md) found no runtime regression in
 27 cross-revision subprocess steps and seven installed-toolkit boundary checks.
 Its changes are documentation and source inventories only. Historical counts and
 runtime observations below describe their original checkpoints, not a fresh live
-comparison. The published sequence has 500 independently verified unit tests;
-unchanged runtime suites were not repeated for this documentation pass.
+comparison. That historical integration pass had 500 independently verified unit
+tests; the later published cross-column checkpoint has 512.
 
 The subsequent Start-rendering candidate is based on published `27cfea1`. It fixes
 a reproduced pre-map versus first-paint wallpaper sampling discrepancy, retaining
@@ -30,7 +38,7 @@ unverified; see [rendering evidence](wallpaper-glass.md#mapped-position-first-fr
 
 | Area | Implemented | Evidence / remaining boundary |
 | --- | --- | --- |
-| Source/art baseline | Complete published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Artwork/source baseline `dee97b4`, current source checkpoint `660de77`. Shared older dirty checkout preserved. Historical installed comparisons do not establish that the live installation includes later published features. |
+| Source/art baseline | Complete published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Artwork/source baseline `dee97b4`, current published checkpoint `da49537`. Shared older dirty checkout preserved. Historical installed comparisons do not establish that the live installation includes later published features. |
 | Artwork reproduction | Portable relative source paths and exact catalog hashes | Bundled Start image matches installed pixels. APNG regenerates installed wait/progress cursor bytes exactly. Native binaries/caches/private configs excluded. |
 | Start/search/folders/portable preferences | Implemented, including optional age retention, separators and bounded keyboard navigation | Actual temporary installed toolkit imports, combined offscreen controls and preference-preserving cross-revision lifecycle checks. No new live interaction or login test. |
 | Mouse & Touchpad | DoroShell Settings page, installed opt-in X11 helper, login intent, restoration and guarded removal/undo; read-only capability/configuration-intent status | 35 input unit/lifecycle/diagnostic tests and private rendered installed-toolkit acceptance; evdev profile support only when exposed. Current initialization remains unverified; stale logs cannot establish it. Native LXQt is linked, not patched. No physical input or login acceptance. |

@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add actual GIO disposable catalog acceptance for desktop overrides, duplicate
+  names, Unicode/localized search, registered Flatpak export roots and event-driven
+  updates with pin/focus retention. Verify installed helpers and repeat/removal;
+  no runtime defect reproduced and no catalog/installer behavior changed.
+
 - Connect Start results to right-hand places/options/session controls with bounded
   Right/Left focus traversal. Skip unavailable/separator rows, preserve surviving
   folder focus across rebuilds and reveal scrolled targets. Keep text editing,

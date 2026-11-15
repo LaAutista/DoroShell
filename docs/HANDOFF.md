@@ -12,7 +12,7 @@ The repository is public: no GitHub authentication is required. Use
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen
-design. The current published checkpoint is `660de77`, including automatic
+design. The current coordinator-verified published checkpoint is `da49537`, including automatic
 prerequisites, optional Alt+F1, bounded custom-root snapping/single-desktop,
 retention, separators, keyboard navigation and power capability states. The
 [release integration pass](release-integration.md) checks their combined installed
@@ -51,6 +51,14 @@ next-login and restoration boundaries are documented in INSTALL.
   asserted artwork rights. Keep third-party/component notices unchanged.
 
 ## Known issues and recent evidence
+
+The catalog follow-up on published `da49537` adds real GIO/offscreen fixture
+acceptance only: no production catalog/search/installer defect was reproduced.
+Disposable roots cover precedence/visibility, duplicates, localized/Unicode search,
+registered Flatpak-shaped exports and live file notifications with pin/selection/
+column-focus retention. Installed helpers, repeat ownership and preference-preserving
+removal pass. The full suite passes **515 tests**. See [exact cases and boundaries](app-search.md#real-catalog-fixture-acceptance--2026-11-15).
+Real packages, application dispatch, personal catalog, login and clean OS are untested.
 
 The cross-column keyboard follow-up to published `0c50da5` adds only Right from
 results to remembered/first usable places/menu controls and Left back to usable

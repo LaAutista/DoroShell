@@ -8,7 +8,57 @@ The index is built once from the existing GIO catalog and rebuilt on the existin
 
 Search shows at most 100 ranked results with a refinement notice for broader matches. Blank/whitespace-only text returns to the existing pins/category view. Clear messages explain an empty pin/category/recent view or a search with no matches. Down moves from search to the first selected result; Up/Down then use normal list navigation. Enter in search or the list activates the selected result through the existing dispatcher. Empty results cannot launch anything; Escape retains its existing back/clear/close behavior. Ctrl+F retains its existing focus shortcut.
 
-## Verification
+## Real catalog fixture acceptance — 2026-11-15
+
+The follow-up on published `da49537` found no catalog runtime defect in the bounded
+cases below; production catalog/search/installer code is unchanged. Three fresh-process
+tests use actual GIO discovery and notifications with disposable HOME/XDG directories,
+fake executable entries, offscreen Qt and nonexistent private bus addresses. They
+do not enumerate personal applications or launch anything. Current keyboard paths
+are documented in [Start keyboard navigation](start-keyboard.md).
+
+- User entries override lower-priority system entries by desktop ID. Hidden and
+  NoDisplay overrides suppress the lower entry; deleting the override reveals it.
+  OnlyShowIn/NotShowIn for LXQt and missing TryExec are respected.
+- Same-named applications retain distinct IDs and deterministic search order.
+  Actual localized French names, German case folding, composed/decomposed accents,
+  Japanese text and desktop-entry keywords remain searchable.
+- A 32-entry creation burst triggered one catalog query in the recorded run.
+  The test permits up to three notifications-driven queries, checks the existing
+  150 ms single-shot debounce, and preserves category/query, selected desktop ID
+  and right-column focus. Metadata changes, override changes and removal rebuild
+  the cached index. Typing makes no catalog query; drag deferral does not query until
+  the drag ends, and a settled catalog makes no polling queries in the observed window.
+- User and system Flatpak-shaped export roots are discovered when included in
+  XDG_DATA_DIRS. Identical files outside those registered roots are absent. This
+  tests desktop-entry exports, not Flatpak installation, activation or sandboxing.
+- Pins, including an unavailable ID, and disabled recent-recording preferences
+  remain byte-identical. Actual temporary installation verifies runtime/toolkit
+  helper bytes and runtime imports; repeat installation preserves its ownership
+  record and removal preserves fixture preferences.
+
+Reproduce without X11 or a session bus:
+
+```sh
+python -B tests/check_app_catalog_offscreen.py --run
+python -B tests/check_app_catalog_offscreen.py --run --installed
+```
+
+Each launcher creates and removes its own fixture home. GIO notifications reach
+the Qt GLib dispatcher directly; the test does not manually pump a second GLib loop.
+This is development-host GIO/offscreen acceptance, not live desktop, real package,
+fresh-login, clean-OS, AT-SPI or general cross-distribution acceptance. The observed
+query counts are not a latency guarantee.
+
+GIO uses the process's data-directory environment, so a running resident cannot
+discover a newly added export root merely because another process changed its
+environment. A later normal menu process must inherit that root. DoroShell adds
+no fallback directory scanner or polling. See the [desktop-entry precedence and
+visibility specification](https://specifications.freedesktop.org/desktop-entry/latest-single/),
+[GIO monitor rearming contract](https://docs.gtk.org/gio/class.AppInfoMonitor.html)
+and [Flatpak export conventions](https://docs.flatpak.org/en/latest/conventions.html).
+
+## Historical initial search verification
 
 - `python -m unittest discover -s tests -v`: 136 passed on base `7ad3929991249341631ecf7f59a60c1733ee6095` plus this change.
 - Seven new tests cover ranking, multi-field/reordered tokens, substring fallback, Unicode/case/accents, blank query, deterministic ties, visibility rules, metadata caching and temporary-home install/repeat/rollback with an independently imported installed menu.

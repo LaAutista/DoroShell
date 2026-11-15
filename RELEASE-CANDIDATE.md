@@ -1,4 +1,35 @@
-# Start cross-column keyboard checkpoint — 2026-11-15
+# Real GIO catalog acceptance checkpoint — 2026-11-15
+
+Tests/documentation-only follow-up to published
+`da49537f618b14d88676cfd7202e9f6f5cc9bd39`; no catalog runtime defect reproduced.
+Existing GIO discovery, search, monitor/debounce, installer and launch code remain
+byte-identical. Three fresh-process scenarios use actual GIO/Qt with disposable
+HOME/XDG roots, blocked personal buses and fake executable desktop entries.
+
+The complete **515-test suite passes in 33.612s**, including the three new cases.
+They cover user/system precedence, Hidden/NoDisplay/desktop/TryExec rules, duplicate
+names/IDs, localized French/German/Japanese/accent search, registered versus omitted
+Flatpak-shaped exports, real create/remove/override/metadata notifications, and
+selection/right-column focus/pin retention. A 32-file burst caused one rescan in
+the recorded run; the test allows up to three and verifies the existing 150 ms
+single-shot timer. Typing and the observed settled window cause no catalog queries;
+dragging defers them. No application/URI/session dispatch is allowed by the harness.
+
+All three scenarios also pass against the actual temporary-installed menu, with
+runtime/toolkit helper byte/import closure, unchanged repeat ownership records and
+preference-preserving removal. The fixtures do not establish real Flatpak package
+installation/launch, live X11, AT-SPI, physical input, login or clean-OS behavior.
+Source inventory, archive/bundle and exact-base patch round-trips are recorded in
+the private handoff evidence. No runtime installer migration or new dependency.
+
+Original dirty source, previous evidence and disabled helper remain intact. No
+packages, authentication, personal catalog/history, display/input/session/locker
+action, live activation or blocked-Xvfb retry. Existing source/art/license notices
+are preserved, with no new artwork or private fixture assets in the source archive.
+Candidate awaits independent review; no push or deployment.
+See [reproduction and limits](docs/app-search.md#real-catalog-fixture-acceptance--2026-11-15).
+
+## Historical Start cross-column keyboard checkpoint — 2026-11-15
 
 Source follow-up to published `0c50da54f9a09499c780796eab8bbfce277e91f8`.
 Existing search/results navigation was inspected first; it had no column adapter.

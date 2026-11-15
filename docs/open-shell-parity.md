@@ -12,7 +12,7 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | --- | --- | --- |
 | Windows 7 layout | Pink two-column menu, Home and All programs; geometry tests exist. Not pixel-identical. | Mouse/keyboard review at supported DPI, screen edges and sizes. |
 | Classic / other menu styles | Reference comparison only; other layouts are absent and outside the current Windows 7 layout scope. | Deferred pending an explicit request; the broad functionality goal does not authorize additional layouts. |
-| Program discovery / search | GIO application catalog, names/keywords/categories; automated and limited real search checks. | Refresh catalog after installs; test duplicate names, hidden entries and international text. |
+| Program discovery / search | GIO catalog and cached ranking; [real disposable desktop-entry acceptance](app-search.md#real-catalog-fixture-acceptance--2026-11-15) covers override visibility, duplicate IDs/names, localized/Unicode text, metadata updates and bounded install/remove notifications with focus/pin retention. | Real package transactions, fresh-login/distribution environments and larger-catalog responsiveness remain unverified. |
 | Expanded search | Document/content/settings/provider search absent. | Explicit opt-in providers, cancellation and bounds; no unsolicited indexing of private files. |
 | Pins / organization | Ordered pins, Home/Pinned drag reordering and context-menu movement; conflict-safe saved order. Taskbar dragging is a separate feature. | Verified with synthetic real pointer dragging, Escape cancellation, keyboard move commands and reopening persistence; broader DPI/accessibility coverage remains. |
 | Recency / frequency | Recent apps with count, recording toggle, clear-history and optional [time-based retention](recent-apps.md); default has no age limit. | Frequency ranking and broader privacy controls; old backups/portable undo are outside active-history expiry. |
@@ -30,7 +30,7 @@ Reviewed 2026-11-08: [Open-Shell upstream](https://github.com/Open-Shell/Open-Sh
 | Accessibility | Qt widgets supply a foundation; no accessibility parity established. | Accessible names, focus order, high contrast and actual AT-SPI/screen-reader checks. MSAA is Windows-specific. |
 | Settings / portability | Independent opt-ins, preview, backups, repeat application, scoped rollback and validated portable Start preferences excluding private history/paths. | Broader policy/portability coverage beyond the existing bounded Start allowlist. |
 | Taskbar appearance | LXQt native taskbar option and optional DockBarX compatibility; not upstream taskbar skinning. | Native theme controls with rollback; never refresh a live panel to apply them. |
-| Store apps / architecture | Linux desktop entries, including those exported by packaging systems; not Windows Store activation. | Test Flatpak exports. No claim of UWP, COM or 32/64-bit Windows ABI compatibility. |
+| Store apps / architecture | Real GIO discovers synthetic user/system Flatpak exports when their share roots are in XDG_DATA_DIRS; unregistered roots are excluded. | Actual Flatpak installation/launch remains unverified. No claim of UWP, COM or 32/64-bit Windows ABI compatibility. |
 
 ## Explorer and browser coverage
 
