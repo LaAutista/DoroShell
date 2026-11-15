@@ -2,6 +2,9 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add bounded read-only power capability checks, truthful disabled/authorization
+  states and primary-button consistency without changing native session dispatch.
+
 - Add editable Start folder-link separators, noninteractive collapsed rendering,
   versioned path-free portability and disposable/offscreen lifecycle checks.
 

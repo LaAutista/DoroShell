@@ -13,6 +13,14 @@ def load(name, path):
     spec.loader.exec_module(module)
     return module
 menu = load('start_menu', ROOT / 'menu/start_menu.py')
+# Existing UI tests use a fixed response, never the personal system bus.
+class FixturePowerCapabilities(menu.PowerCapabilities):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.states = dict.fromkeys(menu.POWER_ACTIONS, 'yes')
+    def refresh(self):
+        self.changed.emit()
+menu.PowerCapabilities = FixturePowerCapabilities
 installer = load('installer', ROOT / 'install.py')
 import sys
 sys.path.insert(0, str(ROOT))

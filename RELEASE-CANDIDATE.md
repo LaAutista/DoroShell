@@ -1,3 +1,42 @@
+# Read-only power capability checkpoint — 2026-11-15
+
+Source follow-up to published `1533623d43c49a8c98bd5ec017a88f473e27d3dc` in a new
+isolated checkout. Existing Start actions only checked installed LXQt entries.
+The new optional helper queries exactly four logind Can-methods, asynchronously,
+with service auto-start and interactive authorization disabled. It never calls a
+modifying method, starts a service/agent or performs authentication.
+
+Primary choices, the saved primary button and power menu now distinguish yes,
+authorization-required, denied, unsupported, inhibited and unknown states. Unknown,
+pending and negative replies disable direct power actions. Saved preferences are
+not silently changed; new unavailable primary selections refuse. Native LXQt
+options/logout/locker behavior and Cancel-default GIO dispatch remain. Cached
+availability is checked before and after confirmation; no completion or late reply
+queues an action. Refresh occurs on Start show or explicit Refresh, without polling.
+See docs/power-capabilities.md for timeout, advisory-snapshot and backend boundaries.
+
+**500 tests passed in 26.618s**, with disposable HOME/XDG, offscreen Qt, memory
+GSettings and private nonexistent system/session bus addresses. Nineteen new tests
+cover fixed read-only methods/flags, yes/no/na/challenge/inhibitors, missing service
+or Qt, errors/malformed replies/timeouts, coalescing/cancellation/owner destruction,
+late results, changed capabilities, disabled primary consistency, actual offscreen
+Cancel/Yes confirmation with fake launch, and helper install/repeat/conflict/restore.
+Actual temporary installed Start/helper passed all 19 cases (0.301s), exact hashes,
+toolkit imports and synthetic rendered state inspection. No personal bus probing,
+real session/power/lock call, credentials, packages, daemon or security changes.
+
+The helper is copied with both runtime and toolkit and included in the resident
+signature. Existing installer transactions/first backups remain. Complete source
+inventory/checksums, bundle, archive and exact-base patch round-trip are verified.
+Only relevant source/tests/docs/metadata change; original dirty workspace, prior
+artifacts, artwork/licenses and disabled input-helper branch remain untouched.
+No push, live installation/activation, blocked Xvfb retry, logout or desktop refresh.
+
+Mocked service and offscreen results do not establish live logind/LXQt/polkit,
+physical power/sleep/resume/inhibitors, AT-SPI/screen-reader, login or clean-OS
+acceptance. Replies are advisory; actual outcomes remain with LXQt and the system.
+This source candidate awaits independent review before publication.
+
 # Start folder-link separators checkpoint — 2026-11-14
 
 Source follow-up to published `474cf6c67aae58050d9427b0f742c55667058846`.

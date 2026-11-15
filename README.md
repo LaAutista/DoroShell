@@ -181,3 +181,7 @@ Home/End, focus order and the boundaries of offscreen acceptance.
 
 Start folder links support [opt-in separators](docs/start-separators.md) in the
 existing editor, with keyboard skipping and path-free portable import/export.
+
+Start power controls use [read-only capability checks](docs/power-capabilities.md)
+with separate unsupported, permission-required and unknown states. Native LXQt
+confirmation/dispatch and the saved primary action are retained.

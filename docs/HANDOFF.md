@@ -275,3 +275,22 @@ exact Restore with mocked dialogs. Synthetic editor/menu rendering at 100% and
 150% scale was inspected. Exact old readers reject the new formats. This is
 offscreen acceptance, not live X11, screen-reader, physical DPI, login or clean-OS
 verification. Source-only candidate awaits independent review before publication.
+
+
+Power availability follow-up on published `1533623`: only four read-only logind
+Can-methods, with auto-start and interactive authorization disabled. Asynchronous
+bounded snapshots update Start power controls/primary choices; unknown, denied,
+unsupported and inhibited actions disable, while challenge explicitly reports
+authorization needed. Saved primary selection is retained. Existing Cancel-default
+confirmation, GIO LXQt dispatch, All session options, logout and locker behavior
+remain; no automatic action/retry, polling or new mandatory service. Installer
+copies the helper with Start/toolkit and the resident signature includes it.
+See power-capabilities.md for timing and live/hardware acceptance limits.
+
+Power validation: **500 full-suite tests pass** (26.618s), including 19 focused
+capability/UI/lifecycle cases (0.299s separately). Actual temporary installed
+Start/helper passes the same 19 cases (0.301s), toolkit imports/hashes and rendered
+state inspection. Transport responses and dispatch are fake; private nonexistent
+system/session bus addresses additionally isolate subprocesses. No personal bus
+probe, actual power/lock call, authentication or live/session change. Source-only
+candidate awaits independent review; no live service/hardware/polkit acceptance.

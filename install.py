@@ -151,6 +151,7 @@ def targets(home, icon=None):
         icon_path = custom.with_name('framed-start-icon.png')
     desktop = '[Desktop Entry]\nType=Application\nName=DoroShell Start\nComment=Two-column application and personal folder menu\nExec="' + quoted + '"\nIcon=' + str(icon_path) + '\nTerminal=false\nCategories=Utility;\n'
     files = {app: (SOURCE.joinpath('menu/start_menu.py').read_bytes(), 0o644),
+            home / '.local/share/lxqt-comfort/power_capabilities.py': (SOURCE.joinpath('menu/power_capabilities.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/app_search.py': (SOURCE.joinpath('menu/app_search.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/wallpaper_glass.py': (SOURCE.joinpath('menu/wallpaper_glass.py').read_bytes(), 0o644),
             home / '.local/share/lxqt-comfort/themes.py': (SOURCE.joinpath('themes.py').read_bytes(), 0o644),
@@ -164,7 +165,7 @@ def targets(home, icon=None):
         files[icon_path] = (start_tile(custom_data), 0o644)
     toolkit = home / '.local/share/doroshell/toolkit'
     for name in ['clipboard/__init__.py','clipboard/clipboard.py','clipboard/install.py','clipboard/clipboard.svg','wallpaper/control.py','wallpaper/install.py','settings.py','input_preferences.py','input_diagnostics.py','portable_settings.py','setup.py','themes.py','config_root.py','modules.py','cursor.py','install.py','integrate.py',
-                 'panel/profile.py','panel/layout.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/app_search.py','menu/portrait_crop.py','menu/folder_cascade.py','menu/wallpaper_glass.py','menu/start.svg']:
+                 'panel/profile.py','panel/layout.py','runtime/snap.py','runtime/screenshot.py','runtime/menu_capture.py','runtime/dockbarx_drag.py','menu/start_menu.py','menu/power_capabilities.py','menu/app_search.py','menu/portrait_crop.py','menu/folder_cascade.py','menu/wallpaper_glass.py','menu/start.svg']:
         files[toolkit/name] = ((SOURCE/name).read_bytes(), 0o644)
     settings_launcher = home / '.local/bin/doroshell-settings'
     files[settings_launcher] = (('#!/usr/bin/python\nimport runpy\nrunpy.run_path('+repr(str(toolkit/'settings.py'))+', run_name="__main__")\n').encode(), 0o755)

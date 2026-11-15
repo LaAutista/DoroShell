@@ -17,7 +17,7 @@ def runtime_signature():
     import hashlib
     root = Path(__file__).resolve().parent
     paths = [root / name for name in ('start_menu.py', 'wallpaper_glass.py', 'app_search.py',
-                                     'folder_cascade.py', 'portrait_crop.py', 'themes.py')]
+                                     'folder_cascade.py', 'portrait_crop.py', 'power_capabilities.py', 'themes.py')]
     paths.append(root.parent / 'themes.py')
     return hashlib.sha256(repr([(str(p), file_stamp(p)) for p in paths]).encode()).hexdigest()
 
@@ -58,6 +58,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from app_search import AppSearchIndex, is_visible
 from portrait_crop import PortraitCropDialog, validate_crop, load_image, render_crop
 from folder_cascade import FolderCascadeMenu
+from power_capabilities import PowerCapabilities, METHODS as POWER_ACTIONS
 
 import gi
 gi.require_version('Gio', '2.0')
@@ -755,6 +756,7 @@ class StartMenu(QWidget):
         self.favorites = []
         self.state_original = None
         self.recent = RecentPrograms(self.state.with_name('recent.json'))
+        self.power_capabilities = PowerCapabilities(self)
         self.primary_action = 'shutdown'
         self.primary_path = self.state.with_name('session-button.json')
         self.primary_original = None
@@ -923,12 +925,14 @@ class StartMenu(QWidget):
         self.power_arrow.setToolTip('Lock, log out, sleep, restart and other session options')
         self.power_arrow.setFixedWidth(34)
         self.power_menu = QMenu(self.power_arrow)
+        self.power_menu.setToolTipsVisible(True)
         for action_id in ('lockscreen', 'logout', 'suspend', 'hibernate', 'reboot', 'shutdown'):
             label, icon = SESSION_ACTIONS[action_id]
             action = self.power_menu.addAction(QIcon.fromTheme(icon), label + ('' if action_id == 'lockscreen' else '…'))
             action.setData(action_id)
             action.setEnabled(desktop_entry('lxqt-'+action_id+'.desktop') is not None)
             action.triggered.connect(lambda checked=False, action_id=action_id: self.session_action(action_id))
+        self.power_menu.addAction('Refresh power availability', self.power_capabilities.refresh)
         self.power_menu.addSeparator()
         self.power_menu.addAction('All session options…', lambda: self.session_action('options'))
         self.power_arrow.setMenu(self.power_menu)
@@ -992,6 +996,7 @@ class StartMenu(QWidget):
             pass
         self.setStyleSheet(style)
         self.search_action.setIcon(control_icon('edit-find', self.search))
+        self.power_capabilities.changed.connect(self.refresh_primary_action)
         self.refresh_primary_action()
         for action, action_id in zip(self.power_menu.actions(), ('lockscreen', 'logout', 'suspend', 'hibernate', 'reboot', 'shutdown')):
             action.setIcon(control_icon(SESSION_ACTIONS[action_id][1], self.power_menu))
@@ -1188,8 +1193,14 @@ class StartMenu(QWidget):
         self.launching = True
         self.close()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self.launching:
+            self.power_capabilities.refresh()
+
     def hideEvent(self, event):
         super().hideEvent(event)
+        self.power_capabilities.cancel()
         if self.exit_on_hide:
             QTimer.singleShot(0, QApplication.instance().quit)
 
@@ -1257,18 +1268,36 @@ class StartMenu(QWidget):
         self.recent_notice.setVisible(bool(message))
         self.refresh()
 
+    def session_availability(self, action_id):
+        if desktop_entry('lxqt-'+action_id+'.desktop') is None:
+            return False, 'not installed', 'The LXQt launcher for this action is not installed.'
+        if action_id in POWER_ACTIONS:
+            return self.power_capabilities.status(action_id)
+        return True, '', 'Lock the screen.' if action_id == 'lockscreen' else 'Log out after confirmation.'
+
     def refresh_primary_action(self):
+        states = {key: self.session_availability(key) for key in SESSION_ACTIONS}
         label, icon = SESSION_ACTIONS[self.primary_action]
+        enabled, _, detail = states[self.primary_action]
         self.session_button.setText(label + ('' if self.primary_action == 'lockscreen' else '…'))
         self.session_button.setIcon(control_icon(icon, self.session_button))
-        self.session_button.setEnabled(desktop_entry('lxqt-'+self.primary_action+'.desktop') is not None)
-        self.session_button.setToolTip('Lock the screen.' if self.primary_action == 'lockscreen' else
-                                      label + ' after confirmation. Cancel is selected by default.')
-        for action in self.primary_choices.actions():
-            action.setChecked(action.data() == self.primary_action)
-        for action in self.power_menu.actions():
-            if action.data() in SESSION_ACTIONS:
-                action.setVisible(action.data() != self.primary_action)
+        self.session_button.setEnabled(enabled)
+        self.session_button.setToolTip(detail + (' Cancel is selected by default.' if self.primary_action != 'lockscreen' else ''))
+        self.session_button.setAccessibleDescription(self.session_button.toolTip())
+        for action in self.primary_choices.actions() + self.power_menu.actions():
+            key = action.data()
+            if key not in SESSION_ACTIONS:
+                continue
+            allowed, suffix, message = states[key]
+            label = SESSION_ACTIONS[key][0]
+            is_choice = action in self.primary_choices.actions()
+            action.setText(label + ('' if is_choice or key == 'lockscreen' else '…') + (' — '+suffix if suffix else ''))
+            action.setEnabled(allowed)
+            action.setToolTip(message)
+            if is_choice:
+                action.setChecked(key == self.primary_action)
+            else:
+                action.setVisible(key != self.primary_action)
 
     def set_primary_action(self, action_id):
         try:
@@ -1276,6 +1305,9 @@ class StartMenu(QWidget):
                 raise ValueError(self.primary_error)
             if action_id not in SESSION_ACTIONS:
                 raise ValueError('Unknown session button action')
+            allowed, _, detail = self.session_availability(action_id)
+            if not allowed:
+                raise ValueError(detail)
             self.primary_original = save_json(self.primary_path, {'version': 1, 'action': action_id}, self.primary_original)
             self.primary_action = action_id
         except (OSError, ValueError, TypeError) as error:
@@ -1423,6 +1455,9 @@ class StartMenu(QWidget):
         if app is None:
             self.error(f'{desktop_id} is not installed.')
             return
+        if action_id in POWER_ACTIONS and not self.power_capabilities.status(action_id)[0]:
+            self.error(self.power_capabilities.status(action_id)[2] + ' Use All session options… for LXQt handling.')
+            return
         self.launching = True
         if action_id not in ('lockscreen', 'options'):
             label = SESSION_ACTIONS[action_id][0]
@@ -1434,6 +1469,8 @@ class StartMenu(QWidget):
                           'logout': 'Log out of this session? Save your work first.',
                           'suspend': 'Put this computer to sleep?',
                           'hibernate': 'Hibernate this computer?'}[action_id]
+                if action_id in POWER_ACTIONS:
+                    prompt += '\n\n' + self.power_capabilities.status(action_id)[2]
                 answer = QMessageBox.question(self, label + '?', prompt,
                                               QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
                                               QMessageBox.StandardButton.Cancel)
@@ -1444,6 +1481,10 @@ class StartMenu(QWidget):
                 self.show()
                 self.search.setFocus()
                 return
+        if action_id in POWER_ACTIONS and not self.power_capabilities.status(action_id)[0]:
+            self.launching = False
+            self.error('Power availability changed during confirmation. ' + self.power_capabilities.status(action_id)[2])
+            return
         try:
             # GIO owns the installed LXQt desktop entry; session actions never enter recent-app history.
             if not app.launch([], None):
