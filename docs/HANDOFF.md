@@ -12,7 +12,7 @@ The repository is public: no GitHub authentication is required. Use
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen
-design. The current coordinator-verified published checkpoint is `7d8f57a`, including automatic
+design. The current coordinator-verified published checkpoint is `e91dd41`, including automatic
 prerequisites, optional Alt+F1, bounded custom-root snapping/single-desktop,
 retention, separators, keyboard navigation and power capability states. The
 [release integration pass](release-integration.md) checks their combined installed
@@ -26,9 +26,10 @@ acquisition and binds deployment cache reuse to that selection. A fresh full
 private staging only. The executable was not run. Earlier 2.4-only workarounds
 below describe historical evidence; no host downgrade or CMake bypass is needed
 for this tested 2.5 build. Independent review identified an alias-path validation gap; the follow-up validates
-both lexical and resolved paths before writes. The 566-test suite passes; the
-coordinator's independent native build remains separate and was not accessed.
-Independent review remains pending.
+both lexical and resolved paths before writes. Independent review and the 566-test suite passed against final `e91dd41`.
+The coordinator separately completed the full 1,367-step native build against
+`83e194b`; the final follow-up changes path validation, not native patch content.
+This source is published, not a pending candidate. No built executable was run.
 
 The shared original development checkout was older and dirty; it was preserved.
 New work was reconciled in a separate checkout instead of copying it over current
@@ -41,6 +42,38 @@ Public-access follow-up replaces the obsolete GitHub CLI sign-in bootstrap with
 anonymous HTTPS download/fetch. Disposable-home plan/repeat and partial-download
 refusal pass; no new installation or login acceptance is claimed. Single-desktop
 next-login and restoration boundaries are documented in INSTALL.
+
+## Ownership handoff — 2026-11-15
+
+The owner stopped this coordinator's development and assigned continuation to
+Claude and Codex together. The worker confirmed it stopped: the newly created
+theme-readability checkout contains no tracked edits, tests, commits or pushes.
+Its read-only contrast calculations are not acceptance evidence. No new four-preset
+readability verification or fix was completed. This handoff update is documentation
+only; it does not authorize this coordinator to resume development.
+
+At handoff, GitHub main was `e91dd41f5d2fe1e7f00156a67a0df50a5e32fb69`.
+Claude-coauthored laptop changes `14eacdf`, `e6ff8c8` and `073577a`, merged through
+`0bf98f9` and `870bdac`, remain ancestors of that main. Stock panel defaults,
+Quick Launch behavior and the single-desktop default remain in source. This
+ancestry check establishes preservation of commits, not absence of regressions.
+Fetch and reconcile any newer work before publishing; never force-push.
+
+The separate local branch `feature/evdev-control-new` is clean at
+`c9ef463f583aa237bedbbe40945c6f5b91373856` and is not published in main. Its
+privileged-helper activation gates remain disabled. Real authenticated lifecycle
+validation is blocked by unavailable multi-ID isolation; do not retry through the
+personal session or weaken security. Recover/review the existing local branch
+rather than assuming its private source or evidence is present in this repository.
+The separate `f81d5d5` animated-lock-surface probe still has the documented mock
+overlay-stacking failure and is not working locker integration.
+
+Latest independent source acceptance is 566 tests plus the native build described
+above. Offscreen/synthetic tests do not establish clean Arch installation, new-login
+activation, real pacman/polkit behavior, physical input/display/clipboard behavior,
+AT-SPI, or long-running desktop reliability. The personal Start color flash/edge
+symptom and calendar appearance have not been verified fixed in the live session.
+Preserve all existing session restrictions and the dirty original checkout.
 
 ## Decisions and constraints
 
