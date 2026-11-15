@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Add read-only application Properties with selectable bounded GIO metadata,
+  explicit missing/stale status and native keyboard-context invocation. Preserve
+  native popup/modal ownership, preferences and return focus; no Exec/file access
+  or new helper dependency. Clarify setup versus bootstrap/deploy package behavior.
+
 - Add a default-off Recent Documents submenu reading bounded shared desktop XBEL
   metadata on explicit open. Use a cancellable worker, omit private/unsupported
   entries, keep availability unverified and launch only through GIO on selection.

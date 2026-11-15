@@ -4,6 +4,13 @@ This is a portable development baseline, not a finished desktop or a certified
 stable installer. [Detailed historical acceptance](final-acceptance.md) remains
 separate from this pass. Source publication does not imply live activation.
 
+Read-only [application properties](app-properties.md), based on published `012aa93`,
+adds the selected app's available GIO fields and native keyboard context invocation.
+It preserves menu/pin state without source-file probes, command interpretation or
+new persistence. Missing metadata is explicit; reported locations are unverified
+snapshots. **540 full-suite tests and nine installed-copy tests pass**. Synthetic/
+offscreen checks only; no live activation.
+
 Optional [Recent Documents](recent-documents.md), based on published `5cc96a4`, is
 implemented in this review candidate. Default-off shared XBEL metadata, bounded
 worker, local URIs, no target scanning/shared-history mutation; actual availability
@@ -26,7 +33,7 @@ unusable rows skipped, rebuild retention and popup/modal ownership. No new layou
 global shortcut, preference schema or live input/session action. Actual AT-SPI,
 screen-reader, global-input and live X11 acceptance remain outstanding.
 
-Current published checkpoint: `5cc96a4982aa2547d58079adc3722d70c1248549`, as
+Current published checkpoint: `012aa9318841eca4aae2aa5d511043c4309b4ba1`, as
 independently verified by the release coordinator. The earlier follow-up to `660de77`
 [release integration pass](release-integration.md) found no runtime regression in
 27 cross-revision subprocess steps and seven installed-toolkit boundary checks.
@@ -45,7 +52,7 @@ unverified; see [rendering evidence](wallpaper-glass.md#mapped-position-first-fr
 
 | Area | Implemented | Evidence / remaining boundary |
 | --- | --- | --- |
-| Source/art baseline | Complete published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Artwork/source baseline `dee97b4`, current published checkpoint `5cc96a4`. Shared older dirty checkout preserved. Historical installed comparisons do not establish that the live installation includes later published features. |
+| Source/art baseline | Complete published source plus owner-requested artwork, original GIF, transparent APNG and wallpapers | Artwork/source baseline `dee97b4`, current published checkpoint `012aa93`. Shared older dirty checkout preserved. Historical installed comparisons do not establish that the live installation includes later published features. |
 | Artwork reproduction | Portable relative source paths and exact catalog hashes | Bundled Start image matches installed pixels. APNG regenerates installed wait/progress cursor bytes exactly. Native binaries/caches/private configs excluded. |
 | Start/search/folders/portable preferences | Implemented, including optional age retention, separators and bounded keyboard navigation | Actual temporary installed toolkit imports, combined offscreen controls and preference-preserving cross-revision lifecycle checks. No new live interaction or login test. |
 | Mouse & Touchpad | DoroShell Settings page, installed opt-in X11 helper, login intent, restoration and guarded removal/undo; read-only capability/configuration-intent status | 35 input unit/lifecycle/diagnostic tests and private rendered installed-toolkit acceptance; evdev profile support only when exposed. Current initialization remains unverified; stale logs cannot establish it. Native LXQt is linked, not patched. No physical input or login acceptance. |

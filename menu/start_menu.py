@@ -11,6 +11,7 @@ import tempfile
 import time
 import subprocess
 import shutil
+import unicodedata
 
 def runtime_signature():
     """Detect helper upgrades before reusing a loaded resident."""
@@ -66,11 +67,11 @@ gi.require_version('Gio', '2.0')
 from gi.repository import Gio, GLib
 from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QRectF, Signal, QUrl, QEvent
 from PySide6.QtNetwork import QLocalServer
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup, QPainterPath, QRegion, QPainter, QPalette, QPixmap
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup, QPainterPath, QRegion, QPainter, QPalette, QPixmap, QContextMenuEvent
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QToolButton, QComboBox,
     QMessageBox, QMenu, QDialog, QDialogButtonBox, QTableWidget,
-    QTableWidgetItem, QFileDialog, QCheckBox, QAbstractItemView, QScrollArea, QStyledItemDelegate)
+    QTableWidgetItem, QFileDialog, QCheckBox, QAbstractItemView, QScrollArea, QStyledItemDelegate, QPlainTextEdit, QSizePolicy)
 
 SESSION_ACTIONS = {
     'shutdown': ('Shut down', 'system-shutdown'),
@@ -616,6 +617,67 @@ def control_icon(name, widget):
     return QIcon(pixmap)
 
 
+def property_text(value, limit):
+    if not isinstance(value, str) or not value:
+        return 'Not provided by GIO.'
+    text = ''.join(('\\u%04X' % ord(c)) if unicodedata.category(c) in ('Cc', 'Cf', 'Cs', 'Zl', 'Zp') else c for c in value[:limit])
+    return text[:limit] + ('… [truncated]' if len(text) > limit or len(value) > limit else '')
+
+
+def application_properties(app, selected_id):
+    """Only cached GIO fields: no Exec interpretation, file lookup or availability claim."""
+    fields = {'Display name': None, 'Desktop ID': selected_id, 'Description': None, 'Source desktop entry': None}
+    status = ('Catalog metadata snapshot. Source location is reported by GIO; it is not re-read or checked on disk.'
+              if app is not None else 'This entry is no longer in the current catalog. Only the selected desktop ID is available.')
+    if app is not None:
+        for label, method in (('Display name', 'get_display_name'), ('Desktop ID', 'get_id'),
+                              ('Description', 'get_description'), ('Source desktop entry', 'get_filename')):
+            getter = getattr(app, method, None)
+            try:
+                value = getter() if callable(getter) else None
+            except (GLib.Error, RuntimeError):
+                value = None
+                status = 'Some catalog metadata is unavailable. Source location has not been checked on disk.'
+            if label == 'Source desktop entry' and (not isinstance(value, str) or not os.path.isabs(value)):
+                value = None
+            fields[label] = value
+    limits = (256, 1024, 4096, 4096)
+    return {label: property_text(value, limit) for (label, value), limit in zip(fields.items(), limits)}, status
+
+
+class ApplicationProperties(QDialog):
+    def __init__(self, app, selected_id):
+        super().__init__()
+        self.setWindowTitle('Application properties')
+        self.setObjectName('applicationProperties')
+        self.resize(560, 420)
+        layout = QVBoxLayout(self)
+        fields, status = application_properties(app, selected_id)
+        self.fields = {}
+        for label, value in fields.items():
+            layout.addWidget(QLabel(label))
+            field = QPlainTextEdit() if label == 'Description' else QLineEdit()
+            field.setReadOnly(True)
+            if label == 'Description':
+                field.setPlainText(value)
+                field.setMaximumHeight(100)
+            else:
+                field.setText(value); field.setCursorPosition(0)
+            field.setAccessibleName(label)
+            self.fields[label] = field
+            layout.addWidget(field)
+        self.notice = QLabel(status + ' Control characters are escaped and long fields are truncated. Read-only; no file changes.')
+        self.notice.setTextFormat(Qt.TextFormat.PlainText)
+        self.notice.setWordWrap(True)
+        self.notice.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        self.notice.setAccessibleName('Application information status')
+        layout.addWidget(self.notice)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        self.buttons.rejected.connect(self.reject)
+        layout.addWidget(self.buttons)
+        self.buttons.button(QDialogButtonBox.StandardButton.Close).setFocus()
+
+
 class ApplicationList(QListWidget):
     """Keep native drop feedback, but persist pins before rebuilding the list."""
     def __init__(self, owner):
@@ -634,6 +696,18 @@ class ApplicationList(QListWidget):
 
     def selectable_rows(self):
         return [row for row in range(self.count()) if self.selectable(self.item(row))]
+
+    def contextMenuEvent(self, event):
+        if self.owner.column_navigation_allowed():
+            if event.reason() == QContextMenuEvent.Reason.Keyboard:
+                if not self.selectable(self.currentItem()):
+                    event.accept(); return
+                self.scrollToItem(self.currentItem())
+                position = self.visualItemRect(self.currentItem()).center()
+            else:
+                position = event.pos()
+            self.owner.context_menu(position)
+        event.accept()
 
     def keyPressEvent(self, event):
         # Stay inside this list; text editing, modifiers and nested menus keep Qt handling.
@@ -827,8 +901,7 @@ class StartMenu(QWidget):
         self.list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.list.setAccessibleName('Applications')
         self.list.setAccessibleDescription('Arrows move between applications. Home and End select the first and last. Up at the first or Down at the last returns to search. Right enters places and menu controls; Left there returns to applications.')
-        self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.list.customContextMenuRequested.connect(self.context_menu)
+        self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.DefaultContextMenu)
         self.list.itemClicked.connect(self.launch_item)
         self.list.itemActivated.connect(self.launch_item)
         left.addWidget(self.list)
@@ -1673,25 +1746,63 @@ class StartMenu(QWidget):
             self.launching = False
             self.error(str(error))
 
+    def show_application_properties(self, desktop_id):
+        app = QApplication.instance()
+        quit_on_close, exit_on_hide = app.quitOnLastWindowClosed(), self.exit_on_hide
+        current = self.list.currentItem()
+        selected_id = current.data(Qt.ItemDataRole.UserRole) if current else None
+        scroll = self.list.verticalScrollBar().value()
+        self.exit_on_hide = False
+        app.setQuitOnLastWindowClosed(False)
+        self.hide()
+        dialog = None
+        try:
+            dialog = ApplicationProperties(self.by_id.get(desktop_id), desktop_id)
+            dialog.exec()
+        finally:
+            import shiboken6
+            if dialog is not None: shiboken6.delete(dialog)
+            self.show()
+            for row in self.list.selectable_rows():
+                if self.list.item(row).data(Qt.ItemDataRole.UserRole) == selected_id:
+                    self.list.setCurrentRow(row); break
+            if self.list.selectable_rows(): self.focus_results()
+            else: self.search.setFocus(Qt.FocusReason.OtherFocusReason)
+            self.list.verticalScrollBar().setValue(scroll)
+            self.exit_on_hide = exit_on_hide
+            app.setQuitOnLastWindowClosed(quit_on_close)
+
     def context_menu(self, position):
+        if not self.column_navigation_allowed():
+            return
         item = self.list.itemAt(position)
-        if not item:
+        if not self.list.selectable(item):
             return
         desktop_id = item.data(Qt.ItemDataRole.UserRole)
         menu = QMenu(self)
         action = menu.addAction('Unpin' if desktop_id in self.favorites else 'Pin application')
         up = menu.addAction('Move pin up') if desktop_id in self.favorites else None
         down = menu.addAction('Move pin down') if desktop_id in self.favorites else None
+        menu.addSeparator()
+        properties = menu.addAction('Properties…')
         tasks = {}
-        app = self.by_id[desktop_id]
-        action_ids = app.list_actions()
+        app = self.by_id.get(desktop_id)
+        action.setEnabled(app is not None and isinstance(desktop_id, str) and bool(desktop_id))
+        if up: up.setEnabled(app is not None)
+        if down: down.setEnabled(app is not None)
+        actions = getattr(app, 'list_actions', None)
+        action_ids = actions() if callable(actions) else []
         if action_ids:
             menu.addSeparator()
             for action_id in action_ids:
                 label = app.get_action_name(action_id) or action_id
                 tasks[menu.addAction(label.replace('&', '&&'))] = action_id
-        chosen = menu.exec(self.list.mapToGlobal(position))
+        chosen = menu.exec(self.list.viewport().mapToGlobal(position))
+        menu.deleteLater()
         if chosen is None:
+            return
+        if chosen == properties:
+            self.show_application_properties(desktop_id)
             return
         if chosen in tasks:
             self.launch_app_action(desktop_id, tasks[chosen])

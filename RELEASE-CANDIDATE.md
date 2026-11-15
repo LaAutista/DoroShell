@@ -1,4 +1,33 @@
-# Optional Recent Documents checkpoint — 2026-11-15
+# Read-only application properties checkpoint — 2026-11-15
+
+Source candidate on published `012aa9318841eca4aae2aa5d511043c4309b4ba1` adds
+Properties to the existing app context menu and native keyboard-context invocation. A native
+modal exposes selectable plain-text name, desktop ID, description and source
+location from the current GIO object. Missing/stale catalog fields are explicit;
+locations are snapshots, not file-existence claims. No Exec, filesystem scan/file
+read, editor, deletion, automatic clipboard operation or preference write.
+
+**540 full-suite tests pass (35.204s)**; **nine installed-copy tests pass (0.156s)**.
+Nine new fixture tests cover actual temporary GIO entries/keyfiles, duplicate
+names, deleted source, missing/non-file metadata, display bounds/escapes, native
+popup/dialog keyboard paths, accessibility names, stale catalog and corrupt-pin
+independence, empty/disabled/drag guards, repeated close and lifetime/focus recovery.
+The installed program passes the same nine cases, runtime/toolkit byte/import
+checks, rendering inspection, repeat ownership, edited-menu refusal and exact
+original byte/mode rollback. A clipped status notice found during visual inspection
+was corrected with dialog layout sizing. Native context events route keyboard
+requests to the selected row without a duplicate key-press handler; platform
+shortcut generation itself remains unverified. No new helper or installer schema.
+
+The roadmap now distinguishes local setup's package guidance from bootstrap/deploy's
+explicitly requested automatic prerequisite/module package flow and normal approval.
+No package operation was run. No personal catalog, real app/clipboard/session/input/
+display/locker action, Xvfb retry, login or clean-OS claim. Existing source/assets,
+original dirty workspace, prior evidence and disabled helper are preserved.
+See [scope and limits](docs/app-properties.md). Local candidate awaits independent
+review; no publication or deployment.
+
+## Historical optional Recent Documents checkpoint — 2026-11-15
 
 Source candidate on published `5cc96a4982aa2547d58079adc3722d70c1248549` adds a
 default-off native submenu and separate boolean-only preference. The worker reads

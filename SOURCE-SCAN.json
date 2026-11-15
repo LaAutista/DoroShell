@@ -41,6 +41,7 @@
     "docs/ROADMAP.md",
     "docs/STATUS.md",
     "docs/animated-lock-screen-design.md",
+    "docs/app-properties.md",
     "docs/app-search.md",
     "docs/assets.md",
     "docs/clean-environment-simulation.md",
@@ -180,6 +181,7 @@
     "tests/native_display_buttons.cpp",
     "tests/native_wallpaper_buttons.cpp",
     "tests/test_app_catalog.py",
+    "tests/test_app_properties.py",
     "tests/test_app_search.py",
     "tests/test_bootstrap.py",
     "tests/test_clean_environment.py",
@@ -246,8 +248,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 245,
-  "source_payload_count": 243,
+  "file_count": 247,
+  "source_payload_count": 245,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

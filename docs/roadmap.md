@@ -19,7 +19,10 @@ and deployment notes do not describe current main.
 - Native wallpaper: isolated decoder and Background controls with static fallback,
   mute/volume/pause/Off; guarded optional Advanced display controls are separate.
 - Setup: selected modules, previews, original backups, conflict refusal and rollback.
-  It does not perform a desktop reset or install packages automatically.
+  No desktop reset. The local `setup.py` reports package requirements; the explicitly
+  requested bootstrap/deploy apply flow can offer official prerequisites and module
+  packages through normal sudo/pacman approval. Plan and `--no-packages` do not
+  install packages. See [prerequisite ordering and cancellation](INSTALL.md).
 
 ## Completed bounded acceptance
 
