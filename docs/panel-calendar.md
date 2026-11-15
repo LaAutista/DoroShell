@@ -83,9 +83,10 @@ its symbols include the calendar positioning method. This closes the compilation
 gap for that prepared dependency set, beyond the extracted-method fixture.
 
 The earlier 540 unit and 768 native-widget cases belong to the unchanged runtime
-source; this documentation-only follow-up does not rerun them. The coordinator's
-separate fresh full build is pending at this checkpoint; no independent build
-success is claimed here.
+source; this documentation-only follow-up does not rerun them. The coordinator
+independently passed those 540 unit and 768 native-widget cases, then completed a
+separate fresh full build: exit 0, all 1,367 steps, with the calendar positioning
+symbol confirmed in the final executable. Neither build was installed or executed.
 
 The default host configuration with liblxqt 2.5 still needs compatible build-tools
 or an explicitly prepared compatible dependency prefix. The private cached 2.4

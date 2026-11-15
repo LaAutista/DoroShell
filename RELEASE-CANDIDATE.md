@@ -29,10 +29,12 @@ an explicitly prepared compatible prefix; no clean-OS/default-bootstrap claim.
 The runtime patch, builder and tests are unchanged in this documentation-only
 follow-up. Earlier test counts and frozen `eec9ad8` evidence are retained, not rerun
 or replaced. Documentation links, unchanged code bytes/modes, inventory/checksums
-and source round trips are checked. The coordinator's separate fresh full build
-remains pending at this checkpoint; its success is not claimed. No Xvfb retry,
-personal configuration/media or session access, live deployment, input, display,
-power or locker changes. Independent review/publication remains pending; no push.
+and source round trips are checked. The coordinator subsequently confirmed a
+separate fresh full build: exit 0, all 1,367 steps, with the calendar positioning
+symbol in the final executable; the 540 unit and 768 native-widget cases also passed
+independently. Neither build was installed or executed. No Xvfb retry, personal
+configuration/media or session access, live deployment, input, display, power or
+locker changes. Publication remains pending; no push.
 
 ## Historical fullscreen wallpaper pause documentation — 2026-11-15
 

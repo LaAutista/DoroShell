@@ -11,8 +11,10 @@ The initial liblxqt/build-tools mismatch was resolved for a private build by usi
 cached liblxqt 2.4 headers/library/CMake files with saved build-tools 2.4: all 1,367
 full native build steps passed without source or version-check changes. No package
 was system-installed and no panel ran or was staged. Default host liblxqt 2.5 still
-needs matching tools or a compatible prepared prefix; independent full-build
-verification is pending. The prior running/staged build and frozen evidence remain
+needs matching tools or a compatible prepared prefix. The coordinator's independent
+fresh full build also passed all 1,367 steps and confirmed the calendar symbol;
+540 unit and 768 native-widget cases were independently passed earlier. No binary
+was installed or executed. The prior running/staged build and frozen evidence remain
 unchanged; live symptom unverified.
 
 Documentation-only reconciliation explicitly lists the already-implemented

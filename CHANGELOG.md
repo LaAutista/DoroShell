@@ -7,7 +7,8 @@
   native Qt offscreen source regressions. A later full build passes with matching
   cached liblxqt 2.4/build-tools 2.4 in a private prefix; default host liblxqt 2.5
   still needs compatible dependencies. No system install, version bypass or live
-  update; separate independent full-build verification remains pending.
+  update. A separate independent full build also passed all 1,367 steps without
+  installing or executing the panel.
 
 - Document already-shipped automatic fullscreen wallpaper pause: default-on with
   opt-out, monitor/workspace scope, independent reasons and polling delay. Correct

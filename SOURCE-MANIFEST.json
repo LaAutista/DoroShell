@@ -44,19 +44,19 @@
     "app_properties": "Read-only Properties on published 012aa9318841eca4aae2aa5d511043c4309b4ba1: four bounded/selectable GIO fields, explicit missing/stale status, native keyboard/mouse context-event routing, modal lifetime/focus preservation. No file probe/Exec handling, new helper/schema or preference write. Docs/app-properties.md; roadmap package wording corrected.",
     "fullscreen_wallpaper_documentation": "Documentation-only follow-up on published 28bfcd83d741c0000f2db69b38f221bcf251c97d: existing default-on/opt-out fullscreen pause, monitor/workspace scope, independent pause reasons and 500 ms polling cadence. Renderer/worker ancestry fad281f and native Background controls a0f82f9; historical acceptance retained. See wallpaper/README.md and docs/roadmap.md.",
     "calendar_bounds": "Compact-calendar scrollbar/work-area patch on published f980512bf30dd05d99987a8022b3f33c620691ab; frozen implementation eec9ad84d7ba03c70dd43ebe00d3877db56227a1. All eleven patches apply to pinned upstream, 768 native Qt fixture cases pass, then full native compilation passes with matching private liblxqt 2.4/build-tools 2.4. Default host 2.5 mismatch and runtime limits remain; docs/panel-calendar.md.",
-    "calendar_build_documentation": "Documentation-only follow-up to eec9ad84d7ba03c70dd43ebe00d3877db56227a1. Reconcile initial failed configuration with subsequent 1,367-step full build using cached dependency files extracted privately, not system-installed. No source pin/version-check changes or runtime behavior edits; independent fresh build remains pending at this checkpoint."
+    "calendar_build_documentation": "Documentation-only follow-up to eec9ad84d7ba03c70dd43ebe00d3877db56227a1. Reconcile initial failed configuration with subsequent 1,367-step full build using cached dependency files extracted privately, not system-installed. No source pin/version-check changes or runtime behavior edits; coordinator subsequently confirmed a separate fresh successful 1,367-step build and linked calendar symbol; neither build installed/executed."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
     "passed": 540,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Prior 540 tests passed in 35.883s in disposable HOME/XDG, offscreen Qt and absent private buses; 768 native Qt widget-source cases and independent old-source failures remain recorded. Runtime/builder/test bytes unchanged in this documentation-only follow-up; no suite rerun. Full native build subsequently completed 1,367 steps with matching cached liblxqt 2.4.0-1.2 files in a private prefix and saved build-tools 2.4.0. No system install, pin/version-check bypass, staging or panel execution. Default host liblxqt 2.5 still needs compatible dependencies. Separate coordinator full build pending; no independent build success claimed. Documentation links, source hashes and round trips checked; no personal session/device changes.",
+    "note": "Prior 540 tests passed in 35.883s in disposable HOME/XDG, offscreen Qt and absent private buses; 768 native Qt widget-source cases and independent old-source failures remain recorded. Runtime/builder/test bytes unchanged in this documentation-only follow-up; no suite rerun. Full native build subsequently completed 1,367 steps with matching cached liblxqt 2.4.0-1.2 files in a private prefix and saved build-tools 2.4.0. No system install, pin/version-check bypass, staging or panel execution. Default host liblxqt 2.5 still needs compatible dependencies. Coordinator subsequently confirmed a separate successful 1,367-step full build with linked calendar symbol, and independent passes of 540 units/768 native-widget cases. Neither build installed/executed. Documentation links, source hashes and round trips checked; no personal session/device changes.",
     "full_native_build": {
       "source_commit": "eec9ad84d7ba03c70dd43ebe00d3877db56227a1",
       "steps": 1367,
       "status": "passed with prepared private matching 2.4 dependency prefix",
       "runtime_acceptance": "not performed",
-      "independent_full_build": "pending at documentation checkpoint"
+      "independent_full_build": "Coordinator confirmed separate fresh exit-0 build, all 1367 steps and calendar positioning symbol in final executable; no install/execution."
     }
   },
   "source_payloads": [
@@ -74,8 +74,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "8828477ad61f19a15a59402e48cf180bb8b76673fb5246cbeedaca777b055f6c",
-      "size": 11270,
+      "sha256": "536578e121eef10916950a4eadb93b99eb10392cf782e86d84bd44be38631acc",
+      "size": 11315,
       "mode": "0o644"
     },
     {
@@ -98,8 +98,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "5811b3c05a2d8e7ca59d9f2af66ebf3cc9198ef1adc63633e53eaf5450ba0d19",
-      "size": 68215,
+      "sha256": "ab583717e018e038808caf5598806895ced7af12a6fb3e1e41726bc277154a3f",
+      "size": 68352,
       "mode": "0o644"
     },
     {
@@ -260,8 +260,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "1d5e0c75387cdb5dd0826111261713c89f5f2c6debed8a882d7444d40942ebab",
-      "size": 25357,
+      "sha256": "f18b9790318526f6e0dc5af2d184242287fad4f24d605c4ad4ca2b5836b7f1c6",
+      "size": 25458,
       "mode": "0o644"
     },
     {
@@ -284,8 +284,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "7e104c0baca54e42a0fddd28c87db34cacbdce8519aa2243f75a98a2030d1c78",
-      "size": 24281,
+      "sha256": "6a8d9b396d55b17657f640c17a9f90cc164a113dead7ff711730ea9c8e30e531",
+      "size": 24452,
       "mode": "0o644"
     },
     {
@@ -374,8 +374,8 @@
     },
     {
       "path": "docs/panel-calendar.md",
-      "sha256": "9f0ccf4c94ba1fcc92ea63df1aa41ed03a341f94aceff40677c46755ae5e6be9",
-      "size": 5862,
+      "sha256": "3c01f7ace1a6da5cb57d9084d67531b03c5461875dab8d88171a78693b318f87",
+      "size": 6004,
       "mode": "0o644"
     },
     {
@@ -590,8 +590,8 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "08a865dcdcad3855ce091742c4eeb51b37049c8cd2b253f304cfa1fbc0aa3da7",
-      "size": 16265,
+      "sha256": "6575ae3d0334589d40d60c70607a6b3a17105e215d0fb6839831c05cf22d9f0f",
+      "size": 16338,
       "mode": "0o644"
     },
     {

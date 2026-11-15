@@ -192,5 +192,6 @@ source methods pass a compiled Qt offscreen fixture, followed by a successful fu
 native build using cached liblxqt 2.4 files in a private prefix with build-tools 2.4.
 No package was system-installed or version check bypassed. The default host with
 liblxqt 2.5 still needs compatible build-tools/dependencies. No install, panel run,
-staging or live upgrade is claimed; independent full-build verification is pending.
+staging or live upgrade is claimed. A separate coordinator build also completed
+all 1,367 steps and confirmed the linked calendar symbol, without execution.
 See [reproduction and limits](../docs/panel-calendar.md).
