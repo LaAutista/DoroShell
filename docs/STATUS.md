@@ -7,8 +7,13 @@ separate from this pass. Source publication does not imply live activation.
 The [compact calendar bounds candidate](panel-calendar.md) fixes reproduced
 scrollbar-induced clipping and available-work-area placement. The compiled native
 Qt source fixture passes 768 cases; it is not a full panel process or real WM test.
-Full panel configuration is blocked by the existing liblxqt/build-tools version
-mismatch. The prior running/staged build remains unchanged; live symptom unverified.
+The initial liblxqt/build-tools mismatch was resolved for a private build by using
+cached liblxqt 2.4 headers/library/CMake files with saved build-tools 2.4: all 1,367
+full native build steps passed without source or version-check changes. No package
+was system-installed and no panel ran or was staged. Default host liblxqt 2.5 still
+needs matching tools or a compatible prepared prefix; independent full-build
+verification is pending. The prior running/staged build and frozen evidence remain
+unchanged; live symptom unverified.
 
 Documentation-only reconciliation explicitly lists the already-implemented
 [automatic fullscreen wallpaper pause](../wallpaper/README.md#pause-and-recovery),

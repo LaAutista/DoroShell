@@ -1,7 +1,8 @@
 # Compact calendar bounds candidate — 2026-11-15
 
-Candidate on coordinator-verified published
-`f980512bf30dd05d99987a8022b3f33c620691ab`. One new ordered native patch fixes two
+Documentation follow-up to frozen source candidate
+`eec9ad84d7ba03c70dd43ebe00d3877db56227a1`, based on coordinator-verified published
+`f980512bf30dd05d99987a8022b3f33c620691ab`. The inherited native patch fixes two
 source-reproduced compact-calendar cases: scrollbars stealing the other axis despite
 spare room, and positioning beyond the reported available work area. Existing
 native calendar interaction, themes, preferences and the rotated-clock path remain.
@@ -16,11 +17,22 @@ includes the new patch. No new helper or installation schema.
 The full disposable/offscreen unit suite passes **540 tests (35.883s)**,
 including existing build-notice and reversible installer coverage.
 
-Full panel configuration stops because installed liblxqt 2.5.0 requires build-tools
-2.5.0, while the available prefix provides 2.4.0. The Qt-only fixture builds; no full
-plugin binary is claimed. No packages, Xvfb retry, personal configuration/media or
-session access, live deployment, input, display, power or locker changes. Source
-awaits independent review and compatible full-build verification; no push.
+The original configuration failed on installed liblxqt 2.5.0 versus saved
+build-tools 2.4.0. A later **complete native build passed all 1,367 steps** in a new
+private tree using already-cached liblxqt 2.4.0-1.2 headers/library/CMake files with
+the matching saved tools. The actual clock code is linked into the full executable.
+The cache was extracted privately, not system-installed. No package scripts,
+source-pin or version-check changes, downloads, install/staging or panel execution.
+The default host liblxqt 2.5 dependency mismatch still requires compatible tools or
+an explicitly prepared compatible prefix; no clean-OS/default-bootstrap claim.
+
+The runtime patch, builder and tests are unchanged in this documentation-only
+follow-up. Earlier test counts and frozen `eec9ad8` evidence are retained, not rerun
+or replaced. Documentation links, unchanged code bytes/modes, inventory/checksums
+and source round trips are checked. The coordinator's separate fresh full build
+remains pending at this checkpoint; its success is not claimed. No Xvfb retry,
+personal configuration/media or session access, live deployment, input, display,
+power or locker changes. Independent review/publication remains pending; no push.
 
 ## Historical fullscreen wallpaper pause documentation — 2026-11-15
 

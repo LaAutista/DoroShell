@@ -4,8 +4,10 @@
 
 - Fix compact calendar popup bounds: reserve space for a required scrollbar and
   respect the available work area without expanding it to the panel edge. Add
-  native Qt offscreen source regressions; full plugin build remains blocked by
-  the current liblxqt/build-tools dependency mismatch. No live update.
+  native Qt offscreen source regressions. A later full build passes with matching
+  cached liblxqt 2.4/build-tools 2.4 in a private prefix; default host liblxqt 2.5
+  still needs compatible dependencies. No system install, version bypass or live
+  update; separate independent full-build verification remains pending.
 
 - Document already-shipped automatic fullscreen wallpaper pause: default-on with
   opt-out, monitor/workspace scope, independent reasons and polling delay. Correct

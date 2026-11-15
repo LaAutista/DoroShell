@@ -60,7 +60,7 @@ No existing Xvfb test was retried.
 The full disposable/offscreen unit suite passes **540 tests in 35.883s**,
 including the existing ordered-patch/notice copying and installer regressions.
 
-## Build and release limit
+## Full native build evidence and remaining limits
 
 All eleven ordered patches apply to pinned upstream
 `cffb0cd29c6ce0360356006ce727a9b01347e062`. The builder's shared patch list also copies
@@ -68,11 +68,29 @@ this patch into runtime notices; existing versioned builds and rollback are reta
 Deployment's existing source digest includes the new patch, so it selects a new build
 rather than overwriting a previous runtime. No installer/schema migration is added.
 
-A **complete panel/plugin build is blocked on this development environment**:
-installed liblxqt 2.5.0 requires lxqt2-build-tools 2.5.0, while the existing pinned
-build prefix supplies 2.4.0. Configuration stops before compilation. No dependency,
-pin or package was changed to bypass that requirement. The Qt-only native fixture
-build passes; that is not a successful full-plugin build. A compatible prepared
-build environment and independent review are still required before deployment.
-Actual WM work-area reporting, personal/live clipping, physical mixed-DPI/multi-monitor,
+The initial configuration attempt failed: installed liblxqt 2.5.0 requires
+lxqt2-build-tools 2.5.0, while the saved pinned build prefix provides 2.4.0. That
+failure remains part of the frozen `eec9ad8` review evidence.
+
+A subsequent **complete native panel build passed all 1,367 steps** in a new private
+tree, with the same eleven patches and no source edits. An already-cached
+liblxqt 2.4.0-1.2 package supplied matching headers, library and CMake files, extracted
+only into a private prefix alongside the existing build-tools 2.4.0. The package was
+not system-installed; no package scripts, system helpers or policies were used.
+No downloads, source-pin changes or version-check bypass. The actual clock object
+and static plugin archive were built and linked into the final panel executable;
+its symbols include the calendar positioning method. This closes the compilation
+gap for that prepared dependency set, beyond the extracted-method fixture.
+
+The earlier 540 unit and 768 native-widget cases belong to the unchanged runtime
+source; this documentation-only follow-up does not rerun them. The coordinator's
+separate fresh full build is pending at this checkpoint; no independent build
+success is claimed here.
+
+The default host configuration with liblxqt 2.5 still needs compatible build-tools
+or an explicitly prepared compatible dependency prefix. The private cached 2.4
+build does not establish default bootstrap/clean-OS readiness or a redistributable
+binary. No install, staging, panel execution or live update was performed. Original
+builds, source/evidence bundles and personal settings remain unchanged. Actual WM
+work-area reporting, personal/live clipping, physical mixed-DPI/multi-monitor,
 other styles/locales, live font changes, normal login and clean OS remain unverified.

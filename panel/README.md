@@ -188,6 +188,9 @@ This patch remains staged; no live panel refresh was performed.
 
 `0011-calendar-bounds.patch` preserves the compact calendar's native behavior while
 accounting for scrollbar space and the reported available work area. The actual
-source methods pass a compiled Qt offscreen fixture; the full panel build remains
-blocked here by the installed liblxqt/build-tools version mismatch. No staged or
-live panel upgrade is claimed. See [reproduction and limits](../docs/panel-calendar.md).
+source methods pass a compiled Qt offscreen fixture, followed by a successful full
+native build using cached liblxqt 2.4 files in a private prefix with build-tools 2.4.
+No package was system-installed or version check bypassed. The default host with
+liblxqt 2.5 still needs compatible build-tools/dependencies. No install, panel run,
+staging or live upgrade is claimed; independent full-build verification is pending.
+See [reproduction and limits](../docs/panel-calendar.md).

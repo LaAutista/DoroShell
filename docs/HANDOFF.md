@@ -55,9 +55,12 @@ next-login and restoration boundaries are documented in INSTALL.
 The [calendar bounds candidate](panel-calendar.md) adds an eleventh ordered panel
 patch on published `f980512`: reserve scrollbar space and respect the available
 work area in the compact horizontal clock popup. Old-source regressions and 768
-native Qt snippet cases pass after the fix. Full panel configuration is blocked by
-installed liblxqt 2.5.0 versus the available build-tools 2.4.0; no dependency bypass,
-complete plugin build or live update. Preserve the prior ten-patch runtime.
+native Qt snippet cases pass after the fix. After the initial liblxqt 2.5/build-tools
+2.4 configuration failure, a full native build passed 1,367 steps with cached
+liblxqt 2.4 files extracted into a private prefix and saved build-tools 2.4. No
+system package install, source/version-check change, panel execution or staging.
+The default 2.5 host dependency mismatch remains; a separate independent build is
+pending. Preserve the prior ten-patch runtime and frozen `eec9ad8` evidence.
 
 Documentation now explicitly inventories the already-shipped
 [automatic fullscreen wallpaper pause](../wallpaper/README.md#pause-and-recovery):

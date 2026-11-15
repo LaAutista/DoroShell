@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-calendar-bounds-20261115",
+  "candidate": "doroshell-calendar-build-docs-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -43,13 +43,21 @@
     "recent_documents": "Optional default-off shared XBEL submenu on published 5cc96a4982aa2547d58079adc3722d70c1248549. Bounded/cancellable on-demand reader, private-marker/URI filtering, no target probes/shared writes, availability unverified and explicit GIO dispatch. Boolean-only separate preference excluded from portable export; runtime/toolkit helper lifecycle and native-menu keyboard fixtures. See docs/recent-documents.md.",
     "app_properties": "Read-only Properties on published 012aa9318841eca4aae2aa5d511043c4309b4ba1: four bounded/selectable GIO fields, explicit missing/stale status, native keyboard/mouse context-event routing, modal lifetime/focus preservation. No file probe/Exec handling, new helper/schema or preference write. Docs/app-properties.md; roadmap package wording corrected.",
     "fullscreen_wallpaper_documentation": "Documentation-only follow-up on published 28bfcd83d741c0000f2db69b38f221bcf251c97d: existing default-on/opt-out fullscreen pause, monitor/workspace scope, independent pause reasons and 500 ms polling cadence. Renderer/worker ancestry fad281f and native Background controls a0f82f9; historical acceptance retained. See wallpaper/README.md and docs/roadmap.md.",
-    "calendar_bounds": "Compact-calendar scrollbar/work-area patch on published f980512bf30dd05d99987a8022b3f33c620691ab. All eleven patches apply to pinned upstream; actual source snippet fixture compiles with Qt Widgets/Test and passes 768 synthetic cases. Full panel configuration blocked by installed liblxqt 2.5.0 versus build-tools 2.4.0. No complete plugin build or live deployment; docs/panel-calendar.md."
+    "calendar_bounds": "Compact-calendar scrollbar/work-area patch on published f980512bf30dd05d99987a8022b3f33c620691ab; frozen implementation eec9ad84d7ba03c70dd43ebe00d3877db56227a1. All eleven patches apply to pinned upstream, 768 native Qt fixture cases pass, then full native compilation passes with matching private liblxqt 2.4/build-tools 2.4. Default host 2.5 mismatch and runtime limits remain; docs/panel-calendar.md.",
+    "calendar_build_documentation": "Documentation-only follow-up to eec9ad84d7ba03c70dd43ebe00d3877db56227a1. Reconcile initial failed configuration with subsequent 1,367-step full build using cached dependency files extracted privately, not system-installed. No source pin/version-check changes or runtime behavior edits; independent fresh build remains pending at this checkpoint."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
     "passed": 540,
     "command": "python -m unittest discover -s tests -v",
-    "note": "540 tests passed in 35.883s in disposable HOME/XDG, offscreen Qt and absent private buses. Existing build inventory/notice/lifecycle regressions retained. Separate compiled native calendar construction/position snippets pass 192 cases at each of four scales, 768 total; old source fails independent scrollbar/work-area regressions. All eleven patches apply in order. Full panel configure blocked by existing liblxqt 2.5.0/build-tools 2.4.0 mismatch; no package/version workaround or full-plugin build. No personal session/media/device/input/clipboard/power/locker interaction, Xvfb retry or deployment."
+    "note": "Prior 540 tests passed in 35.883s in disposable HOME/XDG, offscreen Qt and absent private buses; 768 native Qt widget-source cases and independent old-source failures remain recorded. Runtime/builder/test bytes unchanged in this documentation-only follow-up; no suite rerun. Full native build subsequently completed 1,367 steps with matching cached liblxqt 2.4.0-1.2 files in a private prefix and saved build-tools 2.4.0. No system install, pin/version-check bypass, staging or panel execution. Default host liblxqt 2.5 still needs compatible dependencies. Separate coordinator full build pending; no independent build success claimed. Documentation links, source hashes and round trips checked; no personal session/device changes.",
+    "full_native_build": {
+      "source_commit": "eec9ad84d7ba03c70dd43ebe00d3877db56227a1",
+      "steps": 1367,
+      "status": "passed with prepared private matching 2.4 dependency prefix",
+      "runtime_acceptance": "not performed",
+      "independent_full_build": "pending at documentation checkpoint"
+    }
   },
   "source_payloads": [
     {
@@ -66,8 +74,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "bca4e516f3b78c07a222d5ebcb454e422b693eb19b9fef3a1024d3b8ce32d5a2",
-      "size": 11102,
+      "sha256": "8828477ad61f19a15a59402e48cf180bb8b76673fb5246cbeedaca777b055f6c",
+      "size": 11270,
       "mode": "0o644"
     },
     {
@@ -90,8 +98,8 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "849fc806bd1eab4a4c73d4570a4761d45cfd8cae5517b40cba00784f6b449f61",
-      "size": 67315,
+      "sha256": "5811b3c05a2d8e7ca59d9f2af66ebf3cc9198ef1adc63633e53eaf5450ba0d19",
+      "size": 68215,
       "mode": "0o644"
     },
     {
@@ -252,8 +260,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "9b1942df6280c9710f0b5dc2976c7953aa35ff547f171bfa032ab5fdd71d95dc",
-      "size": 25118,
+      "sha256": "1d5e0c75387cdb5dd0826111261713c89f5f2c6debed8a882d7444d40942ebab",
+      "size": 25357,
       "mode": "0o644"
     },
     {
@@ -276,8 +284,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "19ecd3088d5efbb8056da05f87f7c6f9f161be17ced19b40641fbd4d5f5b791f",
-      "size": 23915,
+      "sha256": "7e104c0baca54e42a0fddd28c87db34cacbdce8519aa2243f75a98a2030d1c78",
+      "size": 24281,
       "mode": "0o644"
     },
     {
@@ -366,8 +374,8 @@
     },
     {
       "path": "docs/panel-calendar.md",
-      "sha256": "90640e55c3e3dd336797eab0089dd62e87fb6e0b48cbfab0fee4a23b74274903",
-      "size": 4706,
+      "sha256": "9f0ccf4c94ba1fcc92ea63df1aa41ed03a341f94aceff40677c46755ae5e6be9",
+      "size": 5862,
       "mode": "0o644"
     },
     {
@@ -582,8 +590,8 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "2405481335cf02ae2718260764672e94f468705d89d9d461176161b05251b60c",
-      "size": 16041,
+      "sha256": "08a865dcdcad3855ce091742c4eeb51b37049c8cd2b253f304cfa1fbc0aa3da7",
+      "size": 16265,
       "mode": "0o644"
     },
     {
