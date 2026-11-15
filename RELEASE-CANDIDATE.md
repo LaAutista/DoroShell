@@ -1,4 +1,42 @@
-# Start first-frame sampling checkpoint — 2026-11-15
+# Start cross-column keyboard checkpoint — 2026-11-15
+
+Source follow-up to published `0c50da54f9a09499c780796eab8bbfce277e91f8`.
+Existing search/results navigation was inspected first; it had no column adapter.
+Right from results now enters the remembered or first usable right-side control;
+Left from places/options/session controls returns to the selected usable result,
+first usable result, or search when none remain. Tab chooses other controls; other
+keys retain native widget behavior. No new layout, global shortcut or setting.
+
+The widget-local filter skips hidden/disabled/non-focusable targets, scrolls folder
+controls into view and remembers only in-memory identity/role/duplicate occurrence.
+Folder rebuilds hide/unregister old controls and restore surviving focus or a usable
+fallback. Hidden windows, active drags and popup/modal ownership block navigation.
+Search cursor/selection modifiers, category controls, native folder submenu arrows,
+Tab and staged Escape remain. Existing Qt accessible names pass interface checks;
+results now describe the cross-column keys. No redundant labels replace native names.
+
+**512 full-suite tests pass (28.208s)** with disposable HOME/XDG, offscreen Qt,
+synthetic catalogs and private nonexistent bus addresses. Ten added tests cover
+column paths, unusable/empty results, dynamic folder/catalog rebuilds, duplicates,
+scroll reveal, editing/Tab/reopens, hidden/modal/popup/drag ownership, native submenu
+keys and names. Exact baseline export reproduces missing traversal. The actual
+temporary-installed menu passes these and ten prior keyboard tests (**20, 0.563s**),
+source/toolkit byte/import identity and synthetic visible-focus inspection.
+Repeat preserves first-install records; external menu edits refuse rollback; exact
+previous menu bytes/mode return, without changing fixture preferences. No installer
+schema or new helper dependency. Source checksums, complete archive/bundle and
+exact-base patch round-trips are verified; private fixtures/screenshots stay outside.
+
+No app/URI/session/power/input/display/locker dispatch, package/authentication,
+personal configuration/history, live activation or blocked-Xvfb retry occurred.
+This is not live X11/global shortcut, AT-SPI/screen-reader, login or clean-OS
+acceptance. The prior rendering fix remains, with its real color/cut-edge symptoms
+still unverified. Original dirty source, prior evidence and disabled input helper
+remain intact. Source candidate awaits independent review; no push/deployment.
+
+See [precise focus paths and limits](docs/start-keyboard.md).
+
+## Historical Start first-frame sampling checkpoint — 2026-11-15
 
 Source follow-up to published `27cfea1927a5dea44466a220162e7fcc2b905039`.
 The earlier `983ac44` readiness/fringe fix is already present. This increment fixes

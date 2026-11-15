@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-start-rendering-20261115",
+  "candidate": "doroshell-start-columns-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -37,7 +37,8 @@
     "start_separators": "Bounded editable folder-link separators on 474cf6c67aae58050d9427b0f742c55667058846: local version 2 only for separators, path-free portable version 2 with legacy version-1 import preservation, noninteractive collapsed lines; docs/start-separators.md. No general command/tree or live change.",
     "power_capabilities": "Read-only optional logind Can-method snapshots on 1533623d43c49a8c98bd5ec017a88f473e27d3dc; no service auto-start/interactive authorization, bounded async queries, conservative unknown/denied/unsupported/inhibited UI and retained primary/native confirmation; docs/power-capabilities.md. Mocked buses only.",
     "combined_release_integration": "Documentation-only integration follow-up on published 660de7737cc5df522f781c1ff377a4ee99b6895d: 27 cross-revision subprocess steps plus seven installed-toolkit boundary checks; runtime unchanged. See docs/release-integration.md.",
-    "start_first_mapped_frame": "Three-line cached-surface resampling on ShowToParent, based on published 27cfea1927a5dea44466a220162e7fcc2b905039; first-backdrop-paint regression, fractional-alpha/texture coverage and four-scale offscreen matrix. Existing 983ac44 readiness/fringe fixes and mask unchanged; live symptom unverified."
+    "start_first_mapped_frame": "Three-line cached-surface resampling on ShowToParent, based on published 27cfea1927a5dea44466a220162e7fcc2b905039; first-backdrop-paint regression, fractional-alpha/texture coverage and four-scale offscreen matrix. Existing 983ac44 readiness/fringe fixes and mask unchanged; live symptom unverified.",
+    "start_column_navigation": "Bounded widget-local results-Right/places-Left focus adapter on published 0c50da54f9a09499c780796eab8bbfce277e91f8; usable target filtering, in-memory rebuild retention and popup/modal/hidden/drag guards. Ten new source and twenty installed keyboard cases; no settings, layouts or global keys. See docs/start-keyboard.md."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
@@ -60,8 +61,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "056e34ad637ad24a1abc7d1d6501288bda5183ac651070b1f3fe6afd5fe51c50",
-      "size": 9101,
+      "sha256": "c2275456c008198d0d6fecc05123679bb97e5c3a8f51cc2c090529bb9586c4b7",
+      "size": 9427,
       "mode": "0o644"
     },
     {
@@ -84,14 +85,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "47102d11ba1965fd6cd470cd32be62bfe3fe31593c2569d5c92cc41beaebcb1c",
-      "size": 56074,
+      "sha256": "0d3ccd103618ee3aa903c29363c8511e58eada0847c1b662cfcd84e52613f975",
+      "size": 58661,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "2d3d6a3fef32565e0254d13f67355fa6f5ae76d2750ec46ab62351ff89396ac4",
-      "size": 8489,
+      "sha256": "f618d9f17877bffdd3992f6ad11278ba537c0af62a989dc8ad75b35dfcd00914",
+      "size": 8524,
       "mode": "0o644"
     },
     {
@@ -246,8 +247,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "34d5ae677c5fa9e18c6f30b87726556dd30801410826db04458eabc67c47f8bd",
-      "size": 21764,
+      "sha256": "b0ce880c7e059ec8674612df4a087b507d21f4888947e3b104937560285287e9",
+      "size": 22409,
       "mode": "0o644"
     },
     {
@@ -270,8 +271,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "7a26192cada8aa0b4dbf264b921a002379ccdd42a6e0be111a5d09b0d3248ae7",
-      "size": 20771,
+      "sha256": "09ca460b8af42e3c7c227c2f562bd78b022cba17560450c8d89461816545b2a9",
+      "size": 21255,
       "mode": "0o644"
     },
     {
@@ -342,8 +343,8 @@
     },
     {
       "path": "docs/open-shell-parity.md",
-      "sha256": "9ea2dd28538c33b3c76e7f45a26c4140ab1306688dfb702ffb41f7b25849e1aa",
-      "size": 11750,
+      "sha256": "491a56888675bf5147280aabc452cfd838cfbf4da4e9c233e05beba9322592b6",
+      "size": 11793,
       "mode": "0o644"
     },
     {
@@ -402,8 +403,8 @@
     },
     {
       "path": "docs/start-keyboard.md",
-      "sha256": "5650225452f49c26b3b1c5c31b726e51badf91126bcdeddb7464c0b5b85894aa",
-      "size": 3029,
+      "sha256": "6e9678e0329456d097903bc7c0b29e0987deea4d008999196bc9c09e1813ffed",
+      "size": 5455,
       "mode": "0o644"
     },
     {
@@ -534,8 +535,8 @@
     },
     {
       "path": "menu/start_menu.py",
-      "sha256": "873fedb8c9280ebfad65378352352c846d3db712e37ef939f36dfbab1f2c514d",
-      "size": 83532,
+      "sha256": "5ac9a045082ba578612d731d646c33b1582a34f7a067145f4f26042b6266af8c",
+      "size": 87056,
       "mode": "0o644"
     },
     {
@@ -1328,6 +1329,12 @@
       "path": "tests/test_source_release.py",
       "sha256": "cb466acad35217caba7b29a694457c86b155e4d47fb495bfff59e9d26221eb1e",
       "size": 2659,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_start_columns.py",
+      "sha256": "da26350b7bbc45f08d0c63fc60d9b46b03441a3500042bea4838edb09905a926",
+      "size": 10710,
       "mode": "0o644"
     },
     {

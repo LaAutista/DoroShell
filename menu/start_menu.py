@@ -63,7 +63,7 @@ from power_capabilities import PowerCapabilities, METHODS as POWER_ACTIONS
 import gi
 gi.require_version('Gio', '2.0')
 from gi.repository import Gio, GLib
-from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QRectF, Signal, QUrl
+from PySide6.QtCore import Qt, QStandardPaths, QTimer, QSize, QRectF, Signal, QUrl, QEvent
 from PySide6.QtNetwork import QLocalServer
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut, QCursor, QDrag, QActionGroup, QPainterPath, QRegion, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFrame,
@@ -823,7 +823,7 @@ class StartMenu(QWidget):
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.list.setAccessibleName('Applications')
-        self.list.setAccessibleDescription('Arrows move between applications. Home and End select the first and last. Up at the first or Down at the last returns to search.')
+        self.list.setAccessibleDescription('Arrows move between applications. Home and End select the first and last. Up at the first or Down at the last returns to search. Right enters places and menu controls; Left there returns to applications.')
         self.list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list.customContextMenuRequested.connect(self.context_menu)
         self.list.itemClicked.connect(self.launch_item)
@@ -854,9 +854,13 @@ class StartMenu(QWidget):
         body.addWidget(apps_panel, 3)
         places_panel = QWidget()
         places_panel.setObjectName('placesPanel')
+        self.folder_controls = []
+        self.fixed_places_controls = []
+        self.places_focus = None
         right = QVBoxLayout(places_panel)
         right.setContentsMargins(4, 38, 3, 2)
         area = QScrollArea()
+        self.places_area = area
         area.setWidgetResizable(True)
         area.setFrameShape(QScrollArea.Shape.NoFrame)
         contents = QWidget()
@@ -938,6 +942,11 @@ class StartMenu(QWidget):
         self.power_arrow.setMenu(self.power_menu)
         power.addWidget(self.power_arrow)
         right.addLayout(power)
+        for key, control in (('edit', self.edit_links_button), ('options', options),
+                             ('session', self.session_button), ('power', self.power_arrow)):
+            self.fixed_places_controls.append((key, control))
+            control.installEventFilter(self)
+        self.list.installEventFilter(self)
         body.addWidget(places_panel, 2)
         self.list.setToolTip('Drag pins to reorder. Right-click a program for more options.')
         style = '''
@@ -1056,11 +1065,18 @@ class StartMenu(QWidget):
         self.folder_layout.addWidget(divider)
 
     def refresh_folders(self):
+        restore_focus = any(button.hasFocus() for _, button in self.folder_controls)
+        remembered = self.places_focus
+        for _, button in self.folder_controls:
+            button.removeEventFilter(self)
+        self.folder_controls = []
         while self.folder_layout.count():
             item = self.folder_layout.takeAt(0)
             if item.widget():
+                item.widget().hide()
                 item.widget().deleteLater()
         self.folder_paths = {}
+        occurrences = {}
         pending_separator = False
         for link in self.folder_settings.links:
             if link.get('type') == 'separator':
@@ -1072,6 +1088,9 @@ class StartMenu(QWidget):
                 self.add_folder_separator()
             pending_separator = False
             path = link_path(link)
+            identity = (link['label'], path)
+            occurrence = occurrences.get(identity, 0)
+            occurrences[identity] = occurrence + 1
             self.folder_paths[link['label']] = path
             button = QPushButton(link['label'])
             button.setObjectName('folderLink')
@@ -1084,6 +1103,8 @@ class StartMenu(QWidget):
             browse.setFixedWidth(22);browse.setEnabled(bool(path));browse.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
             if path:browse.setMenu(FolderCascadeMenu(path,self.open_browsed_path,browse))
             line.addWidget(browse);self.folder_layout.addWidget(row)
+            for role, control in (('open', button), ('browse', browse)):
+                self.folder_controls.append((('folder', *identity, occurrence, role), control))
         for group in SYSTEM_GROUPS:
             entries = [(label, ids) for label, ids in group if label not in self.folder_settings.hidden]
             if entries and self.folder_layout.count():
@@ -1104,7 +1125,48 @@ class StartMenu(QWidget):
                     button.setToolTip(desktop or f'{label} is not installed')
                     button.clicked.connect(lambda checked=False, entry=desktop: self.run_desktop(entry))
                 self.folder_layout.addWidget(button)
+                self.folder_controls.append((('system', label), button))
         self.folder_layout.addStretch()
+        for _, button in self.folder_controls:
+            button.installEventFilter(self)
+        if self.isVisible():
+            for index in range(self.folder_layout.count()):
+                widget = self.folder_layout.itemAt(index).widget()
+                if widget: widget.show()
+        if restore_focus and self.column_navigation_allowed():
+            if not self.focus_places(remembered):
+                self.search.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def column_navigation_allowed(self):
+        return (self.isVisible() and not self.list.dragging and QApplication.activeModalWidget() is None
+                and QApplication.activePopupWidget() in (None, self))
+
+    def focus_places(self, remembered=None):
+        controls = [(key, button) for key, button in self.folder_controls + self.fixed_places_controls
+                    if button.isVisibleTo(self) and button.isEnabled()
+                    and button.focusPolicy() != Qt.FocusPolicy.NoFocus]
+        if not controls:
+            return False
+        key = self.places_focus if remembered is None else remembered
+        button = next((button for identity, button in controls if identity == key), controls[0][1])
+        if self.places_area.widget().isAncestorOf(button):
+            self.places_area.ensureWidgetVisible(button)
+        button.setFocus(Qt.FocusReason.ShortcutFocusReason)
+        return True
+
+    def eventFilter(self, watched, event):
+        controls = self.folder_controls + self.fixed_places_controls
+        if event.type() == QEvent.Type.FocusIn:
+            self.places_focus = next((key for key, button in controls if button is watched), self.places_focus)
+        if (event.type() == QEvent.Type.KeyPress and event.modifiers() == Qt.KeyboardModifier.NoModifier
+                and self.column_navigation_allowed()):
+            if watched is self.list and event.key() == Qt.Key.Key_Right:
+                return self.focus_places()
+            if event.key() == Qt.Key.Key_Left and any(button is watched for _, button in controls):
+                if self.list.selectable_rows(): self.focus_results()
+                else: self.search.setFocus(Qt.FocusReason.ShortcutFocusReason)
+                return True
+        return super().eventFilter(watched, event)
 
     def show_games(self):
         self.search.clear()

@@ -4,6 +4,13 @@ This is a portable development baseline, not a finished desktop or a certified
 stable installer. [Detailed historical acceptance](final-acceptance.md) remains
 separate from this pass. Source publication does not imply live activation.
 
+Cross-column candidate on published `0c50da5`: **512 full-suite tests** and **20
+temporary-installed keyboard tests** pass. Right from results and Left from places/
+options/session controls follow the bounded [focus paths](start-keyboard.md), with
+unusable rows skipped, rebuild retention and popup/modal ownership. No new layout,
+global shortcut, preference schema or live input/session action. Actual AT-SPI,
+screen-reader, global-input and live X11 acceptance remain outstanding.
+
 Current published checkpoint: `660de7737cc5df522f781c1ff377a4ee99b6895d`, as
 independently verified by the release coordinator. The follow-up
 [release integration pass](release-integration.md) found no runtime regression in

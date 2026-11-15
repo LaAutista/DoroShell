@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Connect Start results to right-hand places/options/session controls with bounded
+  Right/Left focus traversal. Skip unavailable/separator rows, preserve surviving
+  folder focus across rebuilds and reveal scrolled targets. Keep text editing,
+  Tab, native popup/modal ownership and existing action dispatch; no new layout.
+
 - Refresh Start's cached wallpaper surface after Qt's initial show completes so
   the first backdrop paint uses the mapped popup coordinates. Add first-paint and
   fractional-alpha/texture tests; retain decode fallback, themes and X11 mask.

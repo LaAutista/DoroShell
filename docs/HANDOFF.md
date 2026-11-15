@@ -52,6 +52,15 @@ next-login and restoration boundaries are documented in INSTALL.
 
 ## Known issues and recent evidence
 
+The cross-column keyboard follow-up to published `0c50da5` adds only Right from
+results to remembered/first usable places/menu controls and Left back to usable
+results or search. It skips unavailable/separator rows, reveals scrolled targets
+and retains surviving folder identity on rebuild. Text editing, native Tab/menu
+keys, modal ownership and drag behavior remain. Existing accessible names pass
+Qt interface checks; no new layout or setting. **512 tests** and **20 actual
+temporary-installed keyboard tests** pass, with repeat/conflict-aware exact rollback.
+See [focus paths and limits](start-keyboard.md); no live input/AT-SPI/X11 claim.
+
 The mapped-position Start follow-up to published `27cfea1` is a three-line glass
 handler correction: refresh after Qt's show helper rather than waiting for the
 queued geometry timer. A failing first-backdrop-paint test establishes the old/new
