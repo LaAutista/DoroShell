@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-calendar-build-docs-20261115",
+  "candidate": "doroshell-panel-build-tools-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -44,19 +44,21 @@
     "app_properties": "Read-only Properties on published 012aa9318841eca4aae2aa5d511043c4309b4ba1: four bounded/selectable GIO fields, explicit missing/stale status, native keyboard/mouse context-event routing, modal lifetime/focus preservation. No file probe/Exec handling, new helper/schema or preference write. Docs/app-properties.md; roadmap package wording corrected.",
     "fullscreen_wallpaper_documentation": "Documentation-only follow-up on published 28bfcd83d741c0000f2db69b38f221bcf251c97d: existing default-on/opt-out fullscreen pause, monitor/workspace scope, independent pause reasons and 500 ms polling cadence. Renderer/worker ancestry fad281f and native Background controls a0f82f9; historical acceptance retained. See wallpaper/README.md and docs/roadmap.md.",
     "calendar_bounds": "Compact-calendar scrollbar/work-area patch on published f980512bf30dd05d99987a8022b3f33c620691ab; frozen implementation eec9ad84d7ba03c70dd43ebe00d3877db56227a1. All eleven patches apply to pinned upstream, 768 native Qt fixture cases pass, then full native compilation passes with matching private liblxqt 2.4/build-tools 2.4. Default host 2.5 mismatch and runtime limits remain; docs/panel-calendar.md.",
-    "calendar_build_documentation": "Documentation-only follow-up to eec9ad84d7ba03c70dd43ebe00d3877db56227a1. Reconcile initial failed configuration with subsequent 1,367-step full build using cached dependency files extracted privately, not system-installed. No source pin/version-check changes or runtime behavior edits; coordinator subsequently confirmed a separate fresh successful 1,367-step build and linked calendar symbol; neither build installed/executed."
+    "calendar_build_documentation": "Documentation-only follow-up to eec9ad84d7ba03c70dd43ebe00d3877db56227a1. Reconcile initial failed configuration with subsequent 1,367-step full build using cached dependency files extracted privately, not system-installed. No source pin/version-check changes or runtime behavior edits; coordinator subsequently confirmed a separate fresh successful 1,367-step build and linked calendar symbol; neither build installed/executed.",
+    "panel_build_dependencies": "Follow-up on published 7d8f57aa8f7f3f81e9d32e9f99b0cae8092fb559: select pinned tools 2.4/2.5 from liblxqt metadata; see docs/panel-build-dependencies.md"
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
-    "passed": 540,
+    "passed": 564,
     "command": "python -m unittest discover -s tests -v",
-    "note": "Prior 540 tests passed in 35.883s in disposable HOME/XDG, offscreen Qt and absent private buses; 768 native Qt widget-source cases and independent old-source failures remain recorded. Runtime/builder/test bytes unchanged in this documentation-only follow-up; no suite rerun. Full native build subsequently completed 1,367 steps with matching cached liblxqt 2.4.0-1.2 files in a private prefix and saved build-tools 2.4.0. No system install, pin/version-check bypass, staging or panel execution. Default host liblxqt 2.5 still needs compatible dependencies. Coordinator subsequently confirmed a separate successful 1,367-step full build with linked calendar symbol, and independent passes of 540 units/768 native-widget cases. Neither build installed/executed. Documentation links, source hashes and round trips checked; no personal session/device changes.",
+    "note": "Fresh 564 tests passed in 38.089s with disposable HOME/XDG, offscreen Qt and inaccessible buses. Includes 25 panel build and 18 deployment tests; no personal session or package mutation. The published hardcoded tools failure was reproduced in a private tree. Final builder completes all 1367 native steps against installed liblxqt 2.5.0 and pinned tools 2.5.0, with real private-prefix/DESTDIR staging; only Git transfer substituted pinned local clones. Official tools clone and revision verified separately. Executable not run; no clean OS/login/runtime claim. Earlier calendar 768-case and full 2.4 evidence preserved, not rerun.",
     "full_native_build": {
-      "source_commit": "eec9ad84d7ba03c70dd43ebe00d3877db56227a1",
       "steps": 1367,
-      "status": "passed with prepared private matching 2.4 dependency prefix",
-      "runtime_acceptance": "not performed",
-      "independent_full_build": "Coordinator confirmed separate fresh exit-0 build, all 1367 steps and calendar positioning symbol in final executable; no install/execution."
+      "liblxqt": "2.5.0",
+      "tools": "2.5.0",
+      "tools_commit": "ca90f9b0c5eedc3ab89d4031811dff833392bf3b",
+      "status": "passed, private staging only",
+      "runtime_acceptance": "not performed"
     }
   },
   "source_payloads": [
@@ -74,8 +76,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "536578e121eef10916950a4eadb93b99eb10392cf782e86d84bd44be38631acc",
-      "size": 11315,
+      "sha256": "1bf79dcd2fcaf3a020761d920710135ca20de7557446c4ca4e12ed01c1c61620",
+      "size": 11633,
       "mode": "0o644"
     },
     {
@@ -98,14 +100,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "ab583717e018e038808caf5598806895ced7af12a6fb3e1e41726bc277154a3f",
-      "size": 68352,
+      "sha256": "0ab8dbf96b0b16df7a26261009bccd5bf347f3efa245a2fd9f6b419811d6a77c",
+      "size": 69311,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "0776501e447bd2a9559577d53aadc6cae1f48aa9b6dd552c4bcde5f719cd0d1c",
-      "size": 8920,
+      "sha256": "eb7f4f324e32cef6bbd6ccd2343ed73656665bca568e152c2ce07b0194364efe",
+      "size": 8960,
       "mode": "0o644"
     },
     {
@@ -206,8 +208,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "390d9563b5ec5420d5dbdff6982eb85a12d233a69eb77f3612f6b2840aa13c50",
-      "size": 45242,
+      "sha256": "3192406d340b08a35ba48e602d2a09160e20b981e79eaa90cb5a3f866007809d",
+      "size": 45556,
       "mode": "0o644"
     },
     {
@@ -242,8 +244,8 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "dfb1035591f94dd2a3331707b373b3ae00758e8ea6694d5321e9e5c99aaa0800",
-      "size": 5118,
+      "sha256": "41020b853f9f44947b7f23cb604ad96f97a4821ffefef8d6afdbb46360d3db23",
+      "size": 5165,
       "mode": "0o644"
     },
     {
@@ -260,14 +262,14 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "f18b9790318526f6e0dc5af2d184242287fad4f24d605c4ad4ca2b5836b7f1c6",
-      "size": 25458,
+      "sha256": "e482cdeb3f33f98a75d2a488a7e7869e92c695b9299f96cef585eab86e34864a",
+      "size": 26072,
       "mode": "0o644"
     },
     {
       "path": "docs/INSTALL.md",
-      "sha256": "386e637381c92c8127cb89df46f95e3c66b3179746dc02da95864316688657a7",
-      "size": 22267,
+      "sha256": "15fc5a7bb290785ce4250920a212c5d48cf645dba078845f656e7686cdf253d5",
+      "size": 22915,
       "mode": "0o644"
     },
     {
@@ -284,8 +286,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "6a8d9b396d55b17657f640c17a9f90cc164a113dead7ff711730ea9c8e30e531",
-      "size": 24452,
+      "sha256": "01412a50d7380d3e25ff1a89b1ed5cf2af58074602d2986ac17812f54cdca204",
+      "size": 25112,
       "mode": "0o644"
     },
     {
@@ -373,9 +375,15 @@
       "mode": "0o644"
     },
     {
+      "path": "docs/panel-build-dependencies.md",
+      "sha256": "b086d5b4b59aedb0352c4df95517c3711820c57f2d1b143c16717a349d0f02a8",
+      "size": 5398,
+      "mode": "0o644"
+    },
+    {
       "path": "docs/panel-calendar.md",
-      "sha256": "3c01f7ace1a6da5cb57d9084d67531b03c5461875dab8d88171a78693b318f87",
-      "size": 6004,
+      "sha256": "b632a42e9e4b214efcd51aa8590fb979988344c0ab1fe133b45418b73c4a6ece",
+      "size": 6177,
       "mode": "0o644"
     },
     {
@@ -590,14 +598,14 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "6575ae3d0334589d40d60c70607a6b3a17105e215d0fb6839831c05cf22d9f0f",
-      "size": 16338,
+      "sha256": "2bd6c33f0a00c97d7dcee4c52ae63a22935755aa63408f23e055fffb67bbf526",
+      "size": 16772,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "3f836ee15d258c191db6f9e130a31ccf96e1f1c8b58d86fb7ffb3ce2331ca72b",
-      "size": 3551,
+      "sha256": "98444c84a2419ada999b3f6056e6f47f4b776f983ed1f29004d6acf428f5c0d2",
+      "size": 10786,
       "mode": "0o644"
     },
     {
@@ -1178,8 +1186,8 @@
     },
     {
       "path": "tests/test_clean_environment.py",
-      "sha256": "e5e0617dafbc7f37d0b17415a32bc0a253775e36aadc2e6ef163a7fe237bedca",
-      "size": 9979,
+      "sha256": "6e8f6bb6201b4e5331755c7de2d94ffe02d10ca8bc582788765f3a2a8251ca21",
+      "size": 10442,
       "mode": "0o644"
     },
     {
@@ -1220,8 +1228,8 @@
     },
     {
       "path": "tests/test_deployment.py",
-      "sha256": "ba1beae06357cf11b8c781e687716ec576e304749e031d8fc4ec1ce9da4f7b03",
-      "size": 15947,
+      "sha256": "9f2014bdafe944df4eb53602e46b2d963a7c0d368ea7a3c71884a8e2d2fb7da3",
+      "size": 17386,
       "mode": "0o644"
     },
     {
@@ -1328,8 +1336,8 @@
     },
     {
       "path": "tests/test_panel_build.py",
-      "sha256": "06f3b6d2678054e48cac4f744c86d75707d8e0a498c8ef86ba8a5bee033dd31f",
-      "size": 2811,
+      "sha256": "4f122b8e7b6ff1f347cab61fd040ce851d52e2284f1afe4d00873a0198b82b98",
+      "size": 13972,
       "mode": "0o644"
     },
     {

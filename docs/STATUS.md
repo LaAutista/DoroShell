@@ -4,14 +4,23 @@ This is a portable development baseline, not a finished desktop or a certified
 stable installer. [Detailed historical acceptance](final-acceptance.md) remains
 separate from this pass. Source publication does not imply live activation.
 
+The [panel dependency candidate](panel-build-dependencies.md), based on published
+`7d8f57a`, selects pinned tools 2.4/2.5 from liblxqt development metadata before
+acquisition and binds deployment cache reuse to that selection. A fresh full
+1,367-step build against installed liblxqt 2.5 and private tools 2.5 passed, with
+private staging only. The executable was not run. Earlier 2.4-only workarounds
+below describe historical evidence; no host downgrade or CMake bypass is needed
+for this tested 2.5 build. The full disposable/offscreen suite passed **564 tests in 38.089s**.
+Independent review remains pending.
+
 The [compact calendar bounds candidate](panel-calendar.md) fixes reproduced
 scrollbar-induced clipping and available-work-area placement. The compiled native
 Qt source fixture passes 768 cases; it is not a full panel process or real WM test.
 The initial liblxqt/build-tools mismatch was resolved for a private build by using
 cached liblxqt 2.4 headers/library/CMake files with saved build-tools 2.4: all 1,367
 full native build steps passed without source or version-check changes. No package
-was system-installed and no panel ran or was staged. Default host liblxqt 2.5 still
-needs matching tools or a compatible prepared prefix. The coordinator's independent
+was system-installed and no panel ran or was staged. At that checkpoint, default host liblxqt 2.5 still
+needed matching tools or a compatible prepared prefix; see the follow-up above. The coordinator's independent
 fresh full build also passed all 1,367 steps and confirmed the calendar symbol;
 540 unit and 768 native-widget cases were independently passed earlier. No binary
 was installed or executed. The prior running/staged build and frozen evidence remain
@@ -54,7 +63,7 @@ unusable rows skipped, rebuild retention and popup/modal ownership. No new layou
 global shortcut, preference schema or live input/session action. Actual AT-SPI,
 screen-reader, global-input and live X11 acceptance remain outstanding.
 
-Current published checkpoint: `f980512bf30dd05d99987a8022b3f33c620691ab`, as
+Current published checkpoint: `7d8f57aa8f7f3f81e9d32e9f99b0cae8092fb559`, as
 independently verified by the release coordinator. The earlier follow-up to `660de77`
 [release integration pass](release-integration.md) found no runtime regression in
 27 cross-revision subprocess steps and seven installed-toolkit boundary checks.

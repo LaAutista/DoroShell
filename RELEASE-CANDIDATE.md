@@ -1,5 +1,20 @@
 # Compact calendar bounds candidate — 2026-11-15
 
+## Panel build-tools selection candidate — 2026-11-15
+
+Based on published `7d8f57aa8f7f3f81e9d32e9f99b0cae8092fb559`. The panel builder
+selects commit-pinned tools 2.4/2.5 from the selected liblxqt metadata, binds CMake
+and deployment cache reuse to that selection, and records private build provenance.
+Unsupported combinations fail before acquisition. [Policy and evidence](docs/panel-build-dependencies.md).
+
+The old failure was reproduced against installed liblxqt 2.5. The corrected full
+native build passed all 1,367 steps and private-prefix/DESTDIR staging. Local pinned
+Git clones substituted transport only. No host package mutation or executable
+launch, no session/configuration changes, no clean-OS/login/runtime acceptance.
+The complete disposable/offscreen suite passed **564 tests in 38.089s**; targeted
+coverage includes 25 panel-builder and 18 deployment tests. Source review is pending;
+no push. Historical verification below is retained.
+
 Documentation follow-up to frozen source candidate
 `eec9ad84d7ba03c70dd43ebe00d3877db56227a1`, based on coordinator-verified published
 `f980512bf30dd05d99987a8022b3f33c620691ab`. The inherited native patch fixes two

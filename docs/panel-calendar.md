@@ -88,8 +88,10 @@ independently passed those 540 unit and 768 native-widget cases, then completed 
 separate fresh full build: exit 0, all 1,367 steps, with the calendar positioning
 symbol confirmed in the final executable. Neither build was installed or executed.
 
-The default host configuration with liblxqt 2.5 still needs compatible build-tools
-or an explicitly prepared compatible dependency prefix. The private cached 2.4
+At that checkpoint, default host liblxqt 2.5 still needed compatible build-tools
+or an explicitly prepared compatible dependency prefix. The later
+[dependency-selection candidate](panel-build-dependencies.md) resolves the tools
+selection and records a real private 2.5 build without changing this runtime patch. The private cached 2.4
 build does not establish default bootstrap/clean-OS readiness or a redistributable
 binary. No install, staging, panel execution or live update was performed. Original
 builds, source/evidence bundles and personal settings remain unchanged. Actual WM

@@ -16,9 +16,10 @@ A native LXQt Panel 2.4.1 build with DoroShell unified pinned tasks and a hidden
 
 ## Build separately
 
-The builder clones pinned upstream revisions, validates and applies the complete ordered patch series, and stages installation into a private directory. It never runs pacman, sudo or a system installation. Existing installed build dependencies are required: C/C++ toolchain, Git, CMake/Ninja, Qt 6 development tools, GIO Unix development headers (`gio-unix-2.0`) and the LXQt panel development dependencies. Missing dependencies stop the build. The pinned LXQt build-tools helper is built locally as well. One `PATCHES` list drives both application and runtime notice copying; missing, unlisted or duplicate entries fail before building. Run `python source_release.py` first to verify the source inventory.
+The builder clones pinned upstream revisions, validates and applies the complete ordered patch series, and stages installation into a private directory. It never runs pacman, sudo or a system installation. Existing installed build dependencies are required: C/C++ toolchain, Git, CMake/Ninja, Qt 6 development tools, GIO Unix development headers (`gio-unix-2.0`) and the LXQt panel development dependencies. Missing dependencies stop the build. The compatible pinned LXQt build-tools helper is built locally as well: 2.4.0 for liblxqt 2.4, or 2.5.0 for liblxqt 2.5. Standard development metadata is checked before acquisition; unknown combinations fail with guidance. See [dependency selection and limits](../docs/panel-build-dependencies.md). One `PATCHES` list drives both application and runtime notice copying; missing, unlisted or duplicate entries fail before building. Run `python source_release.py` first to verify the source inventory.
 
 ```sh
+python panel/build.py --check-dependencies
 python panel/build.py --work /absolute/empty/build-directory
 ```
 
@@ -127,7 +128,7 @@ or publishing this source does not activate it.
 
 ## Upstream attribution
 
-Based on [LXQt Panel](https://github.com/lxqt/lxqt-panel), tag 2.4.1, commit `cffb0cd29c6ce0360356006ce727a9b01347e062`; local build helpers use [lxqt-build-tools](https://github.com/lxqt/lxqt-build-tools) 2.4.0, commit `0f56cd400d2afcb6f16d4ca88538ed716439c2c2`.
+Based on [LXQt Panel](https://github.com/lxqt/lxqt-panel), tag 2.4.1, commit `cffb0cd29c6ce0360356006ce727a9b01347e062`; local build helpers use [lxqt-build-tools](https://github.com/lxqt/lxqt-build-tools) 2.4.0, commit `0f56cd400d2afcb6f16d4ca88538ed716439c2c2`, or 2.5.0, commit `ca90f9b0c5eedc3ab89d4031811dff833392bf3b`, selected from the installed liblxqt dependency contract.
 
 The panel changes and scripts in this directory are LGPL-2.1-or-later. Upstream copyright headers are retained in the patched source. See [license](licenses/LGPL-2.1.txt) and [upstream authors](licenses/LXQt-AUTHORS). The patch and pinned sources make the modifications reviewable/rebuildable. This declaration does not relicense unrelated DoroShell files or third-party artwork. No Doro artwork, personal panel configurations, screenshots or compiled binaries are bundled here.
 
@@ -190,8 +191,8 @@ This patch remains staged; no live panel refresh was performed.
 accounting for scrollbar space and the reported available work area. The actual
 source methods pass a compiled Qt offscreen fixture, followed by a successful full
 native build using cached liblxqt 2.4 files in a private prefix with build-tools 2.4.
-No package was system-installed or version check bypassed. The default host with
-liblxqt 2.5 still needs compatible build-tools/dependencies. No install, panel run,
-staging or live upgrade is claimed. A separate coordinator build also completed
+No package was system-installed or version check bypassed. The later
+[dependency-selection candidate](../docs/panel-build-dependencies.md) also builds
+against liblxqt 2.5 using pinned tools 2.5. No panel run or live upgrade is claimed. A separate coordinator build also completed
 all 1,367 steps and confirmed the linked calendar symbol, without execution.
 See [reproduction and limits](../docs/panel-calendar.md).

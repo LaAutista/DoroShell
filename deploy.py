@@ -316,6 +316,10 @@ def build_native(home, selected, versions):
         if name not in selected: continue
         folders = ['panel'] if name == 'native-panel' else ['wallpaper', 'display']
         digest = hashlib.sha256(json.dumps(versions, sort_keys=True).encode())
+        if name == 'native-panel':
+            from panel.build import dependencies
+            panel_dependencies = dependencies()
+            digest.update(json.dumps(panel_dependencies, sort_keys=True).encode())
         for folder in folders:
             for path in sorted((ROOT/folder).rglob('*')):
                 if path.is_file() and path.suffix in ('.py', '.cpp', '.h', '.patch') and '__pycache__' not in path.parts:
@@ -338,6 +342,7 @@ def build_native(home, selected, versions):
                 raise RuntimeError('Incomplete build retained at '+str(work)+'; move it aside before retrying.')
             script = 'panel/build.py' if name == 'native-panel' else 'wallpaper/build.py'
             cmd = [sys.executable, ROOT/script, '--work', work]
+            if name == 'native-panel': cmd += ['--lxqt-prefix', panel_dependencies['lxqt_prefix']]
             if name == 'wallpaper' and 'display' in selected: cmd.append('--display-controls')
             run(cmd)
             atomic(proof, json.dumps(inventory(), sort_keys=True).encode())

@@ -26,6 +26,17 @@ keeps the source at `~/.local/share/doroshell/sources/COMMIT`. About 80 MB of bu
 artwork/video is included. No runtime binaries are downloaded. A direct clone works
 too; keep that checkout because maintenance launchers reference it.
 
+## Native panel build dependencies
+
+The retained source builder selects pinned build-tools 2.4 or 2.5 to match
+standard liblxqt development metadata; it no longer always shadows the installed
+library with tools 2.4. `python panel/build.py --check-dependencies` reports the
+selection without acquisition or writes. Unknown/missing combinations fail early.
+CMake still validates remaining native dependencies. See [prepared prefixes,
+provenance and build limits](panel-build-dependencies.md). Failed build trees are
+retained; correct dependencies and use a new empty directory. This is private-build
+acceptance, not a clean-machine/login guarantee.
+
 ## Preview, installation and package boundaries
 
 `python deploy.py` reports the distribution/session, selected modules/panel and installed

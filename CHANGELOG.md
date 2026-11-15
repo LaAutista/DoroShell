@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Select pinned build-tools 2.4/2.5 from liblxqt development metadata before
+  acquisition. Add actionable read-only preflight, prepared-prefix selection,
+  build provenance and dependency-aware deployment cache reuse. A real private
+  2.5 build/staging passes; no host installation, version bypass or runtime claim.
+
 - Fix compact calendar popup bounds: reserve space for a required scrollbar and
   respect the available work area without expanding it to the panel edge. Add
   native Qt offscreen source regressions. A later full build passes with matching

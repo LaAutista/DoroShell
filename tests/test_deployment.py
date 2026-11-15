@@ -123,12 +123,32 @@ class DeploymentTests(unittest.TestCase):
         def fake_build(argv):
             work=Path(argv[argv.index('--work')+1]);binary=work/'runtime/bin/lxqt-panel'
             binary.parent.mkdir(parents=True);binary.write_bytes(b'fixture native');binary.chmod(0o755)
-        with patch.object(deploy,'run',side_effect=fake_build) as build:
+        with patch('panel.build.dependencies',return_value={'lxqt_prefix':'/fixture','lxqt_version':'2.5.0'}), patch.object(deploy,'run',side_effect=fake_build) as build:
             binaries=deploy.build_native(self.home,['native-panel'],{'qt6-base':'fixture'})
             self.assertEqual(binaries,deploy.build_native(self.home,['native-panel'],{'qt6-base':'fixture'}))
             self.assertEqual(build.call_count,1)
             binaries['native-panel'].chmod(0o644)
             with self.assertRaisesRegex(RuntimeError,'Changed native'):deploy.build_native(self.home,['native-panel'],{'qt6-base':'fixture'})
+
+    def test_panel_build_cache_binds_selected_dependency_metadata(self):
+        def fake_build(argv):
+            work=Path(argv[argv.index('--work')+1]); binary=work/'runtime/bin/lxqt-panel'
+            binary.parent.mkdir(parents=True); binary.write_bytes(b'fixture native')
+            self.assertEqual(argv[argv.index('--lxqt-prefix')+1], '/fixture prefix')
+        selected={'lxqt_prefix':'/fixture prefix','lxqt_version':'2.5.0','metadata_sha256':{'config':'first'}}
+        with patch('panel.build.dependencies',return_value=selected) as query, patch.object(deploy,'run',side_effect=fake_build) as build:
+            first=deploy.build_native(self.home,['native-panel'],{})
+            self.assertEqual(first,deploy.build_native(self.home,['native-panel'],{}))
+            self.assertEqual(build.call_count,1)
+            selected['metadata_sha256']['config']='second'
+            second=deploy.build_native(self.home,['native-panel'],{})
+            self.assertNotEqual(first,second)
+            self.assertEqual(build.call_count,2)
+            before=self.snapshot()
+            query.side_effect=RuntimeError('Unsupported liblxqt')
+            with self.assertRaisesRegex(RuntimeError,'Unsupported liblxqt'):
+                deploy.build_native(self.home,['native-panel'],{})
+            self.assertEqual(self.snapshot(),before)
 
     def test_real_menu_repeat_upgrade_undo_and_first_baseline(self):
         self.fixture()

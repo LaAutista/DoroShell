@@ -54,6 +54,7 @@
     "docs/opaque-theme-verification.md",
     "docs/open-shell-parity.md",
     "docs/optional-installation.md",
+    "docs/panel-build-dependencies.md",
     "docs/panel-calendar.md",
     "docs/panel-density.md",
     "docs/portable-settings.md",
@@ -252,8 +253,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 251,
-  "source_payload_count": 249,
+  "file_count": 252,
+  "source_payload_count": 250,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

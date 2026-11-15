@@ -12,12 +12,20 @@ The repository is public: no GitHub authentication is required. Use
 MODULES → DEVELOPMENT, and inspect `git status`, remote URL and recent history.
 `main` is development, not a finished product. The complete source/art baseline is
 `dee97b4`, following `fd1859d` diagnostics and `36929b2` updated provenance/lock-screen
-design. The current coordinator-verified published checkpoint is `f980512`, including automatic
+design. The current coordinator-verified published checkpoint is `7d8f57a`, including automatic
 prerequisites, optional Alt+F1, bounded custom-root snapping/single-desktop,
 retention, separators, keyboard navigation and power capability states. The
 [release integration pass](release-integration.md) checks their combined installed
 lifecycle without changing runtime source or the personal installation. Later
 historical sections retain the tests/limits of their individual checkpoints.
+
+The [panel dependency candidate](panel-build-dependencies.md), based on published
+`7d8f57a`, selects pinned tools 2.4/2.5 from liblxqt development metadata before
+acquisition and binds deployment cache reuse to that selection. A fresh full
+1,367-step build against installed liblxqt 2.5 and private tools 2.5 passed, with
+private staging only. The executable was not run. Earlier 2.4-only workarounds
+below describe historical evidence; no host downgrade or CMake bypass is needed
+for this tested 2.5 build. Independent review remains pending.
 
 The shared original development checkout was older and dirty; it was preserved.
 New work was reconciled in a separate checkout instead of copying it over current
@@ -59,7 +67,8 @@ native Qt snippet cases pass after the fix. After the initial liblxqt 2.5/build-
 2.4 configuration failure, a full native build passed 1,367 steps with cached
 liblxqt 2.4 files extracted into a private prefix and saved build-tools 2.4. No
 system package install, source/version-check change, panel execution or staging.
-The default 2.5 host dependency mismatch remains. The coordinator subsequently
+The default 2.5 dependency mismatch at that checkpoint is addressed by the
+later dependency-selection candidate above. The coordinator subsequently
 confirmed a separate successful 1,367-step build and the linked calendar symbol,
 without installation/execution. Preserve the prior ten-patch runtime and frozen
 `eec9ad8` evidence.

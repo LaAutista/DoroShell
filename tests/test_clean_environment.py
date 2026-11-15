@@ -123,6 +123,14 @@ class CleanEnvironmentTests(unittest.TestCase):
             self.assertIn('empty',result.stderr.lower())
             self.assertEqual(self.files(),before)
 
+    def test_panel_dependency_check_and_build_missing_tools_are_read_only(self):
+        for args in (('--check-dependencies',), ('--work', self.home/'not-created')):
+            result=self.run_cli('panel/build.py',*args,ok=False)
+            self.assertIn('Missing build tools:',result.stderr)
+            self.assertIn('pacman -Syu --needed',result.stderr)
+            self.assertNotIn('Traceback',result.stderr)
+            self.assertEqual(self.files(),{})
+
     def test_optional_prerequisite_diagnostics_through_both_clis(self):
         for script in ('modules.py', 'setup.py'):
             for module, message in (('clipboard','Stage the DoroShell native panel'),
