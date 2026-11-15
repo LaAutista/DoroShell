@@ -1,6 +1,6 @@
 {
   "format": 9,
-  "candidate": "doroshell-wallpaper-pause-docs-20261115",
+  "candidate": "doroshell-calendar-bounds-20261115",
   "published_ancestor": "dee97b40078f81c3bad3c2d171b6142ee2cffd78",
   "source_provenance": {
     "native_background_integration": "a0f82f9",
@@ -42,14 +42,14 @@
     "app_catalog_acceptance": "Acceptance-only follow-up on published da49537f618b14d88676cfd7202e9f6f5cc9bd39: actual GIO discovery/notifications in fresh disposable HOME/XDG processes, desktop override/visibility, duplicate IDs/names, localization/Unicode and registered Flatpak-shaped exports, pin/selection/column-focus preservation. Runtime unchanged; three source and three actual installed scenarios; docs/app-search.md.",
     "recent_documents": "Optional default-off shared XBEL submenu on published 5cc96a4982aa2547d58079adc3722d70c1248549. Bounded/cancellable on-demand reader, private-marker/URI filtering, no target probes/shared writes, availability unverified and explicit GIO dispatch. Boolean-only separate preference excluded from portable export; runtime/toolkit helper lifecycle and native-menu keyboard fixtures. See docs/recent-documents.md.",
     "app_properties": "Read-only Properties on published 012aa9318841eca4aae2aa5d511043c4309b4ba1: four bounded/selectable GIO fields, explicit missing/stale status, native keyboard/mouse context-event routing, modal lifetime/focus preservation. No file probe/Exec handling, new helper/schema or preference write. Docs/app-properties.md; roadmap package wording corrected.",
-    "fullscreen_wallpaper_documentation": "Documentation-only follow-up on published 28bfcd83d741c0000f2db69b38f221bcf251c97d: existing default-on/opt-out fullscreen pause, monitor/workspace scope, independent pause reasons and 500 ms polling cadence. Renderer/worker ancestry fad281f and native Background controls a0f82f9; historical acceptance retained. See wallpaper/README.md and docs/roadmap.md."
+    "fullscreen_wallpaper_documentation": "Documentation-only follow-up on published 28bfcd83d741c0000f2db69b38f221bcf251c97d: existing default-on/opt-out fullscreen pause, monitor/workspace scope, independent pause reasons and 500 ms polling cadence. Renderer/worker ancestry fad281f and native Background controls a0f82f9; historical acceptance retained. See wallpaper/README.md and docs/roadmap.md.",
+    "calendar_bounds": "Compact-calendar scrollbar/work-area patch on published f980512bf30dd05d99987a8022b3f33c620691ab. All eleven patches apply to pinned upstream; actual source snippet fixture compiles with Qt Widgets/Test and passes 768 synthetic cases. Full panel configuration blocked by installed liblxqt 2.5.0 versus build-tools 2.4.0. No complete plugin build or live deployment; docs/panel-calendar.md."
   },
   "licensing": "Original source GPL-2.0-or-later; existing component licenses preserved; see LICENSING.md",
   "verification": {
     "passed": 540,
     "command": "python -m unittest discover -s tests -v",
-    "note": "540 tests passed in 35.204s with disposable HOME/XDG, offscreen Qt and nonexistent private buses. Nine new metadata/Qt cases include actual GIO fixture files/keyfiles, duplicate names, deleted source, non-file data, bounds/escapes, native keyboard/mouse context events, modal/read-only/accessibility and state preservation. Nine installed-copy tests passed in 0.156s; runtime/toolkit bytes/import, rendered dialog/focus, repeat, edit conflict and exact rollback. Actual platform key generation/live X11/AT-SPI, login and clean OS remain unverified. No real app/clipboard/session/device or package changes.",
-    "documentation_followup": "Runtime/test bytes and modes unchanged from 28bfcd83d741c0000f2db69b38f221bcf251c97d; the 540 unit/nine installed counts above are that prior run, not rerun here. Relative documentation links, source inventory/checksums, archive/patch/bundle round trips checked. No native/live/hardware or media test."
+    "note": "540 tests passed in 35.883s in disposable HOME/XDG, offscreen Qt and absent private buses. Existing build inventory/notice/lifecycle regressions retained. Separate compiled native calendar construction/position snippets pass 192 cases at each of four scales, 768 total; old source fails independent scrollbar/work-area regressions. All eleven patches apply in order. Full panel configure blocked by existing liblxqt 2.5.0/build-tools 2.4.0 mismatch; no package/version workaround or full-plugin build. No personal session/media/device/input/clipboard/power/locker interaction, Xvfb retry or deployment."
   },
   "source_payloads": [
     {
@@ -66,8 +66,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "78ca9c89d2cee64ad9517c4c815208672e197493a555dcfde7ab8caacbca4ea6",
-      "size": 10793,
+      "sha256": "bca4e516f3b78c07a222d5ebcb454e422b693eb19b9fef3a1024d3b8ce32d5a2",
+      "size": 11102,
       "mode": "0o644"
     },
     {
@@ -90,14 +90,14 @@
     },
     {
       "path": "RELEASE-CANDIDATE.md",
-      "sha256": "276419fbeefccd6d544df5663017579de5a772dc8def5b2ce8d4cb6fe2753234",
-      "size": 65809,
+      "sha256": "849fc806bd1eab4a4c73d4570a4761d45cfd8cae5517b40cba00784f6b449f61",
+      "size": 67315,
       "mode": "0o644"
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "5f1fec9cbff42aa6dade1e4817544679d37ad96376b33f96e632be2cd3f5c75e",
-      "size": 8769,
+      "sha256": "0776501e447bd2a9559577d53aadc6cae1f48aa9b6dd552c4bcde5f719cd0d1c",
+      "size": 8920,
       "mode": "0o644"
     },
     {
@@ -252,8 +252,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "04ac5318ea7b13e032ce45e493aff90614f87cb23dccacc1979c66d7c13a656f",
-      "size": 24630,
+      "sha256": "9b1942df6280c9710f0b5dc2976c7953aa35ff547f171bfa032ab5fdd71d95dc",
+      "size": 25118,
       "mode": "0o644"
     },
     {
@@ -276,8 +276,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "ebfda90058d1e47aca8569451f127c4445b6479bc7e318d4ffa7c363b692ad76",
-      "size": 23507,
+      "sha256": "19ecd3088d5efbb8056da05f87f7c6f9f161be17ced19b40641fbd4d5f5b791f",
+      "size": 23915,
       "mode": "0o644"
     },
     {
@@ -362,6 +362,12 @@
       "path": "docs/optional-installation.md",
       "sha256": "c02e0a3f7923804f16965c344c20e4568d2ffb46d4f791f3ffdc9924376683c1",
       "size": 6037,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/panel-calendar.md",
+      "sha256": "90640e55c3e3dd336797eab0089dd62e87fb6e0b48cbfab0fee4a23b74274903",
+      "size": 4706,
       "mode": "0o644"
     },
     {
@@ -576,14 +582,14 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "5ba79f70b3897c3dcfd4601197c0d2032ae8d3a477cf65b9525fa81eb222317e",
-      "size": 15585,
+      "sha256": "2405481335cf02ae2718260764672e94f468705d89d9d461176161b05251b60c",
+      "size": 16041,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "6358c9a7ebf14764127d6d96b9c25e7359f79db40e3abe91957081de311ebbc3",
-      "size": 3522,
+      "sha256": "3f836ee15d258c191db6f9e130a31ccf96e1f1c8b58d86fb7ffb3ce2331ca72b",
+      "size": 3551,
       "mode": "0o644"
     },
     {
@@ -683,6 +689,12 @@
       "mode": "0o644"
     },
     {
+      "path": "panel/patches/0011-calendar-bounds.patch",
+      "sha256": "c012a43afefbfc3f671188982dd7defd682162bb667ecdebb9ac895450cfa5ca",
+      "size": 1674,
+      "mode": "0o644"
+    },
+    {
       "path": "panel/profile.py",
       "sha256": "75167582e8384de9fa5105a5e670a50e74dd0e1ef41d463c045f7f93db6e03a8",
       "size": 23911,
@@ -767,6 +779,12 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/calendar_popup.cpp",
+      "sha256": "b4934939e39454e89ccba35bcf7b0361390ec714c5f2cd18d5ec45b8348e2b7a",
+      "size": 8513,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/check_app_catalog_offscreen.py",
       "sha256": "56abf98f3c2c4ef29306d76be12267bdf558bf110809d19d26512d854469b7b9",
       "size": 13843,
@@ -782,6 +800,12 @@
       "path": "tests/check_app_search_x11.py",
       "sha256": "c43588caf0c1cff6336d102429347d57316db1be217cbaa0e812f550af001304",
       "size": 4280,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/check_calendar_offscreen.py",
+      "sha256": "db1452b98bfdd6df420622fbb97287637e5e0690cdf662e473cf71ceae67c927",
+      "size": 3181,
       "mode": "0o644"
     },
     {

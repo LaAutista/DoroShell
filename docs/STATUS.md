@@ -4,6 +4,12 @@ This is a portable development baseline, not a finished desktop or a certified
 stable installer. [Detailed historical acceptance](final-acceptance.md) remains
 separate from this pass. Source publication does not imply live activation.
 
+The [compact calendar bounds candidate](panel-calendar.md) fixes reproduced
+scrollbar-induced clipping and available-work-area placement. The compiled native
+Qt source fixture passes 768 cases; it is not a full panel process or real WM test.
+Full panel configuration is blocked by the existing liblxqt/build-tools version
+mismatch. The prior running/staged build remains unchanged; live symptom unverified.
+
 Documentation-only reconciliation explicitly lists the already-implemented
 [automatic fullscreen wallpaper pause](../wallpaper/README.md#pause-and-recovery),
 enabled by default with an opt-out in both controls. Current/all-workspace windows
@@ -41,7 +47,7 @@ unusable rows skipped, rebuild retention and popup/modal ownership. No new layou
 global shortcut, preference schema or live input/session action. Actual AT-SPI,
 screen-reader, global-input and live X11 acceptance remain outstanding.
 
-Current published checkpoint: `28bfcd83d741c0000f2db69b38f221bcf251c97d`, as
+Current published checkpoint: `f980512bf30dd05d99987a8022b3f33c620691ab`, as
 independently verified by the release coordinator. The earlier follow-up to `660de77`
 [release integration pass](release-integration.md) found no runtime regression in
 27 cross-revision subprocess steps and seven installed-toolkit boundary checks.

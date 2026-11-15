@@ -1,4 +1,28 @@
-# Fullscreen wallpaper pause documentation — 2026-11-15
+# Compact calendar bounds candidate — 2026-11-15
+
+Candidate on coordinator-verified published
+`f980512bf30dd05d99987a8022b3f33c620691ab`. One new ordered native patch fixes two
+source-reproduced compact-calendar cases: scrollbars stealing the other axis despite
+spare room, and positioning beyond the reported available work area. Existing
+native calendar interaction, themes, preferences and the rotated-clock path remain.
+[Exact source fixture and limits](docs/panel-calendar.md).
+
+The old source fails both regressions independently. Compiled native Qt source
+snippets pass 192 cases at each of four scales (768 total), with enlarged fonts,
+narrow/short work areas, week numbers, both edges, repeated opens, mouse month
+navigation, date keys, month/year headers, final-week visibility and Escape.
+All eleven patches apply to pinned upstream; the shared build/notice inventory
+includes the new patch. No new helper or installation schema.
+The full disposable/offscreen unit suite passes **540 tests (35.883s)**,
+including existing build-notice and reversible installer coverage.
+
+Full panel configuration stops because installed liblxqt 2.5.0 requires build-tools
+2.5.0, while the available prefix provides 2.4.0. The Qt-only fixture builds; no full
+plugin binary is claimed. No packages, Xvfb retry, personal configuration/media or
+session access, live deployment, input, display, power or locker changes. Source
+awaits independent review and compatible full-build verification; no push.
+
+## Historical fullscreen wallpaper pause documentation — 2026-11-15
 
 Documentation-only candidate on coordinator-verified published
 `28bfcd83d741c0000f2db69b38f221bcf251c97d`. The roadmap and source-shipped summary now

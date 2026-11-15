@@ -182,3 +182,12 @@ check and precise plugin/profile limits are in [legacy tray acceptance](../docs/
 This patch remains staged; no live panel refresh was performed.
 
 `0010-tray-shortcut.patch` adds the unbound LXQt action **Show/hide hidden notification icons**. Configure an unused chord in LXQt Shortcut Keys after safe deployment. [Behavior, latency evidence, conflict policy and accessibility limits](../docs/tray-shortcut.md). No user binding is assigned by default.
+
+
+## Compact calendar bounds follow-up
+
+`0011-calendar-bounds.patch` preserves the compact calendar's native behavior while
+accounting for scrollbar space and the reported available work area. The actual
+source methods pass a compiled Qt offscreen fixture; the full panel build remains
+blocked here by the installed liblxqt/build-tools version mismatch. No staged or
+live panel upgrade is claimed. See [reproduction and limits](../docs/panel-calendar.md).
