@@ -77,8 +77,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "d3e41714edbb46d2ee8c4d197982b6b0177d865f8485f89b31e8301df5227dbf",
-      "size": 11789,
+      "sha256": "de01aa64e9235ec4fc11aaaa194b5e46eb711c243c3f090d8d636c15b2157afb",
+      "size": 12033,
       "mode": "0o644"
     },
     {
@@ -107,8 +107,8 @@
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "eb7f4f324e32cef6bbd6ccd2343ed73656665bca568e152c2ce07b0194364efe",
-      "size": 8960,
+      "sha256": "e8a86bbbbb46ea8313e89cfedb47808d21607a3e8f2f13c8f82e52ca78701697",
+      "size": 9051,
       "mode": "0o644"
     },
     {
@@ -263,8 +263,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "1f9806a604dc83d719365ba076f109e5d58605d8714ea3cfd68dc7b59e30a87b",
-      "size": 28558,
+      "sha256": "262a15910bfa813979c2cce67b3893824106e7d24ba48793926f134963c74df7",
+      "size": 28855,
       "mode": "0o644"
     },
     {
@@ -287,8 +287,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "5f76456ef509eabca31a292503d82d820dceef5acd2f3f188917f2d7741422e7",
-      "size": 25112,
+      "sha256": "bed3aaad0f0bb60fdafc7072871e9b1e4f1b8b6748b38798687636e305d83f4e",
+      "size": 25431,
       "mode": "0o644"
     },
     {
@@ -353,8 +353,8 @@
     },
     {
       "path": "docs/input-preferences.md",
-      "sha256": "9ec524dce19c7903b44ef87970bd4f838193434d0c703290fd1d8ae4db8d13f9",
-      "size": 10485,
+      "sha256": "df42e0ae0a08b57064c851f0819f45ee29b3f0691ba3bc87b3c5cfbc61de5e85",
+      "size": 12086,
       "mode": "0o644"
     },
     {
@@ -383,8 +383,8 @@
     },
     {
       "path": "docs/panel-calendar.md",
-      "sha256": "b632a42e9e4b214efcd51aa8590fb979988344c0ab1fe133b45418b73c4a6ece",
-      "size": 6177,
+      "sha256": "23511428c576668bd00e34d180fcf8c150de8ee95376be5e828474b4f0d31717",
+      "size": 8202,
       "mode": "0o644"
     },
     {
@@ -599,14 +599,14 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "2bd6c33f0a00c97d7dcee4c52ae63a22935755aa63408f23e055fffb67bbf526",
-      "size": 16772,
+      "sha256": "aff93c4e77e4141ae2704fcdf75d55418d5898ddb999b2b327dd20351ded79c8",
+      "size": 17031,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "492b0b123dd185a0f2a707b10d24b171e247f04a572e5d39b04514f651644a5f",
-      "size": 10899,
+      "sha256": "11e9a751e808dbd57f89e37d150cc4b89efa058339cc03c1e28a09baef076db4",
+      "size": 10934,
       "mode": "0o644"
     },
     {
@@ -709,6 +709,12 @@
       "path": "panel/patches/0011-calendar-bounds.patch",
       "sha256": "c012a43afefbfc3f671188982dd7defd682162bb667ecdebb9ac895450cfa5ca",
       "size": 1674,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0012-calendar-holidays-dst.patch",
+      "sha256": "172b515386bd0abb785e7839f6574ca459c8eb348dc614cd31257ec6af13a997",
+      "size": 4579,
       "mode": "0o644"
     },
     {
@@ -817,6 +823,12 @@
       "path": "tests/check_app_search_x11.py",
       "sha256": "c43588caf0c1cff6336d102429347d57316db1be217cbaa0e812f550af001304",
       "size": 4280,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/check_calendar_marks.py",
+      "sha256": "bccf34c4fd76ff81d15526516172a7eee477e93881bd592ff2e9ea612e652f4a",
+      "size": 6216,
       "mode": "0o644"
     },
     {

@@ -110,6 +110,7 @@
     "panel/patches/0009-tray-registration-popup.patch",
     "panel/patches/0010-tray-shortcut.patch",
     "panel/patches/0011-calendar-bounds.patch",
+    "panel/patches/0012-calendar-holidays-dst.patch",
     "panel/profile.py",
     "portable_settings.py",
     "release.json",
@@ -128,6 +129,7 @@
     "tests/check_app_catalog_offscreen.py",
     "tests/check_app_catalog_x11.py",
     "tests/check_app_search_x11.py",
+    "tests/check_calendar_marks.py",
     "tests/check_calendar_offscreen.py",
     "tests/check_clipboard_switch_x11.py",
     "tests/check_combined_toolkit_x11.py",
@@ -253,8 +255,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 252,
-  "source_payload_count": 250,
+  "file_count": 254,
+  "source_payload_count": 252,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

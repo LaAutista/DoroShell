@@ -196,3 +196,7 @@ No package was system-installed or version check bypassed. The later
 against liblxqt 2.5 using pinned tools 2.5. No panel run or live upgrade is claimed. A separate coordinator build also completed
 all 1,367 steps and confirmed the linked calendar symbol, without execution.
 See [reproduction and limits](../docs/panel-calendar.md).
+
+`0012-calendar-holidays-dst.patch` bolds US federal holidays (US locale only) and the
+local daylight-saving transition days in the calendar, with tooltips. See
+[holiday and DST marks](../docs/panel-calendar.md#holidays-and-daylight-saving-days--2026-11-15).

@@ -17,7 +17,7 @@ TOOLS = {
     '2.5': ('2.5.0', 'ca90f9b0c5eedc3ab89d4031811dff833392bf3b'),
 }
 ROOT = Path(__file__).resolve().parent
-PATCHES = ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch','0009-tray-registration-popup.patch','0010-tray-shortcut.patch','0011-calendar-bounds.patch')
+PATCHES = ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch','0009-tray-registration-popup.patch','0010-tray-shortcut.patch','0011-calendar-bounds.patch','0012-calendar-holidays-dst.patch')
 
 
 class BuildError(RuntimeError):
