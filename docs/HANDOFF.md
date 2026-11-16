@@ -84,6 +84,22 @@ Libinput flat-profile support followed, then a global all-mice switch with a
 no-root XInput hotplug watcher in the login helper. Physical reconnect and normal
 login remain untested.
 
+Owner-machine targeted test (2026-11-16), outside deploy.py because this desktop
+was hand-installed and has no deployment record:
+- Only `input_preferences.py` was added to the installed toolkit. The menu
+  installer refuses to update the toolkit because of a hand-edited legacy Start
+  file; that conflict was preserved, so installed Settings still lacks the page.
+- All-mice switch applied: both libinput pointers read back flat with markers, so
+  libinput accepted the instance marker. The evdev mouse was untouched. The watcher
+  is running. The owner skipped the physical replug test.
+- The Heretic theme was re-applied through the locked `modules.py theme` CLI for
+  the group-popup contrast fix; only additive qss lines changed.
+- A full 12-patch panel build passed 1,367 steps in a private directory. The
+  launcher record was stale but its launcher was byte-identical to `profile.py`
+  output for the prior build; after a record backup it was reconciled, then
+  `profile.upgrade()` staged the new binary for next login. Rollback is the same
+  upgrade with the previous binary (preview verified). The new binary has not run.
+
 ## Decisions and constraints
 
 - LXQt/X11/Openbox is the working target. No required compositor. The user accepted
