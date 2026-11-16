@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import select
 import subprocess
 import sys
 import time
@@ -169,13 +170,13 @@ class Preferences:
         if (not isinstance(data, dict) or type(data.get('version')) is not int or data['version'] != 1
                 or not isinstance(data.get('rules'), dict) or not isinstance(data.get('receipts'), dict)
                 or data.get('startup') not in (None, 'pending', 'installed', 'removing')
-                or data.get('all_mice') not in (None, True, False)):
+                or ('all_mice' in data and type(data['all_mice']) is not bool)):
             raise ValueError('Unsupported input preferences; existing file preserved.')
         for key, rule in data['rules'].items():
             if (not re.fullmatch('[0-9a-f]{64}', key) or not isinstance(rule, dict)
                     or not isinstance(rule.get('name'), str) or rule.get('action') not in ('acceleration','touchpad')
                     or type(rule.get('enabled')) is not bool
-                    or rule.get('auto') not in (None, True) or (rule.get('auto') and rule['action'] != 'acceleration')):
+                    or ('auto' in rule and (rule['auto'] is not True or rule['action'] != 'acceleration'))):
                 raise ValueError('Invalid saved input preference.')
         for key, receipt in data['receipts'].items():
             if key not in data['rules'] or not isinstance(receipt, dict):
@@ -261,7 +262,8 @@ class Preferences:
     def needed(data):
         return bool(data.get('all_mice')) or any(r['enabled'] for r in data['rules'].values()) or bool(data['receipts'])
 
-    def run(self, backend, change=None, expected=None, stop=False, all_mice=None):
+    def run(self, backend, change=None, expected=None, stop=False, all_mice=None, removed=frozenset()):
+        """removed: XInput IDs the watcher saw removed; their instances (and receipts) are gone even if the ID is reused."""
         with self.locked():
             raw, data = self.read()
             self.check_startup(data)
@@ -306,6 +308,10 @@ class Preferences:
                     self.archive_receipt(key, rule, receipt)
                     receipt = None; data['receipts'].pop(key)
                     messages.append(rule['name']+': previous-session restoration evidence archived; no old value forced onto this session.')
+                if receipt and receipt['id'] in removed:
+                    self.archive_receipt(key, rule, receipt, 'device-removed')
+                    receipt = None; data['receipts'].pop(key); self.write(self.path, json.dumps(data).encode())
+                    messages.append(rule['name']+': device was removed; its restoration evidence archived.')
                 if not rule['enabled'] and not receipt:
                     messages.append(rule['name']+': unmanaged; no current-session change to restore.'); continue
                 matches = [d for d in devices if d['key'] == key]
@@ -356,8 +362,8 @@ class Preferences:
                 self.autostart(data, False)
             return messages
 
-    def watch(self, backend, retries=10, settle=0.5):
-        """Apply now, then reapply on XInput device additions until nothing needs managing."""
+    def watch(self, backend, tick=5.0, settle=0.5):
+        """Apply now, then reapply on XInput device changes until nothing needs managing."""
         lock = self.home/'.local/state/doroshell/input-watch.lock'; safe(lock, self.home)
         lock.parent.mkdir(parents=True, exist_ok=True)
         with lock.open('a') as stream:
@@ -370,23 +376,32 @@ class Preferences:
             opcode = display.query_extension(xinput.extname).major_opcode
             display.screen().root.xinput_select_events([(xinput.AllDevices, xinput.HierarchyChangedMask)])
             display.sync()
-            while True:
-                for attempt in range(retries):
-                    try:
-                        print('\n'.join(self.run(backend)), flush=True); break
-                    except BlockingIOError:
-                        time.sleep(settle)  # Settings page is saving; retry shortly.
-                if not self.needed(self.read()[1]):
-                    return
-                while True:
-                    event = display.next_event()
-                    if (event.type == ge.GenericEventCode and getattr(event, 'extension', None) == opcode
-                            and event.evtype == xinput.HierarchyChanged
-                            and event.data.flags & (xinput.SlaveAdded | xinput.DeviceEnabled)):
-                        break
-                time.sleep(settle)  # Let the driver finish initializing the new device.
+            pending, removed = True, set()
+            def collect():
+                changed = False
                 while display.pending_events():
-                    display.next_event()  # Coalesce a burst of hotplug events into one pass.
+                    event = display.next_event()
+                    if (event.type != ge.GenericEventCode or getattr(event, 'extension', None) != opcode
+                            or event.evtype != xinput.HierarchyChanged):
+                        continue
+                    # Record every removal so a reused ID/node is never mistaken for the old instance.
+                    removed.update(info.deviceid for info in event.data.info if info.flags & xinput.SlaveRemoved)
+                    changed |= bool(event.data.flags & (xinput.SlaveAdded | xinput.SlaveRemoved | xinput.DeviceEnabled))
+                return changed
+            while True:
+                if pending:
+                    try:
+                        print('\n'.join(self.run(backend, removed=frozenset(removed))), flush=True)
+                        pending = False; removed.clear()
+                    except BlockingIOError:
+                        pass  # Settings page is saving; this pass stays pending for the next tick.
+                if not pending and not self.needed(self.read()[1]):
+                    return  # Opted out (possibly by the page while idle); releases the lock.
+                if not display.pending_events() and not select.select([display.fileno()], [], [], tick)[0]:
+                    continue
+                if collect():
+                    time.sleep(settle)  # Let the driver finish initializing the new device.
+                    collect(); pending = True
 
     def start_watcher(self):
         safe(self.helper, self.home)

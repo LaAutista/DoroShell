@@ -143,41 +143,105 @@ class InputPreferencesTests(unittest.TestCase):
         with self.assertRaises(ValueError):self.store.read()
         raw,_=self.store.read() if False else (self.store.path.read_bytes(),None)
         with self.assertRaises(ValueError):self.store.run(self.backend,expected=raw,all_mice='on')
-    def test_watcher_reapplies_on_device_added_and_exits_when_unmanaged(self):
-        from Xlib import X
+    @staticmethod
+    def event(flags,info=(),kind=None,extension=131):
         from Xlib.ext import ge, xinput
-        store=self.store;test=self
-        class Event:
-            def __init__(self,flags,kind=ge.GenericEventCode,evtype=xinput.HierarchyChanged,extension=131):
-                self.type=kind;self.evtype=evtype;self.extension=extension;self.data=type('D',(),{'flags':flags})()
+        class Info:
+            def __init__(self,deviceid,flags):self.deviceid=deviceid;self.flags=flags
+        return type('Event',(),{'type':ge.GenericEventCode if kind is None else kind,'extension':extension,'evtype':xinput.HierarchyChanged,
+                                'data':type('D',(),{'flags':flags,'info':[Info(*i) for i in info]})()})()
+    def fake_display(self,script):
+        """script: list of steps; each step is a list of events delivered together, or a callable run at that tick."""
+        from Xlib.ext import xinput
+        test=self
         class Display:
-            def __init__(self):
-                self.events=[Event(xinput.SlaveAdded,kind=X.KeyPress),Event(xinput.SlaveAdded,extension=99),Event(xinput.SlaveRemoved),Event(xinput.SlaveAdded),Event(xinput.SlaveAdded)];self.selected=None
+            def __init__(self):self.queue=[];self.script=list(script);self.selected=None;self.ticks=0
             def query_extension(self,name):
                 test.assertEqual(name,xinput.extname);return type('E',(),{'major_opcode':131})()
-            def screen(self):return type('S',(),{'root':type('R',(),{'xinput_select_events':lambda _,m:setattr(display,'selected',m)})()})()
+            def screen(self):
+                d=self;return type('S',(),{'root':type('R',(),{'xinput_select_events':lambda _,m:setattr(d,'selected',m)})()})()
             def sync(self):pass
-            def pending_events(self):
-                # Second SlaveAdded is coalesced; then the owner opts out before the next event.
-                return 1 if len(self.events)==1 else 0
-            def next_event(self):
-                ev=self.events.pop(0)
-                if not self.events:
-                    raw,_=store.read();ip.Preferences.run(store,test.backend,expected=raw,stop=True)
-                return ev
-        display=Display();self.backend.display=display
-        lib=libinput_mouse();runs=[]
-        original=store.run
-        def counted(*a,**k):
-            runs.append(1)
-            if len(runs)==2:test.backend.items.append(lib)
-            return original(*a,**k)
-        raw,_=store.read();store.run(self.backend,expected=raw,all_mice=True)
-        with patch.object(store,'run',side_effect=counted),patch.object(ip.time,'sleep'):
-            store.watch(self.backend)
+            def fileno(self):return -1
+            def pending_events(self):return len(self.queue)
+            def next_event(self):return self.queue.pop(0)
+            def tick(self,*args):
+                self.ticks+=1
+                if self.ticks>50:raise AssertionError('watcher did not exit')
+                if self.script:
+                    step=self.script.pop(0)
+                    if callable(step):step()
+                    else:self.queue.extend(step)
+                return ([1] if self.queue else [],[],[])
+        return Display()
+    def watch(self,display):
+        self.backend.display=display
+        with patch.object(ip.select,'select',side_effect=display.tick),patch.object(ip.time,'sleep'):
+            self.store.watch(self.backend)
+    def opt_out(self):
+        raw,_=self.store.read();ip.Preferences.run(self.store,self.backend,expected=raw,stop=True)
+    def assert_watch_lock_released(self):
+        import fcntl
+        with (self.store.home/'.local/state/doroshell/input-watch.lock').open('a') as stream:
+            fcntl.flock(stream,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    def test_watcher_reapplies_on_device_added_and_exits_when_unmanaged(self):
+        from Xlib import X
+        from Xlib.ext import xinput
+        lib=libinput_mouse()
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        Event=self.event
+        display=self.fake_display([
+            [Event(xinput.SlaveAdded,kind=X.KeyPress),Event(xinput.SlaveAdded,extension=99),Event(xinput.SlaveAdded)],
+            lambda:None, self.opt_out])
+        self.backend.items.append(lib)  # Present for the pass the SlaveAdded event triggers.
+        self.watch(display)
         self.assertEqual(display.selected,[(xinput.AllDevices,xinput.HierarchyChangedMask)])
-        self.assertEqual(len(runs),2)
-        self.assertEqual(display.events,[])
+        self.assertEqual(self.store.read()[1]['receipts'],{})
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[1,0,0])  # Applied, then restored on opt-out.
+        self.assertTrue(any(w[0]==lib['key'] and w[2]['values']==[0,1,0] for w in self.backend.writes))
+        self.assert_watch_lock_released()
+    def test_watcher_exits_after_idle_opt_out_without_events(self):
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        display=self.fake_display([lambda:None,self.opt_out])
+        self.watch(display)
+        self.assertLessEqual(display.ticks,3)
+        self.assert_watch_lock_released()
+    def test_watcher_retries_pending_pass_after_lock_contention(self):
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        lib=libinput_mouse();self.backend.items.append(lib)
+        original=ip.Preferences.run;calls=[]
+        def busy(*a,**k):
+            calls.append(1)
+            if len(calls)<=12:raise BlockingIOError
+            return original(self.store,*a,**k)
+        display=self.fake_display([lambda:None]*14+[self.opt_out])
+        with patch.object(self.store,'run',side_effect=busy):
+            self.watch(display)
+        self.assertGreater(len(calls),12)
+        self.assertTrue(any(w[0]==lib['key'] and w[2]['values']==[0,1,0] for w in self.backend.writes))
+    def test_removed_instance_with_reused_id_and_node_keeps_replacement_baseline(self):
+        from Xlib.ext import xinput
+        lib=libinput_mouse((0,0,1));self.backend.items=[lib,self.pad];self.change(lib)
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        # Replacement reuses key, XInput ID and event node, and starts already flat.
+        def replace():
+            lib['props'][ip.LIBINPUT_PROFILE]['values']=[0,1,0]
+        Event=self.event
+        display=self.fake_display([[Event(xinput.SlaveRemoved,[(lib['id'],xinput.SlaveRemoved)]),Event(xinput.SlaveAdded,[(lib['id'],xinput.SlaveAdded)])],
+                                         lambda:None,self.opt_out])
+        writes=len(self.backend.writes);replace();self.watch(display)
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])  # Never restored to the old custom.
+        self.assertEqual(len(self.backend.writes),writes)
+        archived=[json.loads(f.read_text())['reason'] for f in (self.store.home/'.local/state/doroshell/input-restoration').iterdir()]
+        self.assertEqual(archived,['device-removed'])
+    def test_strict_boolean_schema_for_all_mice_and_auto(self):
+        _,data=self.store.read()
+        for value in (1,0,None,'true'):
+            bad=copy.deepcopy(data);bad['all_mice']=value;self.store.write(self.store.path,json.dumps(bad).encode())
+            with self.assertRaises(ValueError,msg=value):self.store.read()
+        for value in (1,None,False):
+            bad=copy.deepcopy(data);bad['rules']['d'*64]=dict(name='x',action='acceleration',enabled=True,auto=value)
+            self.store.write(self.store.path,json.dumps(bad).encode())
+            with self.assertRaises(ValueError,msg=value):self.store.read()
     def test_second_watcher_exits_without_touching_devices(self):
         import fcntl
         lock=self.store.home/'.local/state/doroshell/input-watch.lock';lock.parent.mkdir(parents=True,exist_ok=True)

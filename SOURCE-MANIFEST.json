@@ -353,8 +353,8 @@
     },
     {
       "path": "docs/input-preferences.md",
-      "sha256": "334cc9e742ac5acb1ccb8332b45b09c07829cda545fedcbce4bac7d6487436bf",
-      "size": 13295,
+      "sha256": "15bd53b10c5e1a1da73f89994d77fba5c747e300a1f7bb5e4ed97eb97bf60322",
+      "size": 13810,
       "mode": "0o644"
     },
     {
@@ -527,8 +527,8 @@
     },
     {
       "path": "input_preferences.py",
-      "sha256": "e140a831f65cf43f61d121109536be8d3c37082b5710394d207e4d7bb56a2510",
-      "size": 29386,
+      "sha256": "69c97a0596490fe5be018e7e4704fd4e5eb63a754b6c63e15d5e33955f174d40",
+      "size": 30528,
       "mode": "0o644"
     },
     {
@@ -1313,8 +1313,8 @@
     },
     {
       "path": "tests/test_input_preferences.py",
-      "sha256": "0619ef9578b8437cc454e8c48e6922788a980c6ada4d2df19664b2e61a6e75bf",
-      "size": 19358,
+      "sha256": "e978d8a4cc3bdab9fde0b92fbd96cacc52a70d9939ef5d239d4ccd71091dfe00",
+      "size": 23361,
       "mode": "0o644"
     },
     {

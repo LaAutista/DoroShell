@@ -82,7 +82,13 @@ and server session, and only if the current property still matches an expected
 value. External edits produce a visible refusal. When the only identity match is a
 new device instance (the mouse was reconnected), the old instance no longer exists,
 so its receipt is archived with reason `device-reconnected` and the new instance is
-treated from its own driver defaults. New sessions use their own
+treated from its own driver defaults. Because X can reuse both the XInput ID and the
+event node, the watcher also records every device removal it sees and archives that
+instance's receipt (reason `device-removed`), so a replacement that reuses both is
+never restored to the old mouse's value. A removal while no watcher is running is
+not observed; the watcher runs whenever anything is managed. The watcher also
+re-reads preferences every 5 seconds, so it exits soon after you opt out, and a
+pass blocked by the page's lock stays pending until it runs. New sessions use their own
 baseline; old-session values are not forced onto a new session. Before retiring a
 receipt from an ended X server session, its complete evidence is written privately
 under `~/.local/state/doroshell/input-restoration/` and the result is reported. These
