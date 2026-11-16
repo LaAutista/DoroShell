@@ -15,10 +15,14 @@ def device(kind='mouse', driver='evdev', key='a'*64):
 
 
 class Backend:
-    def __init__(self, devices):self.items=devices;self.writes=[];self.session='session-one';self.fail=False
+    def __init__(self, devices):self.items=devices;self.writes=[];self.session='session-one';self.fail=False;self.fail_mark=False
     def devices(self):return copy.deepcopy(self.items)
     def token(self):return self.session
     def close(self):pass
+    def mark(self,dev,marker):
+        if self.fail_mark:raise RuntimeError('synthetic marker refusal')
+        target=next(d for d in self.items if d['key']==dev['key'])
+        target['props'][ip.MARKER]=dict(type=31,format=8,values=list(marker.encode()))
     def write(self,dev,prop,value):
         self.writes.append((dev['key'],prop,value))
         if self.fail:raise RuntimeError('synthetic apply failure')
@@ -40,6 +44,9 @@ class InputPreferencesTests(unittest.TestCase):
         self.store.helper.parent.mkdir(parents=True)
         self.store.helper.write_bytes(Path(ip.__file__).read_bytes())
         self.backend=Backend([self.mouse,self.pad])
+        # Never spawn a real watcher from tests.
+        spawn=patch.object(ip.Preferences,'start_watcher');self.spawned=spawn.start();self.addCleanup(spawn.stop)
+        popen=patch.object(ip.subprocess,'Popen',side_effect=AssertionError('test spawned a process'));popen.start();self.addCleanup(popen.stop)
     def change(self,dev,enabled=True):
         raw,_=self.store.read()
         return self.store.run(self.backend,(dev['key'],dict(name=dev['name'],action='touchpad' if dev['kind']=='touchpad' else 'acceleration',enabled=enabled)),raw)
@@ -92,9 +99,215 @@ class InputPreferencesTests(unittest.TestCase):
         self.change(self.mouse);self.mouse['props'][ip.PROFILE]['values']=[5]
         self.assertIn('changed elsewhere',self.change(self.mouse,False)[0])
         self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[5])
-    def test_device_instance_change_refuses_restore(self):
-        self.change(self.mouse);self.mouse['id']=90
-        self.assertIn('instance changed',self.change(self.mouse,False)[0])
+    def test_reconnected_instance_archives_receipt_and_reapplies(self):
+        self.change(self.mouse);old=self.store.read()[1]['receipts'][self.mouse['key']]
+        self.mouse['id']=90;self.mouse['props'][ip.PROFILE]['values']=[0]  # New instance at driver default.
+        self.assertIn('reconnected',self.store.run(self.backend)[0])
+        receipt=self.store.read()[1]['receipts'][self.mouse['key']]
+        self.assertEqual((receipt['id'],receipt['before']['values']),(90,[0]))
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0xffffffff])
+        archived=[json.loads(f.read_text()) for f in (self.store.home/'.local/state/doroshell/input-restoration').iterdir()]
+        self.assertEqual([(a['reason'],a['receipt']) for a in archived],[('device-reconnected',old)])
+        self.mouse['id']=91;self.mouse['props'][ip.PROFILE]['values']=[0];writes=len(self.backend.writes)
+        self.assertIn('reconnected',self.change(self.mouse,False)[0])
+        self.assertEqual(len(self.backend.writes),writes);self.assertEqual(self.store.read()[1]['receipts'],{})
+    def test_all_mice_switch_covers_current_and_later_mice_and_restores(self):
+        lib=libinput_mouse();self.backend.items=[self.mouse,self.pad]
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0xffffffff])
+        self.assertEqual(self.pad['props'][ip.ENABLED]['values'],[1])  # Touchpads untouched.
+        self.assertTrue(self.store.startup.exists())
+        self.backend.items.append(lib);self.store.run(self.backend)  # Hotplug pass.
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        rules=self.store.read()[1]['rules'];self.assertTrue(rules[lib['key']]['auto'])
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=False)
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[1,0,0])
+        self.assertEqual(self.store.read()[1]['receipts'],{});self.assertFalse(self.store.startup.exists())
+    def test_explicit_device_choice_overrides_all_mice(self):
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        self.change(self.mouse,False)  # Explicit opt-out for this mouse.
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        self.store.run(self.backend);self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        self.assertNotIn('auto',self.store.read()[1]['rules'][self.mouse['key']])
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=False);self.store.run(self.backend,expected=self.store.read()[0],all_mice=True)
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+    def test_all_mice_skips_ambiguous_and_stop_clears_switch(self):
+        twin=copy.deepcopy(self.mouse);twin['id']=70;self.backend.items=[self.mouse,twin,self.pad]
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        self.assertNotIn(self.mouse['key'],self.store.read()[1]['rules'])
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,stop=True)
+        self.assertFalse(self.store.read()[1]['all_mice']);self.assertFalse(self.store.startup.exists())
+    def test_invalid_all_mice_and_auto_values_refused(self):
+        raw,data=self.store.read();data['all_mice']='yes';self.store.write(self.store.path,json.dumps(data).encode())
+        with self.assertRaises(ValueError):self.store.read()
+        data['all_mice']=True;data['rules']['d'*64]=dict(name='x',action='touchpad',enabled=True,auto=True)
+        self.store.write(self.store.path,json.dumps(data).encode())
+        with self.assertRaises(ValueError):self.store.read()
+        raw,_=self.store.read() if False else (self.store.path.read_bytes(),None)
+        with self.assertRaises(ValueError):self.store.run(self.backend,expected=raw,all_mice='on')
+    @staticmethod
+    def event(flags,info=(),kind=None,extension=131):
+        from Xlib.ext import ge, xinput
+        class Info:
+            def __init__(self,deviceid,flags):self.deviceid=deviceid;self.flags=flags
+        return type('Event',(),{'type':ge.GenericEventCode if kind is None else kind,'extension':extension,'evtype':xinput.HierarchyChanged,
+                                'data':type('D',(),{'flags':flags,'info':[Info(*i) for i in info]})()})()
+    def fake_display(self,script):
+        """script: list of steps; each step is a list of events delivered together, or a callable run at that tick."""
+        from Xlib.ext import xinput
+        test=self
+        class Display:
+            def __init__(self):self.queue=[];self.script=list(script);self.selected=None;self.ticks=0
+            def query_extension(self,name):
+                test.assertEqual(name,xinput.extname);return type('E',(),{'major_opcode':131})()
+            def screen(self):
+                d=self;return type('S',(),{'root':type('R',(),{'xinput_select_events':lambda _,m:setattr(d,'selected',m)})()})()
+            def sync(self):pass
+            def fileno(self):return -1
+            def pending_events(self):return len(self.queue)
+            def next_event(self):return self.queue.pop(0)
+            def tick(self,*args):
+                self.ticks+=1
+                if self.ticks>50:raise AssertionError('watcher did not exit')
+                if self.script:
+                    step=self.script.pop(0)
+                    if callable(step):step()
+                    else:self.queue.extend(step)
+                return ([1] if self.queue else [],[],[])
+        return Display()
+    def watch(self,display):
+        self.backend.display=display
+        with patch.object(ip.select,'select',side_effect=display.tick),patch.object(ip.time,'sleep'):
+            self.store.watch(self.backend)
+    def opt_out(self):
+        raw,_=self.store.read();ip.Preferences.run(self.store,self.backend,expected=raw,stop=True)
+    def assert_watch_lock_released(self):
+        import fcntl
+        with (self.store.home/'.local/state/doroshell/input-watch.lock').open('a') as stream:
+            fcntl.flock(stream,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    def test_watcher_reapplies_on_device_added_and_exits_when_unmanaged(self):
+        from Xlib import X
+        from Xlib.ext import xinput
+        lib=libinput_mouse()
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        Event=self.event
+        display=self.fake_display([
+            [Event(xinput.SlaveAdded,kind=X.KeyPress),Event(xinput.SlaveAdded,extension=99),Event(xinput.SlaveAdded)],
+            lambda:None, self.opt_out])
+        self.backend.items.append(lib)  # Present for the pass the SlaveAdded event triggers.
+        self.watch(display)
+        self.assertEqual(display.selected,[(xinput.AllDevices,xinput.HierarchyChangedMask)])
+        self.assertEqual(self.store.read()[1]['receipts'],{})
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[1,0,0])  # Applied, then restored on opt-out.
+        self.assertTrue(any(w[0]==lib['key'] and w[2]['values']==[0,1,0] for w in self.backend.writes))
+        self.assert_watch_lock_released()
+    def test_watcher_exits_after_idle_opt_out_without_events(self):
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        display=self.fake_display([lambda:None,self.opt_out])
+        self.watch(display)
+        self.assertLessEqual(display.ticks,3)
+        self.assert_watch_lock_released()
+    def test_watcher_retries_pending_pass_after_lock_contention(self):
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        lib=libinput_mouse();self.backend.items.append(lib)
+        original=ip.Preferences.run;calls=[]
+        def busy(*a,**k):
+            calls.append(1)
+            if len(calls)<=12:raise BlockingIOError
+            return original(self.store,*a,**k)
+        display=self.fake_display([lambda:None]*14+[self.opt_out])
+        with patch.object(self.store,'run',side_effect=busy):
+            self.watch(display)
+        self.assertGreater(len(calls),12)
+        self.assertTrue(any(w[0]==lib['key'] and w[2]['values']==[0,1,0] for w in self.backend.writes))
+    def replace_instance(self,dev,flags):
+        """Replacement reuses key, XInput ID and event node, carries no marker and starts at its own value."""
+        dev['props'].pop(ip.MARKER,None);dev['props'][ip.LIBINPUT_PROFILE]['values']=list(flags)
+    def archived_reasons(self):
+        return [json.loads(f.read_text())['reason'] for f in (self.store.home/'.local/state/doroshell/input-restoration').iterdir()]
+    def test_replacement_reusing_id_and_node_keeps_its_baseline_on_ui_opt_out(self):
+        lib=libinput_mouse((0,0,1));self.backend.items=[lib,self.pad];self.change(lib)
+        self.assertEqual(self.store.read()[1]['receipts'][lib['key']]['marker'],ip.marker_of(lib))
+        self.replace_instance(lib,(0,1,0));writes=len(self.backend.writes)
+        self.opt_out()  # UI path, with no watcher and no removal evidence.
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        self.assertEqual(len(self.backend.writes),writes)
+        self.assertEqual(self.archived_reasons(),['device-reconnected'])
+    def test_ui_stop_during_watcher_settle_never_restores_onto_replacement(self):
+        from Xlib.ext import xinput
+        lib=libinput_mouse((0,0,1));self.backend.items=[lib,self.pad];self.change(lib)
+        writes=[]
+        def settle(_):
+            if not writes:  # First settle: the swap happens, then the user clicks Stop.
+                self.replace_instance(lib,(0,1,0));writes.append(len(self.backend.writes));self.opt_out()
+        display=self.fake_display([[self.event(xinput.SlaveRemoved),self.event(xinput.SlaveAdded)],lambda:None])
+        self.backend.display=display
+        with patch.object(ip.select,'select',side_effect=display.tick),patch.object(ip.time,'sleep',side_effect=settle):
+            self.store.watch(self.backend)
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        self.assertEqual(len(self.backend.writes),writes[0])
+        self.assert_watch_lock_released()
+    def test_swap_before_marking_takes_baseline_from_marked_instance(self):
+        lib=libinput_mouse((0,0,1));self.backend.items=[lib,self.pad]
+        original=self.backend.mark
+        def swap_then_mark(dev,marker):
+            self.replace_instance(lib,(0,1,0))  # Replacement appears after enumeration, before marking.
+            original(dev,marker)
+        self.backend.mark=swap_then_mark
+        self.change(lib)
+        receipt=self.store.read()[1]['receipts'][lib['key']]
+        self.assertEqual((receipt['before']['values'],receipt['marker']),([0,1,0],ip.marker_of(lib)))
+        self.backend.mark=original;writes=len(self.backend.writes)
+        self.opt_out()
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        self.assertEqual(len(self.backend.writes),writes)
+    def test_identity_change_during_marking_applies_nothing(self):
+        lib=libinput_mouse();self.backend.items=[lib,self.pad]
+        original=self.backend.mark
+        def move_then_mark(dev,marker):
+            original(dev,marker);lib['id']=99
+        self.backend.mark=move_then_mark
+        self.assertIn('changed during apply',self.change(lib)[0])
+        self.assertEqual((self.backend.writes,self.store.read()[1]['receipts']),([],{}))
+    def test_marker_refusal_applies_nothing_and_keeps_no_receipt(self):
+        lib=libinput_mouse();self.backend.items=[lib,self.pad];self.backend.fail_mark=True
+        self.assertIn('marker refusal',self.change(lib)[0])
+        self.assertEqual((self.backend.writes,self.store.read()[1]['receipts']),([],{}))
+    def test_xinput_write_refuses_replaced_instance(self):
+        class Display:
+            changes=[]
+            def intern_atom(self,name):return name
+            def xinput_change_device_property(self,*args):self.changes.append(args)
+        snapshot=libinput_mouse();snapshot['props'][ip.MARKER]=dict(type=31,format=8,values=list(b'a'*32))
+        fresh=copy.deepcopy(snapshot);fresh['props'].pop(ip.MARKER)
+        backend=object.__new__(ip.XInput);backend.display=Display();backend.devices=lambda:[copy.deepcopy(fresh)]
+        with self.assertRaisesRegex(RuntimeError,'replaced'):
+            backend.write(snapshot,ip.LIBINPUT_PROFILE,dict(type=19,format=8,values=[1,0,0]))
+        self.assertEqual(backend.display.changes,[])
+    def test_invalid_receipt_marker_refused(self):
+        lib=libinput_mouse();self.backend.items=[lib,self.pad];self.change(lib)
+        _,data=self.store.read();data['receipts'][lib['key']]['marker']='not-hex'
+        self.store.write(self.store.path,json.dumps(data).encode())
+        with self.assertRaises(ValueError):self.store.read()
+    def test_strict_boolean_schema_for_all_mice_and_auto(self):
+        _,data=self.store.read()
+        for value in (1,0,None,'true'):
+            bad=copy.deepcopy(data);bad['all_mice']=value;self.store.write(self.store.path,json.dumps(bad).encode())
+            with self.assertRaises(ValueError,msg=value):self.store.read()
+        for value in (1,None,False):
+            bad=copy.deepcopy(data);bad['rules']['d'*64]=dict(name='x',action='acceleration',enabled=True,auto=value)
+            self.store.write(self.store.path,json.dumps(bad).encode())
+            with self.assertRaises(ValueError,msg=value):self.store.read()
+    def test_second_watcher_exits_without_touching_devices(self):
+        import fcntl
+        lock=self.store.home/'.local/state/doroshell/input-watch.lock';lock.parent.mkdir(parents=True,exist_ok=True)
+        with lock.open('a') as held:
+            fcntl.flock(held,fcntl.LOCK_EX)
+            self.backend.display=None
+            self.assertIsNone(self.store.watch(self.backend))
+        self.assertEqual(self.backend.writes,[])
     def test_file_conflicts_and_invalid_receipts_refused(self):
         self.change(self.mouse);raw,data=self.store.read();data['version']=99
         self.store.path.write_text(json.dumps(data))

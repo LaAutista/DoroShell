@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Mouse & Touchpad: add **No acceleration on all mice**, including mice
+  connected later. The login helper now watches XInput device additions and
+  reapplies saved choices; reconnected devices archive the old instance's receipt
+  and are applied fresh. Per-device choices override the switch.
+
 - Mouse & Touchpad: disable acceleration on libinput mice that offer the flat
   profile, using the same saved-choice, login reapply and exact-restore flow as
   evdev profile -1. Receipt validation now accepts the libinput property. Mock and
