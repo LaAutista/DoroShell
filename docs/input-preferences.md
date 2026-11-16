@@ -10,9 +10,12 @@ For identified evdev mice exposing `Device Accel Profile`, disabling acceleratio
 selects Xorg's **-1 / none profile**. This removes velocity-dependent acceleration;
 it preserves constant deceleration and is not the same operation as changing the
 Xorg `AccelerationScheme`. See the [X.Org pointer acceleration documentation](https://www.x.org/Development/Documentation/PointerAcceleration/).
-Libinput mice are reported unsupported for this evdev-specific control; they are
-not silently converted. An evdev device with no profile property is also reported
-unsupported. A system `AccelerationScheme none` rule may remove that property,
+For identified libinput mice whose `libinput Accel Profiles Available` includes
+flat, disabling acceleration sets `libinput Accel Profile Enabled` to flat
+(`0, 1` or `0, 1, 0` depending on the libinput version). The previous flags are
+recorded and restored exactly on opt-out. Libinput mice that don't offer flat are
+reported unsupported. The driver is never switched. An evdev device with no
+profile property is also reported unsupported. A system `AccelerationScheme none` rule may remove that property,
 but absence alone does not establish the effective scheme.
 
 Refresh now shows **runtime profile capability**, **system-rule intent**, and
@@ -164,7 +167,8 @@ setting per driver:
 - **libinput pointers**: the runtime property `libinput Accel Profile Enabled` set to
   flat (`0, 1, 0`). A normal user can set it through XInput, but only on devices whose
   `libinput Accel Profiles Available` includes flat. The Xorg equivalent is
-  `Option "AccelProfile" "flat"`. This page does not handle libinput mice yet.
+  `Option "AccelProfile" "flat"`. This page applies the runtime flat profile
+(added 2026-11-15; see above).
 
 Hotplugged devices start from their defaults. There are two ways to cover them:
 
@@ -180,5 +184,6 @@ Neither approach can make a device offer a flat profile it does not support.
 A read-only check on the development machine found a mix. One evdev mouse is
 already set to `AccelerationScheme none` by a system rule. Two libinput pointer
 interfaces, a keyboard's built-in mouse interface and a virtual HID mouse, still use
-the default adaptive profile, and both advertise flat. So acceleration there is only
-partly disabled today. Wayland compositors use their own settings and are out of scope.
+the default adaptive profile, and both advertise flat. A read-only capability check
+with the updated code offers the flat control for exactly those two and leaves the
+evdev mouse alone. Nothing was applied to the live session. Wayland compositors use their own settings and are out of scope.

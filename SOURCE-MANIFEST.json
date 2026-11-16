@@ -77,8 +77,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "de01aa64e9235ec4fc11aaaa194b5e46eb711c243c3f090d8d636c15b2157afb",
-      "size": 12033,
+      "sha256": "331c96c3249b60f206ef060acba1933175eccadfeee980022726e9824ff70616",
+      "size": 12358,
       "mode": "0o644"
     },
     {
@@ -263,8 +263,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "262a15910bfa813979c2cce67b3893824106e7d24ba48793926f134963c74df7",
-      "size": 28855,
+      "sha256": "305849c752d25e92c75a749d0bb74159216061899dc3528ba7016de0cfa390db",
+      "size": 28998,
       "mode": "0o644"
     },
     {
@@ -287,8 +287,8 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "bed3aaad0f0bb60fdafc7072871e9b1e4f1b8b6748b38798687636e305d83f4e",
-      "size": 25431,
+      "sha256": "8e3ec162747657343fa29faa959676975ca568f2ebeb95cc7a045a8f6b719146",
+      "size": 25655,
       "mode": "0o644"
     },
     {
@@ -353,8 +353,8 @@
     },
     {
       "path": "docs/input-preferences.md",
-      "sha256": "df42e0ae0a08b57064c851f0819f45ee29b3f0691ba3bc87b3c5cfbc61de5e85",
-      "size": 12086,
+      "sha256": "0fafd4e4d2fede45feb0b6b748e778d2692256ea18034e64c1d5d91c93c9a562",
+      "size": 12498,
       "mode": "0o644"
     },
     {
@@ -527,8 +527,8 @@
     },
     {
       "path": "input_preferences.py",
-      "sha256": "c874977eb38f9bd00849eb8d53da6f64cf194e5eb0730aba9f8c03e63da79fd7",
-      "size": 22185,
+      "sha256": "9fa8828b37ae5a9bbf92d156654b511e49f3607cb9dec3ed25a04921891c4186",
+      "size": 23553,
       "mode": "0o644"
     },
     {
@@ -1313,8 +1313,8 @@
     },
     {
       "path": "tests/test_input_preferences.py",
-      "sha256": "c6e9d7f7c2a3d4c9daf1d7392ff7be2086b6475edd9c1e8f58cfd44b450880bd",
-      "size": 7323,
+      "sha256": "0f351c3968c1d0da87706554f498e301d7c6e7f1bc565713c0b39aea396d0319",
+      "size": 10242,
       "mode": "0o644"
     },
     {
