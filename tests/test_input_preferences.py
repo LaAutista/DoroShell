@@ -40,6 +40,9 @@ class InputPreferencesTests(unittest.TestCase):
         self.store.helper.parent.mkdir(parents=True)
         self.store.helper.write_bytes(Path(ip.__file__).read_bytes())
         self.backend=Backend([self.mouse,self.pad])
+        # Never spawn a real watcher from tests.
+        spawn=patch.object(ip.Preferences,'start_watcher');self.spawned=spawn.start();self.addCleanup(spawn.stop)
+        popen=patch.object(ip.subprocess,'Popen',side_effect=AssertionError('test spawned a process'));popen.start();self.addCleanup(popen.stop)
     def change(self,dev,enabled=True):
         raw,_=self.store.read()
         return self.store.run(self.backend,(dev['key'],dict(name=dev['name'],action='touchpad' if dev['kind']=='touchpad' else 'acceleration',enabled=enabled)),raw)
@@ -92,9 +95,97 @@ class InputPreferencesTests(unittest.TestCase):
         self.change(self.mouse);self.mouse['props'][ip.PROFILE]['values']=[5]
         self.assertIn('changed elsewhere',self.change(self.mouse,False)[0])
         self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[5])
-    def test_device_instance_change_refuses_restore(self):
-        self.change(self.mouse);self.mouse['id']=90
-        self.assertIn('instance changed',self.change(self.mouse,False)[0])
+    def test_reconnected_instance_archives_receipt_and_reapplies(self):
+        self.change(self.mouse);old=self.store.read()[1]['receipts'][self.mouse['key']]
+        self.mouse['id']=90;self.mouse['props'][ip.PROFILE]['values']=[0]  # New instance at driver default.
+        self.assertIn('reconnected',self.store.run(self.backend)[0])
+        receipt=self.store.read()[1]['receipts'][self.mouse['key']]
+        self.assertEqual((receipt['id'],receipt['before']['values']),(90,[0]))
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0xffffffff])
+        archived=[json.loads(f.read_text()) for f in (self.store.home/'.local/state/doroshell/input-restoration').iterdir()]
+        self.assertEqual([(a['reason'],a['receipt']) for a in archived],[('device-reconnected',old)])
+        self.mouse['id']=91;self.mouse['props'][ip.PROFILE]['values']=[0];writes=len(self.backend.writes)
+        self.assertIn('reconnected',self.change(self.mouse,False)[0])
+        self.assertEqual(len(self.backend.writes),writes);self.assertEqual(self.store.read()[1]['receipts'],{})
+    def test_all_mice_switch_covers_current_and_later_mice_and_restores(self):
+        lib=libinput_mouse();self.backend.items=[self.mouse,self.pad]
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0xffffffff])
+        self.assertEqual(self.pad['props'][ip.ENABLED]['values'],[1])  # Touchpads untouched.
+        self.assertTrue(self.store.startup.exists())
+        self.backend.items.append(lib);self.store.run(self.backend)  # Hotplug pass.
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        rules=self.store.read()[1]['rules'];self.assertTrue(rules[lib['key']]['auto'])
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=False)
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[1,0,0])
+        self.assertEqual(self.store.read()[1]['receipts'],{});self.assertFalse(self.store.startup.exists())
+    def test_explicit_device_choice_overrides_all_mice(self):
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        self.change(self.mouse,False)  # Explicit opt-out for this mouse.
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        self.store.run(self.backend);self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        self.assertNotIn('auto',self.store.read()[1]['rules'][self.mouse['key']])
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=False);self.store.run(self.backend,expected=self.store.read()[0],all_mice=True)
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+    def test_all_mice_skips_ambiguous_and_stop_clears_switch(self):
+        twin=copy.deepcopy(self.mouse);twin['id']=70;self.backend.items=[self.mouse,twin,self.pad]
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,all_mice=True)
+        self.assertNotIn(self.mouse['key'],self.store.read()[1]['rules'])
+        self.assertEqual(self.mouse['props'][ip.PROFILE]['values'],[0])
+        raw,_=self.store.read();self.store.run(self.backend,expected=raw,stop=True)
+        self.assertFalse(self.store.read()[1]['all_mice']);self.assertFalse(self.store.startup.exists())
+    def test_invalid_all_mice_and_auto_values_refused(self):
+        raw,data=self.store.read();data['all_mice']='yes';self.store.write(self.store.path,json.dumps(data).encode())
+        with self.assertRaises(ValueError):self.store.read()
+        data['all_mice']=True;data['rules']['d'*64]=dict(name='x',action='touchpad',enabled=True,auto=True)
+        self.store.write(self.store.path,json.dumps(data).encode())
+        with self.assertRaises(ValueError):self.store.read()
+        raw,_=self.store.read() if False else (self.store.path.read_bytes(),None)
+        with self.assertRaises(ValueError):self.store.run(self.backend,expected=raw,all_mice='on')
+    def test_watcher_reapplies_on_device_added_and_exits_when_unmanaged(self):
+        from Xlib import X
+        from Xlib.ext import ge, xinput
+        store=self.store;test=self
+        class Event:
+            def __init__(self,flags,kind=ge.GenericEventCode,evtype=xinput.HierarchyChanged,extension=131):
+                self.type=kind;self.evtype=evtype;self.extension=extension;self.data=type('D',(),{'flags':flags})()
+        class Display:
+            def __init__(self):
+                self.events=[Event(xinput.SlaveAdded,kind=X.KeyPress),Event(xinput.SlaveAdded,extension=99),Event(xinput.SlaveRemoved),Event(xinput.SlaveAdded),Event(xinput.SlaveAdded)];self.selected=None
+            def query_extension(self,name):
+                test.assertEqual(name,xinput.extname);return type('E',(),{'major_opcode':131})()
+            def screen(self):return type('S',(),{'root':type('R',(),{'xinput_select_events':lambda _,m:setattr(display,'selected',m)})()})()
+            def sync(self):pass
+            def pending_events(self):
+                # Second SlaveAdded is coalesced; then the owner opts out before the next event.
+                return 1 if len(self.events)==1 else 0
+            def next_event(self):
+                ev=self.events.pop(0)
+                if not self.events:
+                    raw,_=store.read();ip.Preferences.run(store,test.backend,expected=raw,stop=True)
+                return ev
+        display=Display();self.backend.display=display
+        lib=libinput_mouse();runs=[]
+        original=store.run
+        def counted(*a,**k):
+            runs.append(1)
+            if len(runs)==2:test.backend.items.append(lib)
+            return original(*a,**k)
+        raw,_=store.read();store.run(self.backend,expected=raw,all_mice=True)
+        with patch.object(store,'run',side_effect=counted),patch.object(ip.time,'sleep'):
+            store.watch(self.backend)
+        self.assertEqual(display.selected,[(xinput.AllDevices,xinput.HierarchyChangedMask)])
+        self.assertEqual(len(runs),2)
+        self.assertEqual(display.events,[])
+    def test_second_watcher_exits_without_touching_devices(self):
+        import fcntl
+        lock=self.store.home/'.local/state/doroshell/input-watch.lock';lock.parent.mkdir(parents=True,exist_ok=True)
+        with lock.open('a') as held:
+            fcntl.flock(held,fcntl.LOCK_EX)
+            self.backend.display=None
+            self.assertIsNone(self.store.watch(self.backend))
+        self.assertEqual(self.backend.writes,[])
     def test_file_conflicts_and_invalid_receipts_refused(self):
         self.change(self.mouse);raw,data=self.store.read();data['version']=99
         self.store.path.write_text(json.dumps(data))

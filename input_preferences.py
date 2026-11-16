@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 import uuid
 
 PROFILE = 'Device Accel Profile'
@@ -167,12 +168,14 @@ class Preferences:
         data = json.loads(raw) if raw is not None else dict(version=1, rules={}, receipts={})
         if (not isinstance(data, dict) or type(data.get('version')) is not int or data['version'] != 1
                 or not isinstance(data.get('rules'), dict) or not isinstance(data.get('receipts'), dict)
-                or data.get('startup') not in (None, 'pending', 'installed', 'removing')):
+                or data.get('startup') not in (None, 'pending', 'installed', 'removing')
+                or data.get('all_mice') not in (None, True, False)):
             raise ValueError('Unsupported input preferences; existing file preserved.')
         for key, rule in data['rules'].items():
             if (not re.fullmatch('[0-9a-f]{64}', key) or not isinstance(rule, dict)
                     or not isinstance(rule.get('name'), str) or rule.get('action') not in ('acceleration','touchpad')
-                    or type(rule.get('enabled')) is not bool):
+                    or type(rule.get('enabled')) is not bool
+                    or rule.get('auto') not in (None, True) or (rule.get('auto') and rule['action'] != 'acceleration')):
                 raise ValueError('Invalid saved input preference.')
         for key, receipt in data['receipts'].items():
             if key not in data['rules'] or not isinstance(receipt, dict):
@@ -245,8 +248,8 @@ class Preferences:
             raise RuntimeError('Input preferences still need their helper. Use Mouse & Touchpad → Stop managing and restore; '
                                'absent/unsupported devices or conflicts retain receipts and block removal. No device was changed.')
 
-    def archive_receipt(self, key, rule, receipt):
-        payload = json.dumps(dict(reason='previous-x-server-session', key=key, rule=rule, receipt=receipt), sort_keys=True).encode()
+    def archive_receipt(self, key, rule, receipt, reason='previous-x-server-session'):
+        payload = json.dumps(dict(reason=reason, key=key, rule=rule, receipt=receipt), sort_keys=True).encode()
         path = self.home/'.local/state/doroshell/input-restoration'/(hashlib.sha256(payload).hexdigest()+'.json')
         safe(path, self.home)
         if path.exists():
@@ -254,15 +257,24 @@ class Preferences:
                 raise RuntimeError('Archived input restoration evidence changed; preserve it before retrying.')
         else: self.write(path, payload)
 
-    def run(self, backend, change=None, expected=None, stop=False):
+    @staticmethod
+    def needed(data):
+        return bool(data.get('all_mice')) or any(r['enabled'] for r in data['rules'].values()) or bool(data['receipts'])
+
+    def run(self, backend, change=None, expected=None, stop=False, all_mice=None):
         with self.locked():
             raw, data = self.read()
             self.check_startup(data)
-            if change is not None or stop:
+            if change is not None or stop or all_mice is not None:
                 if raw != expected:
                     raise RuntimeError('Preferences changed elsewhere; refresh before saving.')
                 if stop:
                     for rule in data['rules'].values(): rule['enabled'] = False
+                    data['all_mice'] = False
+                elif all_mice is not None:
+                    if type(all_mice) is not bool:
+                        raise ValueError('Invalid input request.')
+                    data['all_mice'] = all_mice
                 else:
                     key, rule = change
                     if (not isinstance(key, str) or not re.fullmatch('[0-9a-f]{64}', key) or not isinstance(rule, dict)
@@ -271,15 +283,23 @@ class Preferences:
                         raise ValueError('Invalid input request.')
                     if key in data['receipts'] and rule['action'] != data['rules'][key]['action']:
                         raise ValueError('Restore the saved action before changing it.')
-                    data['rules'][key] = rule
-            needed = any(r['enabled'] for r in data['rules'].values()) or bool(data['receipts'])
+                    data['rules'][key] = dict(name=rule['name'], action=rule['action'], enabled=rule['enabled'])  # Explicit choice overrides all-mice.
+            # Automatic all-mice rules follow the switch; explicit per-device rules are left alone.
+            for rule in data['rules'].values():
+                if rule.get('auto'): rule['enabled'] = bool(data.get('all_mice'))
+            needed = self.needed(data)
             self.autostart(data, needed)
-            if change is not None or stop: self.write(self.path, json.dumps(data).encode())
+            if change is not None or stop or all_mice is not None: self.write(self.path, json.dumps(data).encode())
             if not needed:
                 return ['No managed input changes remain. Saved choices and archived evidence are retained.']
             devices = backend.devices()
             token = backend.token()
             messages = []
+            if data.get('all_mice'):
+                for dev in devices:
+                    cap = capability(dev)
+                    if cap and cap[0] == 'acceleration' and dev['key'] not in data['rules'] and sum(d['key'] == dev['key'] for d in devices) == 1:
+                        data['rules'][dev['key']] = dict(name=dev['name'], action='acceleration', enabled=True, auto=True)
             for key, rule in data['rules'].items():
                 receipt = data['receipts'].get(key)
                 if receipt and receipt['token'] != token:
@@ -300,8 +320,15 @@ class Preferences:
                     messages.append(dev['name']+': not applied; another enabled identified mouse is required.'); continue
                 desired = dict(current, values=values)
                 if receipt:
-                    if receipt.get('property') != prop or receipt.get('id') != dev['id'] or receipt.get('node') != dev['node']:
-                        messages.append(dev['name']+': device instance changed; restoration refused.'); continue
+                    if receipt.get('id') != dev['id'] or receipt.get('node') != dev['node']:
+                        # The only identity match is a new instance, so the receipt's instance is gone; it starts from driver defaults.
+                        self.archive_receipt(key, rule, receipt, 'device-reconnected')
+                        receipt = None; data['receipts'].pop(key); self.write(self.path, json.dumps(data).encode())
+                        messages.append(dev['name']+': reconnected; previous-instance restoration evidence archived.')
+                        if not rule['enabled']: continue
+                    elif receipt.get('property') != prop:
+                        messages.append(dev['name']+': driver property changed; restoration refused.'); continue
+                if receipt:
                     if current not in (receipt['before'], receipt['after']):
                         messages.append(dev['name']+': property changed elsewhere; restore/apply refused.'); continue
                 if rule['enabled']:
@@ -325,17 +352,59 @@ class Preferences:
                     messages.append(dev['name']+': configured, apply failed: '+str(exc))
                 self.write(self.path, json.dumps(data).encode())
             self.write(self.path, json.dumps(data).encode())
-            if not any(r['enabled'] for r in data['rules'].values()) and not data['receipts']:
+            if not self.needed(data):
                 self.autostart(data, False)
             return messages
+
+    def watch(self, backend, retries=10, settle=0.5):
+        """Apply now, then reapply on XInput device additions until nothing needs managing."""
+        lock = self.home/'.local/state/doroshell/input-watch.lock'; safe(lock, self.home)
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        with lock.open('a') as stream:
+            try:
+                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return  # Another watcher owns this session.
+            from Xlib.ext import ge, xinput
+            display = backend.display
+            opcode = display.query_extension(xinput.extname).major_opcode
+            display.screen().root.xinput_select_events([(xinput.AllDevices, xinput.HierarchyChangedMask)])
+            display.sync()
+            while True:
+                for attempt in range(retries):
+                    try:
+                        print('\n'.join(self.run(backend)), flush=True); break
+                    except BlockingIOError:
+                        time.sleep(settle)  # Settings page is saving; retry shortly.
+                if not self.needed(self.read()[1]):
+                    return
+                while True:
+                    event = display.next_event()
+                    if (event.type == ge.GenericEventCode and getattr(event, 'extension', None) == opcode
+                            and event.evtype == xinput.HierarchyChanged
+                            and event.data.flags & (xinput.SlaveAdded | xinput.DeviceEnabled)):
+                        break
+                time.sleep(settle)  # Let the driver finish initializing the new device.
+                while display.pending_events():
+                    display.next_event()  # Coalesce a burst of hotplug events into one pass.
+
+    def start_watcher(self):
+        safe(self.helper, self.home)
+        if self.helper.is_file():
+            subprocess.Popen([sys.executable, str(self.helper), '--login'], start_new_session=True,
+                             env=dict(os.environ, HOME=str(self.home)),
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def page(home):
     import input_diagnostics
     from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton, QCheckBox
     widget = QWidget(); layout = QVBoxLayout(widget)
-    note = QLabel('Mouse & Touchpad (X11)\nDisable acceleration on supported mice (evdev profile -1 or libinput flat), or disable a selected touchpad.\nSaved choices are retried once at LXQt login. Reconnects require Refresh / Reapply. No drivers or system rules are changed.')
+    note = QLabel('Mouse & Touchpad (X11)\nDisable acceleration on supported mice (evdev profile -1 or libinput flat), or disable a selected touchpad.\nSaved choices are reapplied at LXQt login and when a device is connected. No drivers or system rules are changed.')
     note.setWordWrap(True); layout.addWidget(note)
+    all_mice = QCheckBox('No acceleration on all mice')
+    all_mice.setToolTip('Applies to every supported mouse, including mice connected later. A choice saved for one mouse below overrides this.')
+    all_mice.setEnabled(False); layout.addWidget(all_mice)
     devices = QComboBox(); devices.setAccessibleName('Input device'); layout.addWidget(devices)
     enabled = QCheckBox('Disable selected option'); layout.addWidget(enabled)
     status = QLabel('Choose Refresh to inspect devices. No input changes occur while inspecting.'); status.setWordWrap(True); layout.addWidget(status)
@@ -380,6 +449,8 @@ def page(home):
         backend = None
         try:
             context['raw'], context['data'] = store.read()
+            all_mice.blockSignals(True); all_mice.setChecked(bool(context['data'].get('all_mice'))); all_mice.blockSignals(False)
+            all_mice.setEnabled(True)
             backend = XInput(); values = backend.devices()
             context['configuration'] = input_diagnostics.read_configuration()
             devices.blockSignals(True); devices.clear()
@@ -392,22 +463,27 @@ def page(home):
             apply.setEnabled(False); enabled.setEnabled(False); evidence.clear(); evidence.hide(); status.setText(str(exc))
         finally:
             if backend: backend.close()
-    def save(stop=False):
+    def save(stop=False, everything=None):
         backend = None
         try:
             backend = XInput()
-            if stop:
+            if everything is not None:
+                messages = store.run(backend, expected=context['raw'], all_mice=everything)
+            elif stop:
                 raw, _ = store.read()
                 messages = store.run(backend, expected=raw, stop=True)
             else:
                 dev = devices.currentData(); cap = capability(dev)
                 messages = store.run(backend, (dev['key'], dict(name=dev['name'],action=cap[0],enabled=enabled.isChecked())), context['raw'])
+            if store.needed(store.read()[1]):
+                store.start_watcher()  # Covers devices connected before the next login.
             inspect_devices(); status.setText('\n'.join(messages))
         except Exception as exc: status.setText(str(exc))
         finally:
             if backend: backend.close()
     refresh.clicked.connect(inspect_devices); apply.clicked.connect(save); devices.currentIndexChanged.connect(selected)
     restore.clicked.connect(lambda: save(True))
+    all_mice.toggled.connect(lambda checked: save(everything=checked))
     return widget
 
 
@@ -417,7 +493,7 @@ if __name__ == '__main__':
     backend = None
     try:
         backend = XInput()
-        print('\n'.join(Preferences(Path.home()).run(backend)))
+        Preferences(Path.home()).watch(backend)
     except Exception as exc:
         raise SystemExit('Input preferences not applied: '+str(exc))
     finally:

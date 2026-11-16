@@ -59,10 +59,19 @@ Preferences live in `~/.config/doroshell/input-preferences.json`. Device identit
 uses name plus udev serial/path/vendor/product metadata; numerical XInput IDs are
 never persisted as lookup identities. Missing or duplicate identities are refused.
 The menu installer copies the helper into the permanent installed toolkit.
-A single user autostart entry retries configured preferences once at LXQt login.
-Creating it requires an installed helper; it never points to a temporary checkout.
-Python Xlib and `udevadm` (Arch package `systemd`) are declared dependencies.
-Reconnected devices require Refresh and Save and apply; there is no hotplug daemon.
+A single user autostart entry starts the helper at LXQt login. It applies saved
+preferences, then keeps running to reapply them whenever XInput reports an added or
+enabled device, and exits once nothing needs managing. Saving on the page also
+starts it if it isn't running; a lock under `~/.local/state/doroshell/` keeps one
+watcher per user. Creating the entry requires an installed helper; it never points
+to a temporary checkout. Python Xlib and `udevadm` (Arch package `systemd`) are
+declared dependencies.
+
+**No acceleration on all mice** is one switch at the top of the page. While it
+is on, every supported mouse with a unique identity, including ones connected later,
+gets an automatic acceleration rule. Touchpads are not affected. A choice saved for
+one mouse below overrides the switch for that mouse. Turning the switch off restores
+each automatically managed mouse the same way unchecking it individually would.
 Other settings writers can override properties later; configured and observed
 state are shown separately. Actual normal-login application is not yet tested.
 
@@ -70,7 +79,10 @@ Before changing a property, the helper records its current value and intended
 value. A marker on the X server distinguishes restoration receipts between server
 sessions. Unchecking restores the saved value only for the same device instance
 and server session, and only if the current property still matches an expected
-value. External edits produce a visible refusal. New sessions use their own
+value. External edits produce a visible refusal. When the only identity match is a
+new device instance (the mouse was reconnected), the old instance no longer exists,
+so its receipt is archived with reason `device-reconnected` and the new instance is
+treated from its own driver defaults. New sessions use their own
 baseline; old-session values are not forced onto a new session. Before retiring a
 receipt from an ended X server session, its complete evidence is written privately
 under `~/.local/state/doroshell/input-restoration/` and the result is reported. These
@@ -83,7 +95,7 @@ record schemas are refused rather than overwritten.
 An absent or unsupported selected device can retain a configured preference
 without applying it. **Stop managing and restore** opts out of all saved choices,
 including absent devices, and attempts only supported, owned current-session
-restorations. An absent/ambiguous device, changed instance, unsupported property
+restorations. An absent/ambiguous device, unsupported property
 or external edit leaves its receipt and helper intact. It never guesses a prior
 value, silently retries an enabled preference after opt-out, or undoes a system rule.
 If restoration stays unresolved, preserve the receipt and inspect the reported
@@ -173,8 +185,8 @@ setting per driver:
 Hotplugged devices start from their defaults. There are two ways to cover them:
 
 - A user-session process can listen for XInput device additions and reapply the
-  runtime property without root. DoroShell does not have that listener yet;
-  reconnects currently need Refresh / Reapply.
+  runtime property without root. DoroShell's login helper now does this (see
+  Persistence above).
 - A root-owned `/etc/X11/xorg.conf.d` InputClass with `MatchIsPointer "on"` sets
   defaults when each device initializes, from the next X server start. DoroShell's
   user-level design does not write it.

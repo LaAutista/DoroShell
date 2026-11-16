@@ -15,7 +15,9 @@ Independent review remains pending.
 
 Mouse & Touchpad now offers flat-profile acceleration disable for libinput mice
 that advertise it ([details](input-preferences.md)). The tests use mocks only; no live apply.
-Hotplugged devices still need Refresh / Reapply.
+A global **No acceleration on all mice** switch and a login-session hotplug
+watcher reapply it to mice connected later. Event subscription was checked on a real
+X server; a physical reconnect and normal login were not tested.
 
 The calendar [holiday/DST candidate](panel-calendar.md#holidays-and-daylight-saving-days--2026-11-15)
 adds a twelfth panel patch marking US federal holidays and local DST transition days.
