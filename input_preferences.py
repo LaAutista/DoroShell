@@ -112,6 +112,11 @@ class XInput:
         matches = [d for d in devices if d['key'] == device['key']]
         if len(matches) != 1 or matches[0]['id'] != device['id']:
             raise RuntimeError('Device changed before apply; refresh and retry.')
+        fresh = matches[0]['props']
+        if fresh.get(name) != device['props'].get(name):
+            raise RuntimeError('Property changed elsewhere before apply; refresh and retry.')
+        if name == LIBINPUT_PROFILE and not fresh.get(LIBINPUT_AVAILABLE, {}).get('values', [0] * 3)[value['values'].index(1)]:
+            raise RuntimeError('Requested profile is no longer offered by the driver; not written.')
         if name == ENABLED and value['values'] == [0] and device['kind'] == 'touchpad':
             if not any(d.get('usable_mouse',False) and d['enabled'] and d['props'].get(ENABLED,{}).get('values')==[1] for d in devices):
                 raise RuntimeError('The other mouse disappeared; touchpad disable refused.')

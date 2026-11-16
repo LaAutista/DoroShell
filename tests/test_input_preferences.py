@@ -157,6 +157,22 @@ class InputPreferencesTests(unittest.TestCase):
         data['receipts'][mouse['key']]['before']['values']=[1,1,0]
         self.store.path.write_text(json.dumps(data))
         with self.assertRaises(ValueError):self.store.read()
+    def test_xinput_write_rechecks_fresh_device_before_request(self):
+        class Display:
+            def __init__(self):self.changes=[]
+            def intern_atom(self,name):return name
+            def xinput_change_device_property(self,*args):self.changes.append(args)
+            def sync(self):pass
+        snapshot=libinput_mouse((0,0,1))
+        for fresh_flags,fresh_available,message in (((0,1,0),(1,1,0),'no longer offered'),((1,0,0),(1,1,1),'changed elsewhere')):
+            backend=object.__new__(ip.XInput);backend.display=Display()
+            fresh=copy.deepcopy(snapshot);fresh['props'][ip.LIBINPUT_PROFILE]['values']=list(fresh_flags)
+            fresh['props'][ip.LIBINPUT_AVAILABLE]['values']=list(fresh_available)
+            stale=copy.deepcopy(snapshot);stale['props'][ip.LIBINPUT_PROFILE]['values']=list(fresh_flags) if message=='no longer offered' else [0,1,0]
+            backend.devices=lambda f=fresh:[copy.deepcopy(f)]
+            with self.assertRaisesRegex(RuntimeError,message):
+                backend.write(stale,ip.LIBINPUT_PROFILE,dict(type=19,format=8,values=[0,0,1]))
+            self.assertEqual(backend.display.changes,[])
     def test_libinput_flat_withdrawn_after_apply_is_not_forced(self):
         mouse=libinput_mouse();self.backend.items=[mouse,self.pad];self.change(mouse)
         mouse['props'][ip.LIBINPUT_AVAILABLE]['values']=[1,0,1]

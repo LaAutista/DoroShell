@@ -527,8 +527,8 @@
     },
     {
       "path": "input_preferences.py",
-      "sha256": "54b25dd1c06a5fff538d072d20e0d52154f27120ce12a15cfdda84596ea83a76",
-      "size": 24166,
+      "sha256": "4e537917537f4517b55ab3a80c32f6cb42bd6fb09b7d7f5f79fffa1d8e1c2e88",
+      "size": 24582,
       "mode": "0o644"
     },
     {
@@ -1313,8 +1313,8 @@
     },
     {
       "path": "tests/test_input_preferences.py",
-      "sha256": "a49c0d1cc5d234b19074c0ba5b8d5ba8fc1349e9ed44b5b1b8cbb511717748ad",
-      "size": 11456,
+      "sha256": "61895610a35ba6ad02abb9f067cb5750984fb0425bd479e548bea683e69d5b0c",
+      "size": 12622,
       "mode": "0o644"
     },
     {
