@@ -140,6 +140,23 @@ class InputPreferencesTests(unittest.TestCase):
         self.store.path.write_text(json.dumps(data))
         with self.assertRaises(ValueError):self.store.read()
         self.store.path.write_text(json.dumps(good));self.store.read()
+    def test_libinput_restore_refuses_withdrawn_baseline_profile(self):
+        mouse=libinput_mouse((0,0,1));self.backend.items=[mouse,self.pad];self.change(mouse)
+        self.assertEqual(mouse['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        mouse['props'][ip.LIBINPUT_AVAILABLE]['values']=[1,1,0];writes=len(self.backend.writes)
+        self.assertIn('no longer offered',self.change(mouse,False)[0])
+        self.assertEqual(len(self.backend.writes),writes)
+        self.assertEqual(mouse['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        self.assertTrue(self.store.read()[1]['receipts'])
+    def test_libinput_enabled_must_select_one_advertised_profile(self):
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(1,1,0))))
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(0,0,0))))
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(0,0,1),available=(1,1,0))))
+        mouse=libinput_mouse();self.backend.items=[mouse,self.pad];self.change(mouse)
+        _,data=self.store.read()
+        data['receipts'][mouse['key']]['before']['values']=[1,1,0]
+        self.store.path.write_text(json.dumps(data))
+        with self.assertRaises(ValueError):self.store.read()
     def test_libinput_flat_withdrawn_after_apply_is_not_forced(self):
         mouse=libinput_mouse();self.backend.items=[mouse,self.pad];self.change(mouse)
         mouse['props'][ip.LIBINPUT_AVAILABLE]['values']=[1,0,1]

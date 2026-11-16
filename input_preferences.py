@@ -23,6 +23,12 @@ def flat(length):
     return [0, 1] + [0] * (length - 2)
 
 
+def valid_flags(value):
+    values = value.get('values') if isinstance(value, dict) else None
+    return (isinstance(values, list) and value.get('format') == 8 and type(value.get('type')) is int
+            and len(values) in (2, 3) and all(type(v) is int and v in (0, 1) for v in values))
+
+
 def valid_value(prop, value):
     if not isinstance(value, dict) or type(value.get('type')) is not int or not isinstance(value.get('values'), list):
         return False
@@ -30,7 +36,7 @@ def valid_value(prop, value):
     if not all(type(v) is int for v in values):
         return False
     if prop == LIBINPUT_PROFILE:
-        return value.get('format') == 8 and len(values) in (2, 3) and all(v in (0, 1) for v in values)
+        return valid_flags(value) and sum(values) == 1  # Exactly one selected profile.
     return (value.get('format') == (32 if prop == PROFILE else 8) and len(values) == 1
             and 0 <= values[0] <= (0xffffffff if prop == PROFILE else 1))
 
@@ -127,8 +133,8 @@ def capability(device):
     current = device['props'].get(LIBINPUT_PROFILE, {})
     available = device['props'].get(LIBINPUT_AVAILABLE, {})
     if (device['kind'] == 'mouse' and device['driver'] == 'libinput' and valid_value(LIBINPUT_PROFILE, current)
-            and valid_value(LIBINPUT_PROFILE, available) and len(available['values']) == len(current['values'])
-            and available['values'][1] == 1):
+            and valid_flags(available) and len(available['values']) == len(current['values'])
+            and available['values'][1] == 1 and available['values'][current['values'].index(1)] == 1):
         return 'acceleration', LIBINPUT_PROFILE, flat(len(current['values']))
     return None
 
@@ -301,6 +307,9 @@ class Preferences:
                     target = receipt['after']
                 else:
                     target = receipt['before']
+                if (prop == LIBINPUT_PROFILE and current != target
+                        and not dev['props'][LIBINPUT_AVAILABLE]['values'][target['values'].index(1)]):
+                    messages.append(dev['name']+': saved profile is no longer offered by the driver; not written.'); continue
                 try:
                     if current != target:
                         backend.write(dev, prop, target)
