@@ -249,6 +249,28 @@ class InputPreferencesTests(unittest.TestCase):
         self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
         self.assertEqual(len(self.backend.writes),writes[0])
         self.assert_watch_lock_released()
+    def test_swap_before_marking_takes_baseline_from_marked_instance(self):
+        lib=libinput_mouse((0,0,1));self.backend.items=[lib,self.pad]
+        original=self.backend.mark
+        def swap_then_mark(dev,marker):
+            self.replace_instance(lib,(0,1,0))  # Replacement appears after enumeration, before marking.
+            original(dev,marker)
+        self.backend.mark=swap_then_mark
+        self.change(lib)
+        receipt=self.store.read()[1]['receipts'][lib['key']]
+        self.assertEqual((receipt['before']['values'],receipt['marker']),([0,1,0],ip.marker_of(lib)))
+        self.backend.mark=original;writes=len(self.backend.writes)
+        self.opt_out()
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        self.assertEqual(len(self.backend.writes),writes)
+    def test_identity_change_during_marking_applies_nothing(self):
+        lib=libinput_mouse();self.backend.items=[lib,self.pad]
+        original=self.backend.mark
+        def move_then_mark(dev,marker):
+            original(dev,marker);lib['id']=99
+        self.backend.mark=move_then_mark
+        self.assertIn('changed during apply',self.change(lib)[0])
+        self.assertEqual((self.backend.writes,self.store.read()[1]['receipts']),([],{}))
     def test_marker_refusal_applies_nothing_and_keeps_no_receipt(self):
         lib=libinput_mouse();self.backend.items=[lib,self.pad];self.backend.fail_mark=True
         self.assertIn('marker refusal',self.change(lib)[0])

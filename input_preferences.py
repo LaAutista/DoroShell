@@ -359,7 +359,12 @@ class Preferences:
                             backend.mark(dev, marker)  # Before the receipt: a stray marker is harmless, a receipt without one is not.
                         except Exception as exc:
                             messages.append(dev['name']+': configured, apply failed: '+str(exc)); continue
-                        dev['props'][MARKER] = dict(type=0, format=8, values=list(marker.encode()))
+                        # The device may have been swapped before marking: take the baseline only from the marked instance.
+                        marked = [d for d in backend.devices() if d['key'] == key]
+                        if (len(marked) != 1 or marked[0]['id'] != dev['id'] or marked[0]['node'] != dev['node']
+                                or marker_of(marked[0]) != marker or capability(marked[0]) != cap):
+                            messages.append(dev['name']+': device changed during apply; not applied.'); continue
+                        dev = marked[0]; current = dev['props'][prop]; desired = dict(current, values=values)
                         receipt = dict(token=token, id=dev['id'], node=dev['node'], marker=marker, property=prop, before=current, after=desired)
                         data['receipts'][key] = receipt
                         self.write(self.path, json.dumps(data).encode())  # Before modifying input.
