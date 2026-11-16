@@ -77,8 +77,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "8f268915a9d1277a0c7c575eb5ae5e56c374905f8cfad6fb7b37e7e4fd470931",
-      "size": 12654,
+      "sha256": "99133111eae57a350fa2f95db98ca93f7ecc26eb7a4010319508eac370041491",
+      "size": 13030,
       "mode": "0o644"
     },
     {
@@ -263,8 +263,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "586306f9526a0fbe62150ab7a063ddbddbfe9e4f9a035f31198a5cf4fb04e706",
-      "size": 29037,
+      "sha256": "a9fbe943aa7436fb21f63376f532dd9712a58e6861c9d8de6aa1105dfa3683c9",
+      "size": 30171,
       "mode": "0o644"
     },
     {
@@ -1469,8 +1469,8 @@
     },
     {
       "path": "tests/test_themes.py",
-      "sha256": "12b7743bfde08a6974071962458d52e6e3f04a3011af6fc17fff5a70c4e37950",
-      "size": 11535,
+      "sha256": "7ec68f198eb61bfeeeb714f3086c94c1bbab057216945649423da63829c02756",
+      "size": 13137,
       "mode": "0o644"
     },
     {
@@ -1499,8 +1499,8 @@
     },
     {
       "path": "themes.py",
-      "sha256": "5962c5afbf0514684cfe2225a3a2e2d12fed268ac90f11210868fbb15786c8bf",
-      "size": 10406,
+      "sha256": "960cd83b14aa2d050a2ae154d2285b54bbec714639bc374d61ce5ef0353b0927",
+      "size": 10667,
       "mode": "0o644"
     },
     {

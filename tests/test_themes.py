@@ -183,6 +183,29 @@ class ThemeTests(unittest.TestCase):
                 self.assertGreaterEqual(contrast(p['muted'],p[bg]),4.5,(p['name'],bg))
             self.assertGreaterEqual(contrast('#fff5fb',p['side']),4.5,p['name'])
 
+    def test_panel_theme_overrides_every_hardcoded_patch_color(self):
+        # Patch 0001's built-in sheet uses the light Windows palette; the theme file loads after it and must
+        # override every colored selector, or dark presets show light text on light popups.
+        import re
+        patch=(Path(__file__).resolve().parents[1]/'panel/patches/0001-hidden-tray-popup.patch').read_text()
+        def rules(css):
+            for selectors,body in re.findall(r'([^{}]+)\{([^{}]*)\}',css):
+                yield [x.strip() for x in selectors.split(',')],body
+        hardcoded=set()
+        for line in re.findall(r'sheet << QStringLiteral\("(.*)"\);',patch):
+            for selectors,body in rules(line.replace('\\"','"')):
+                colored=re.search(r'(?:^|;)\s*(?:background|color)\s*:\s*(?!transparent)',body)
+                if colored and 'background-image' not in body:
+                    hardcoded.update(selectors)
+        self.assertIn('LXQtGroupPopup',hardcoded)
+        for name,p in themes.PALETTES.items():
+            for composited in (False,True):
+                covered={x for selectors,_ in rules(themes.panel_style(p,composited)) for x in selectors}
+                self.assertEqual(hardcoded-covered,set(),(name,composited))
+            popup=next(b for s,b in rules(themes.panel_style(p)) if s==['LXQtGroupPopup'])
+            self.assertIn(p['base'],popup)
+            self.assertGreaterEqual(contrast(p['ink'],p['base']),4.5,name)  # Popup task text.
+            self.assertGreaterEqual(contrast(p['ink'],p['selection']),4.5,name)  # Hovered/checked task text.
     def test_portrait_click_opens_picker_cancel_and_save_independent(self):
         with tempfile.TemporaryDirectory() as d, patch.dict(os.environ,{'XDG_CONFIG_HOME':d,'XDG_DATA_HOME':d}):
             path = Path(d)/'portrait.png'

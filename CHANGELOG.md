@@ -2,6 +2,12 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Fix unreadable taskbar group popups in dark themes: the panel's built-in light
+  `LXQtGroupPopup` background (and checked-button / Show Desktop edge hover
+  colors) were never overridden by the theme file, so Heretic drew light text on
+  light pink. Theme files now override every colored built-in panel selector; a
+  regression test parses patch 0001 to keep it that way.
+
 - Mouse & Touchpad: add **No acceleration on all mice**, including mice
   connected later. The login helper now watches XInput device additions and
   reapplies saved choices; reconnected devices archive the old instance's receipt
