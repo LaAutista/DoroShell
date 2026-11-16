@@ -2,6 +2,11 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Mouse & Touchpad: disable acceleration on libinput mice that offer the flat
+  profile, using the same saved-choice, login reapply and exact-restore flow as
+  evdev profile -1. Receipt validation now accepts the libinput property. Mock and
+  read-only device checks pass; not applied live, and hotplug still needs Refresh.
+
 - Mark US federal holidays (US locale) and daylight-saving begin/end days in the
   clock calendar with bold underline and tooltips (`0012` panel patch). Native Qt
   offscreen checks and a real-flag compile pass; no full rebuild or live check.

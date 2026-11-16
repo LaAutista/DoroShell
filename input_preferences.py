@@ -14,6 +14,35 @@ import uuid
 
 PROFILE = 'Device Accel Profile'
 ENABLED = 'Device Enabled'
+LIBINPUT_PROFILE = 'libinput Accel Profile Enabled'
+LIBINPUT_AVAILABLE = 'libinput Accel Profiles Available'
+
+
+def flat(length):
+    # libinput profile flags: adaptive, flat[, custom on libinput >= 1.23].
+    return [0, 1] + [0] * (length - 2)
+
+
+def valid_flags(value):
+    values = value.get('values') if isinstance(value, dict) else None
+    return (isinstance(values, list) and value.get('format') == 8 and type(value.get('type')) is int
+            and len(values) in (2, 3) and all(type(v) is int and v in (0, 1) for v in values))
+
+
+def valid_value(prop, value):
+    if not isinstance(value, dict) or type(value.get('type')) is not int or not isinstance(value.get('values'), list):
+        return False
+    values = value['values']
+    if not all(type(v) is int for v in values):
+        return False
+    if prop == LIBINPUT_PROFILE:
+        return valid_flags(value) and sum(values) == 1  # Exactly one selected profile.
+    return (value.get('format') == (32 if prop == PROFILE else 8) and len(values) == 1
+            and 0 <= values[0] <= (0xffffffff if prop == PROFILE else 1))
+
+
+def target(prop, value):
+    return flat(len(value['values'])) if prop == LIBINPUT_PROFILE else [0xffffffff] if prop == PROFILE else [0]
 
 
 def property_values(reply):
@@ -83,6 +112,11 @@ class XInput:
         matches = [d for d in devices if d['key'] == device['key']]
         if len(matches) != 1 or matches[0]['id'] != device['id']:
             raise RuntimeError('Device changed before apply; refresh and retry.')
+        fresh = matches[0]['props']
+        if fresh.get(name) != device['props'].get(name):
+            raise RuntimeError('Property changed elsewhere before apply; refresh and retry.')
+        if name == LIBINPUT_PROFILE and not fresh.get(LIBINPUT_AVAILABLE, {}).get('values', [0] * 3)[value['values'].index(1)]:
+            raise RuntimeError('Requested profile is no longer offered by the driver; not written.')
         if name == ENABLED and value['values'] == [0] and device['kind'] == 'touchpad':
             if not any(d.get('usable_mouse',False) and d['enabled'] and d['props'].get(ENABLED,{}).get('values')==[1] for d in devices):
                 raise RuntimeError('The other mouse disappeared; touchpad disable refused.')
@@ -101,6 +135,12 @@ def capability(device):
         return 'touchpad', ENABLED, [0]
     if device['kind'] == 'mouse' and device['driver'] == 'evdev' and profile.get('format') == 32 and len(profile.get('values', [])) == 1:
         return 'acceleration', PROFILE, [0xffffffff]  # Xorg profile -1: no velocity-dependent acceleration.
+    current = device['props'].get(LIBINPUT_PROFILE, {})
+    available = device['props'].get(LIBINPUT_AVAILABLE, {})
+    if (device['kind'] == 'mouse' and device['driver'] == 'libinput' and valid_value(LIBINPUT_PROFILE, current)
+            and valid_flags(available) and len(available['values']) == len(current['values'])
+            and available['values'][1] == 1 and available['values'][current['values'].index(1)] == 1):
+        return 'acceleration', LIBINPUT_PROFILE, flat(len(current['values']))
     return None
 
 
@@ -137,15 +177,16 @@ class Preferences:
         for key, receipt in data['receipts'].items():
             if key not in data['rules'] or not isinstance(receipt, dict):
                 raise ValueError('Invalid input restoration record.')
-            prop = PROFILE if data['rules'][key]['action']=='acceleration' else ENABLED
-            wanted = [0xffffffff] if prop == PROFILE else [0]
-            if receipt.get('property') != prop or not isinstance(receipt.get('token'), str) or type(receipt.get('id')) is not int or not isinstance(receipt.get('node'), str):
+            prop = receipt.get('property')
+            allowed = (PROFILE, LIBINPUT_PROFILE) if data['rules'][key]['action']=='acceleration' else (ENABLED,)
+            if prop not in allowed or not isinstance(receipt.get('token'), str) or type(receipt.get('id')) is not int or not isinstance(receipt.get('node'), str):
                 raise ValueError('Invalid input restoration identity.')
             for field in ('before','after'):
-                value = receipt.get(field, {})
-                if not isinstance(value, dict) or value.get('format') != (32 if prop == PROFILE else 8) or type(value.get('type')) is not int or not isinstance(value.get('values'), list) or len(value['values']) != 1 or type(value['values'][0]) is not int or not 0 <= value['values'][0] <= (0xffffffff if prop == PROFILE else 1):
+                if not valid_value(prop, receipt.get(field)):
                     raise ValueError('Invalid saved input property.')
-            if receipt['after']['values'] != wanted or receipt['before']['type'] != receipt['after']['type']:
+            if (receipt['after']['values'] != target(prop, receipt['after'])
+                    or len(receipt['before']['values']) != len(receipt['after']['values'])
+                    or receipt['before']['type'] != receipt['after']['type']):
                 raise ValueError('Invalid input restoration target.')
         return raw, data
 
@@ -271,6 +312,9 @@ class Preferences:
                     target = receipt['after']
                 else:
                     target = receipt['before']
+                if (prop == LIBINPUT_PROFILE and current != target
+                        and not dev['props'][LIBINPUT_AVAILABLE]['values'][target['values'].index(1)]):
+                    messages.append(dev['name']+': saved profile is no longer offered by the driver; not written.'); continue
                 try:
                     if current != target:
                         backend.write(dev, prop, target)
@@ -290,7 +334,7 @@ def page(home):
     import input_diagnostics
     from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton, QCheckBox
     widget = QWidget(); layout = QVBoxLayout(widget)
-    note = QLabel('Mouse & Touchpad (X11)\nDisable velocity-dependent acceleration on supported evdev mice, or disable a selected touchpad.\nSaved choices are retried once at LXQt login. Reconnects require Refresh / Reapply. No drivers or system rules are changed.')
+    note = QLabel('Mouse & Touchpad (X11)\nDisable acceleration on supported mice (evdev profile -1 or libinput flat), or disable a selected touchpad.\nSaved choices are retried once at LXQt login. Reconnects require Refresh / Reapply. No drivers or system rules are changed.')
     note.setWordWrap(True); layout.addWidget(note)
     devices = QComboBox(); devices.setAccessibleName('Input device'); layout.addWidget(devices)
     enabled = QCheckBox('Disable selected option'); layout.addWidget(enabled)
@@ -325,6 +369,7 @@ def page(home):
         value = dev['props'].get(cap[1],{}).get('values') if cap else None
         observed = ('touchpad disabled' if dev['kind']=='touchpad' and value == [0] else
                     'profile -1 (no velocity-dependent acceleration)' if value == [0xffffffff] else
+                    'libinput flat profile (no acceleration)' if cap and cap[1] == LIBINPUT_PROFILE and value == cap[2] else
                     'enabled / other profile' if value is not None else 'not exposed')
         status.setText('User preference: '+('disable' if rule.get('enabled',False) else 'unmanaged')+'; observed property: '+observed+'; driver properties: '+dev['driver']+'. '+('Uncheck to restore the saved current-session property.' if cap else 'Unsupported property or device.'))
         if dev['kind'] == 'mouse':

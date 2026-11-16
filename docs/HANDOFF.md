@@ -80,6 +80,8 @@ Preserve all existing session restrictions and the dirty original checkout.
 Calendar holidays and daylight-saving days were added as panel patch `0012`; see
 [panel-calendar](panel-calendar.md#holidays-and-daylight-saving-days--2026-11-15).
 Mouse acceleration findings are recorded in [input-preferences](input-preferences.md).
+Libinput flat-profile support followed; a no-root XInput hotplug listener is the
+remaining gap for automatic coverage of newly connected mice.
 
 ## Decisions and constraints
 

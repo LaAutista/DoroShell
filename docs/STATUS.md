@@ -13,6 +13,10 @@ below describe historical evidence; no host downgrade or CMake bypass is needed
 for this tested 2.5 build. The full disposable/offscreen suite passed **566 tests in 35.792s**.
 Independent review remains pending.
 
+Mouse & Touchpad now offers flat-profile acceleration disable for libinput mice
+that advertise it ([details](input-preferences.md)). The tests use mocks only; no live apply.
+Hotplugged devices still need Refresh / Reapply.
+
 The calendar [holiday/DST candidate](panel-calendar.md#holidays-and-daylight-saving-days--2026-11-15)
 adds a twelfth panel patch marking US federal holidays and local DST transition days.
 Offscreen native-Qt helper checks and a warning-free real-flag compile pass; no full

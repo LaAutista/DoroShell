@@ -26,6 +26,13 @@ class Backend:
         if prop==ip.ENABLED:target['enabled']=bool(value['values'][0])
 
 
+def libinput_mouse(flags=(1,0,0), available=(1,1,1), key='c'*64):
+    dev=device(key=key);dev['driver']='libinput';dev['props'].pop(ip.PROFILE)
+    dev['props'][ip.LIBINPUT_PROFILE]=dict(type=19,format=8,values=list(flags))
+    dev['props'][ip.LIBINPUT_AVAILABLE]=dict(type=19,format=8,values=list(available))
+    return dev
+
+
 class InputPreferencesTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
@@ -103,6 +110,74 @@ class InputPreferencesTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'autostart'):self.change(self.mouse,False)
         self.store.path.unlink();self.store.path.symlink_to(self.store.home/'outside')
         with self.assertRaises(ValueError):self.store.read()
+    def test_libinput_flat_apply_and_exact_restore(self):
+        for flags,available,flat in (((1,0,0),(1,1,1),[0,1,0]),((1,0),(1,1),[0,1])):
+            mouse=libinput_mouse(flags,available);self.backend.items=[mouse,self.pad]
+            self.assertEqual(ip.capability(mouse),('acceleration',ip.LIBINPUT_PROFILE,flat))
+            self.assertIn('applied and read back',self.change(mouse)[0])
+            self.assertEqual(mouse['props'][ip.LIBINPUT_PROFILE]['values'],flat)
+            receipt=self.store.read()[1]['receipts'][mouse['key']]
+            self.assertEqual((receipt['property'],receipt['before']['values']),(ip.LIBINPUT_PROFILE,list(flags)))
+            self.assertIn('prior property restored',self.change(mouse,False)[0])
+            self.assertEqual(mouse['props'][ip.LIBINPUT_PROFILE]['values'],list(flags))
+            self.assertEqual(self.store.read()[1]['receipts'],{})
+    def test_libinput_without_flat_or_malformed_is_unsupported(self):
+        self.assertIsNone(ip.capability(libinput_mouse(available=(1,0,1))))
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(1,0,0),available=(1,1))))
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(2,0,0))))
+        pad=libinput_mouse();pad['kind']='touchpad'
+        self.assertEqual(ip.capability(pad)[0],'touchpad')
+        evdev=libinput_mouse();evdev['driver']='evdev'
+        self.assertIsNone(ip.capability(evdev))
+    def test_libinput_tampered_receipts_refused(self):
+        mouse=libinput_mouse();self.backend.items=[mouse,self.pad];self.change(mouse)
+        _,data=self.store.read();good=copy.deepcopy(data);r=data['receipts'][mouse['key']]
+        for field,values in (('after',[1,0,0]),('after',[0,1]),('before',[1,0]),('before',[2,0,0])):
+            data=copy.deepcopy(good);data['receipts'][mouse['key']][field]['values']=values
+            self.store.path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError,msg=(field,values)):self.store.read()
+        data=copy.deepcopy(good);data['rules'][mouse['key']]['action']='touchpad'
+        self.store.path.write_text(json.dumps(data))
+        with self.assertRaises(ValueError):self.store.read()
+        self.store.path.write_text(json.dumps(good));self.store.read()
+    def test_libinput_restore_refuses_withdrawn_baseline_profile(self):
+        mouse=libinput_mouse((0,0,1));self.backend.items=[mouse,self.pad];self.change(mouse)
+        self.assertEqual(mouse['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        mouse['props'][ip.LIBINPUT_AVAILABLE]['values']=[1,1,0];writes=len(self.backend.writes)
+        self.assertIn('no longer offered',self.change(mouse,False)[0])
+        self.assertEqual(len(self.backend.writes),writes)
+        self.assertEqual(mouse['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        self.assertTrue(self.store.read()[1]['receipts'])
+    def test_libinput_enabled_must_select_one_advertised_profile(self):
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(1,1,0))))
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(0,0,0))))
+        self.assertIsNone(ip.capability(libinput_mouse(flags=(0,0,1),available=(1,1,0))))
+        mouse=libinput_mouse();self.backend.items=[mouse,self.pad];self.change(mouse)
+        _,data=self.store.read()
+        data['receipts'][mouse['key']]['before']['values']=[1,1,0]
+        self.store.path.write_text(json.dumps(data))
+        with self.assertRaises(ValueError):self.store.read()
+    def test_xinput_write_rechecks_fresh_device_before_request(self):
+        class Display:
+            def __init__(self):self.changes=[]
+            def intern_atom(self,name):return name
+            def xinput_change_device_property(self,*args):self.changes.append(args)
+            def sync(self):pass
+        snapshot=libinput_mouse((0,0,1))
+        for fresh_flags,fresh_available,message in (((0,1,0),(1,1,0),'no longer offered'),((1,0,0),(1,1,1),'changed elsewhere')):
+            backend=object.__new__(ip.XInput);backend.display=Display()
+            fresh=copy.deepcopy(snapshot);fresh['props'][ip.LIBINPUT_PROFILE]['values']=list(fresh_flags)
+            fresh['props'][ip.LIBINPUT_AVAILABLE]['values']=list(fresh_available)
+            stale=copy.deepcopy(snapshot);stale['props'][ip.LIBINPUT_PROFILE]['values']=list(fresh_flags) if message=='no longer offered' else [0,1,0]
+            backend.devices=lambda f=fresh:[copy.deepcopy(f)]
+            with self.assertRaisesRegex(RuntimeError,message):
+                backend.write(stale,ip.LIBINPUT_PROFILE,dict(type=19,format=8,values=[0,0,1]))
+            self.assertEqual(backend.display.changes,[])
+    def test_libinput_flat_withdrawn_after_apply_is_not_forced(self):
+        mouse=libinput_mouse();self.backend.items=[mouse,self.pad];self.change(mouse)
+        mouse['props'][ip.LIBINPUT_AVAILABLE]['values']=[1,0,1]
+        self.assertIn('unsupported',self.store.run(self.backend)[0])
+        self.assertTrue(self.store.read()[1]['receipts'])
     def test_wayland_refused_before_connect(self):
         with patch.dict(os.environ,{'XDG_SESSION_TYPE':'wayland'}):
             with self.assertRaisesRegex(RuntimeError,'Wayland'):ip.XInput()
