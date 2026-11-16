@@ -54,6 +54,8 @@ def panel_style(p, composited=False):
         QFrame#doroshellTrayPopup QToolButton {{ background: transparent; color: #fff5fb; border: 1px solid transparent; border-radius: 4px; }}
         QFrame#doroshellTrayPopup QToolButton:hover, QFrame#doroshellTrayPopup QToolButton:focus {{ background: {p['side']}; border-color: #fff5fb; }}
         QToolButton[doroshellEdge="true"] {{ background: {p['window']}; border-color: {p['edge']}; }}
+        LXQtTaskButton:checked, QToolButton[doroshellEdge="true"]:hover, QToolButton[doroshellEdge="true"]:focus {{ background: {p['selection']}; border-color: {p['edge']}; }}
+        LXQtGroupPopup {{ background: {p['base']}; border: 1px solid {p['edge']}; }}
     """
 
 
