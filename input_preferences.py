@@ -18,6 +18,11 @@ PROFILE = 'Device Accel Profile'
 ENABLED = 'Device Enabled'
 LIBINPUT_PROFILE = 'libinput Accel Profile Enabled'
 LIBINPUT_AVAILABLE = 'libinput Accel Profiles Available'
+MARKER = '_DOROSHELL_INPUT_INSTANCE'  # Private device property; a replacement device instance never has it.
+
+
+def marker_of(device):
+    return bytes(device['props'].get(MARKER, {}).get('values', [])).decode('ascii', errors='replace')
 
 
 def flat(length):
@@ -115,6 +120,8 @@ class XInput:
         if len(matches) != 1 or matches[0]['id'] != device['id']:
             raise RuntimeError('Device changed before apply; refresh and retry.')
         fresh = matches[0]['props']
+        if marker_of(matches[0]) != marker_of(device):
+            raise RuntimeError('Device instance was replaced before apply; refresh and retry.')
         if fresh.get(name) != device['props'].get(name):
             raise RuntimeError('Property changed elsewhere before apply; refresh and retry.')
         if name == LIBINPUT_PROFILE and not fresh.get(LIBINPUT_AVAILABLE, {}).get('values', [0] * 3)[value['values'].index(1)]:
@@ -128,6 +135,16 @@ class XInput:
         reply = self.display.xinput_get_device_property(device['id'], self.display.intern_atom(name), 0, 0, 1024, False)
         if property_values(reply) != value:
             raise RuntimeError('Driver did not accept the requested property; preference remains configured.')
+
+    def mark(self, device, marker):
+        from Xlib import X
+        atom = self.display.intern_atom(MARKER)
+        self.display.xinput_change_device_property(device['id'], atom, self.display.intern_atom('STRING'),
+            X.PropModeReplace, (8, marker.encode('ascii')))
+        self.display.sync()
+        reply = self.display.xinput_get_device_property(device['id'], atom, 0, 0, 64, False)
+        if bytes(property_values(reply)['values']).decode('ascii', errors='replace') != marker:
+            raise RuntimeError('Driver did not accept the DoroShell instance marker; not applied.')
 
 
 def capability(device):
@@ -183,7 +200,8 @@ class Preferences:
                 raise ValueError('Invalid input restoration record.')
             prop = receipt.get('property')
             allowed = (PROFILE, LIBINPUT_PROFILE) if data['rules'][key]['action']=='acceleration' else (ENABLED,)
-            if prop not in allowed or not isinstance(receipt.get('token'), str) or type(receipt.get('id')) is not int or not isinstance(receipt.get('node'), str):
+            if (prop not in allowed or not isinstance(receipt.get('token'), str) or type(receipt.get('id')) is not int or not isinstance(receipt.get('node'), str)
+                    or ('marker' in receipt and not (isinstance(receipt['marker'], str) and re.fullmatch('[0-9a-f]{32}', receipt['marker'])))):
                 raise ValueError('Invalid input restoration identity.')
             for field in ('before','after'):
                 if not valid_value(prop, receipt.get(field)):
@@ -262,8 +280,7 @@ class Preferences:
     def needed(data):
         return bool(data.get('all_mice')) or any(r['enabled'] for r in data['rules'].values()) or bool(data['receipts'])
 
-    def run(self, backend, change=None, expected=None, stop=False, all_mice=None, removed=frozenset()):
-        """removed: XInput IDs the watcher saw removed; their instances (and receipts) are gone even if the ID is reused."""
+    def run(self, backend, change=None, expected=None, stop=False, all_mice=None):
         with self.locked():
             raw, data = self.read()
             self.check_startup(data)
@@ -308,10 +325,6 @@ class Preferences:
                     self.archive_receipt(key, rule, receipt)
                     receipt = None; data['receipts'].pop(key)
                     messages.append(rule['name']+': previous-session restoration evidence archived; no old value forced onto this session.')
-                if receipt and receipt['id'] in removed:
-                    self.archive_receipt(key, rule, receipt, 'device-removed')
-                    receipt = None; data['receipts'].pop(key); self.write(self.path, json.dumps(data).encode())
-                    messages.append(rule['name']+': device was removed; its restoration evidence archived.')
                 if not rule['enabled'] and not receipt:
                     messages.append(rule['name']+': unmanaged; no current-session change to restore.'); continue
                 matches = [d for d in devices if d['key'] == key]
@@ -326,8 +339,10 @@ class Preferences:
                     messages.append(dev['name']+': not applied; another enabled identified mouse is required.'); continue
                 desired = dict(current, values=values)
                 if receipt:
-                    if receipt.get('id') != dev['id'] or receipt.get('node') != dev['node']:
-                        # The only identity match is a new instance, so the receipt's instance is gone; it starts from driver defaults.
+                    # IDs and nodes can be reused, so the instance marker decides when the receipt has one.
+                    if (receipt.get('id') != dev['id'] or receipt.get('node') != dev['node']
+                            or ('marker' in receipt and marker_of(dev) != receipt['marker'])):
+                        # The receipt's instance is gone; the new instance starts from its own driver defaults.
                         self.archive_receipt(key, rule, receipt, 'device-reconnected')
                         receipt = None; data['receipts'].pop(key); self.write(self.path, json.dumps(data).encode())
                         messages.append(dev['name']+': reconnected; previous-instance restoration evidence archived.')
@@ -339,7 +354,13 @@ class Preferences:
                         messages.append(dev['name']+': property changed elsewhere; restore/apply refused.'); continue
                 if rule['enabled']:
                     if receipt is None:
-                        receipt = dict(token=token, id=dev['id'], node=dev['node'], property=prop, before=current, after=desired)
+                        marker = uuid.uuid4().hex
+                        try:
+                            backend.mark(dev, marker)  # Before the receipt: a stray marker is harmless, a receipt without one is not.
+                        except Exception as exc:
+                            messages.append(dev['name']+': configured, apply failed: '+str(exc)); continue
+                        dev['props'][MARKER] = dict(type=0, format=8, values=list(marker.encode()))
+                        receipt = dict(token=token, id=dev['id'], node=dev['node'], marker=marker, property=prop, before=current, after=desired)
                         data['receipts'][key] = receipt
                         self.write(self.path, json.dumps(data).encode())  # Before modifying input.
                     target = receipt['after']
@@ -376,23 +397,20 @@ class Preferences:
             opcode = display.query_extension(xinput.extname).major_opcode
             display.screen().root.xinput_select_events([(xinput.AllDevices, xinput.HierarchyChangedMask)])
             display.sync()
-            pending, removed = True, set()
+            pending = True
             def collect():
                 changed = False
                 while display.pending_events():
                     event = display.next_event()
-                    if (event.type != ge.GenericEventCode or getattr(event, 'extension', None) != opcode
-                            or event.evtype != xinput.HierarchyChanged):
-                        continue
-                    # Record every removal so a reused ID/node is never mistaken for the old instance.
-                    removed.update(info.deviceid for info in event.data.info if info.flags & xinput.SlaveRemoved)
-                    changed |= bool(event.data.flags & (xinput.SlaveAdded | xinput.SlaveRemoved | xinput.DeviceEnabled))
+                    if (event.type == ge.GenericEventCode and getattr(event, 'extension', None) == opcode
+                            and event.evtype == xinput.HierarchyChanged):
+                        changed |= bool(event.data.flags & (xinput.SlaveAdded | xinput.DeviceEnabled))
                 return changed
             while True:
                 if pending:
                     try:
-                        print('\n'.join(self.run(backend, removed=frozenset(removed))), flush=True)
-                        pending = False; removed.clear()
+                        print('\n'.join(self.run(backend)), flush=True)
+                        pending = False
                     except BlockingIOError:
                         pass  # Settings page is saving; this pass stays pending for the next tick.
                 if not pending and not self.needed(self.read()[1]):

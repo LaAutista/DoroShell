@@ -15,10 +15,14 @@ def device(kind='mouse', driver='evdev', key='a'*64):
 
 
 class Backend:
-    def __init__(self, devices):self.items=devices;self.writes=[];self.session='session-one';self.fail=False
+    def __init__(self, devices):self.items=devices;self.writes=[];self.session='session-one';self.fail=False;self.fail_mark=False
     def devices(self):return copy.deepcopy(self.items)
     def token(self):return self.session
     def close(self):pass
+    def mark(self,dev,marker):
+        if self.fail_mark:raise RuntimeError('synthetic marker refusal')
+        target=next(d for d in self.items if d['key']==dev['key'])
+        target['props'][ip.MARKER]=dict(type=31,format=8,values=list(marker.encode()))
     def write(self,dev,prop,value):
         self.writes.append((dev['key'],prop,value))
         if self.fail:raise RuntimeError('synthetic apply failure')
@@ -218,21 +222,53 @@ class InputPreferencesTests(unittest.TestCase):
             self.watch(display)
         self.assertGreater(len(calls),12)
         self.assertTrue(any(w[0]==lib['key'] and w[2]['values']==[0,1,0] for w in self.backend.writes))
-    def test_removed_instance_with_reused_id_and_node_keeps_replacement_baseline(self):
+    def replace_instance(self,dev,flags):
+        """Replacement reuses key, XInput ID and event node, carries no marker and starts at its own value."""
+        dev['props'].pop(ip.MARKER,None);dev['props'][ip.LIBINPUT_PROFILE]['values']=list(flags)
+    def archived_reasons(self):
+        return [json.loads(f.read_text())['reason'] for f in (self.store.home/'.local/state/doroshell/input-restoration').iterdir()]
+    def test_replacement_reusing_id_and_node_keeps_its_baseline_on_ui_opt_out(self):
+        lib=libinput_mouse((0,0,1));self.backend.items=[lib,self.pad];self.change(lib)
+        self.assertEqual(self.store.read()[1]['receipts'][lib['key']]['marker'],ip.marker_of(lib))
+        self.replace_instance(lib,(0,1,0));writes=len(self.backend.writes)
+        self.opt_out()  # UI path, with no watcher and no removal evidence.
+        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
+        self.assertEqual(len(self.backend.writes),writes)
+        self.assertEqual(self.archived_reasons(),['device-reconnected'])
+    def test_ui_stop_during_watcher_settle_never_restores_onto_replacement(self):
         from Xlib.ext import xinput
         lib=libinput_mouse((0,0,1));self.backend.items=[lib,self.pad];self.change(lib)
+        writes=[]
+        def settle(_):
+            if not writes:  # First settle: the swap happens, then the user clicks Stop.
+                self.replace_instance(lib,(0,1,0));writes.append(len(self.backend.writes));self.opt_out()
+        display=self.fake_display([[self.event(xinput.SlaveRemoved),self.event(xinput.SlaveAdded)],lambda:None])
+        self.backend.display=display
+        with patch.object(ip.select,'select',side_effect=display.tick),patch.object(ip.time,'sleep',side_effect=settle):
+            self.store.watch(self.backend)
         self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])
-        # Replacement reuses key, XInput ID and event node, and starts already flat.
-        def replace():
-            lib['props'][ip.LIBINPUT_PROFILE]['values']=[0,1,0]
-        Event=self.event
-        display=self.fake_display([[Event(xinput.SlaveRemoved,[(lib['id'],xinput.SlaveRemoved)]),Event(xinput.SlaveAdded,[(lib['id'],xinput.SlaveAdded)])],
-                                         lambda:None,self.opt_out])
-        writes=len(self.backend.writes);replace();self.watch(display)
-        self.assertEqual(lib['props'][ip.LIBINPUT_PROFILE]['values'],[0,1,0])  # Never restored to the old custom.
-        self.assertEqual(len(self.backend.writes),writes)
-        archived=[json.loads(f.read_text())['reason'] for f in (self.store.home/'.local/state/doroshell/input-restoration').iterdir()]
-        self.assertEqual(archived,['device-removed'])
+        self.assertEqual(len(self.backend.writes),writes[0])
+        self.assert_watch_lock_released()
+    def test_marker_refusal_applies_nothing_and_keeps_no_receipt(self):
+        lib=libinput_mouse();self.backend.items=[lib,self.pad];self.backend.fail_mark=True
+        self.assertIn('marker refusal',self.change(lib)[0])
+        self.assertEqual((self.backend.writes,self.store.read()[1]['receipts']),([],{}))
+    def test_xinput_write_refuses_replaced_instance(self):
+        class Display:
+            changes=[]
+            def intern_atom(self,name):return name
+            def xinput_change_device_property(self,*args):self.changes.append(args)
+        snapshot=libinput_mouse();snapshot['props'][ip.MARKER]=dict(type=31,format=8,values=list(b'a'*32))
+        fresh=copy.deepcopy(snapshot);fresh['props'].pop(ip.MARKER)
+        backend=object.__new__(ip.XInput);backend.display=Display();backend.devices=lambda:[copy.deepcopy(fresh)]
+        with self.assertRaisesRegex(RuntimeError,'replaced'):
+            backend.write(snapshot,ip.LIBINPUT_PROFILE,dict(type=19,format=8,values=[1,0,0]))
+        self.assertEqual(backend.display.changes,[])
+    def test_invalid_receipt_marker_refused(self):
+        lib=libinput_mouse();self.backend.items=[lib,self.pad];self.change(lib)
+        _,data=self.store.read();data['receipts'][lib['key']]['marker']='not-hex'
+        self.store.write(self.store.path,json.dumps(data).encode())
+        with self.assertRaises(ValueError):self.store.read()
     def test_strict_boolean_schema_for_all_mice_and_auto(self):
         _,data=self.store.read()
         for value in (1,0,None,'true'):
