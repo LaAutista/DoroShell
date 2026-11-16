@@ -153,3 +153,23 @@ an exposed profile through this page is a supported runtime property operation
 and does not require a session restart. See the [X.Org initialization/configuration
 manual](https://www.x.org/archive/X11R7.0/doc/html/xorg.conf.5.html) and
 [pointer acceleration initialization notes](https://www.x.org/Development/Documentation/PointerAcceleration/).
+
+## Can acceleration be disabled universally? — 2026-11-15 finding
+
+Yes on X11, but it takes one setting per driver, and only a system rule covers
+hotplugged devices automatically:
+
+- **evdev pointers**: Xorg `Option "AccelerationScheme" "none"` (system rule) or the
+  runtime profile -1 this page already applies.
+- **libinput pointers**: the runtime property `libinput Accel Profile Enabled` set to
+  flat (`0, 1, 0`), which a normal user can change through XInput, or the system rule
+  `Option "AccelProfile" "flat"`. This page does not yet handle libinput mice.
+- A single `/etc/X11/xorg.conf.d` InputClass with `MatchIsPointer "on"` and both
+  options covers every current and future pointer from the next X server start.
+  It needs root, so DoroShell's user-level design does not write it.
+
+A read-only check on the development machine found a mix: an evdev mouse already
+pinned to `AccelerationScheme none` by a system rule, and libinput pointer
+interfaces (a keyboard's built-in mouse interface and a virtual HID mouse) still on
+the default adaptive profile. So acceleration there is only partly disabled today.
+Wayland compositors use their own settings and are out of scope.

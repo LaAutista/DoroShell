@@ -2,6 +2,10 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Mark US federal holidays (US locale) and daylight-saving begin/end days in the
+  clock calendar with bold underline and tooltips (`0012` panel patch). Native Qt
+  offscreen checks and a real-flag compile pass; no full rebuild or live check.
+
 - Validate both supplied and resolved build/prefix paths; refuse symlink aliases
   introducing CMake separators or control characters before build writes.
 

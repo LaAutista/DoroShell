@@ -97,3 +97,29 @@ binary. No install, staging, panel execution or live update was performed. Origi
 builds, source/evidence bundles and personal settings remain unchanged. Actual WM
 work-area reporting, personal/live clipping, physical mixed-DPI/multi-monitor,
 other styles/locales, live font changes, normal login and clean OS remain unverified.
+
+## Holidays and daylight-saving days — 2026-11-15
+
+`0012-calendar-holidays-dst.patch` marks special days in the calendar popup (both
+compact and rotated clocks) in bold underline, with the reason as the cell tooltip:
+
+- **US federal holidays** on their actual dates (New Year's Day, Martin Luther King
+  Jr. Day, Washington's Birthday, Memorial Day, Juneteenth, Independence Day, Labor
+  Day, Columbus Day, Veterans Day, Thanksgiving, Christmas). Shown only when the Qt
+  locale territory is the United States. Observed Friday/Monday substitutes, other
+  countries, regional and religious holidays are not included.
+- **Daylight saving time begins/ends** on the local date of each transition in the
+  clock's active time zone, from the system tz database (`QTimeZone`), so it works
+  for any zone with DST and shows nothing for zones without it.
+
+Marks cover the visible month plus the adjacent-month days in its grid, and are
+recomputed on month/year navigation. No settings, files, network or new dependency.
+
+`tests/check_calendar_marks.py --source <patched lxqtworldclock.cpp>` compiles the
+actual helper functions from the patched source with offscreen Qt and checks every
+2026 holiday date, Los Angeles DST (Mar 8 / Nov 1), Berlin (Mar 29), Tokyo (none),
+non-US locale suppression, adjacent-month marks, clearing on page change, and that
+QCalendarWidget exposes the tooltip through its view model. The patched file also
+compiles warning-free with `-Wall -Wextra` using the real private liblxqt 2.5 build
+flags, and the existing 768-case bounds fixture still passes. No full panel rebuild,
+installation, panel run or live hover check was done.

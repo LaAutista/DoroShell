@@ -13,6 +13,11 @@ below describe historical evidence; no host downgrade or CMake bypass is needed
 for this tested 2.5 build. The full disposable/offscreen suite passed **566 tests in 35.792s**.
 Independent review remains pending.
 
+The calendar [holiday/DST candidate](panel-calendar.md#holidays-and-daylight-saving-days--2026-11-15)
+adds a twelfth panel patch marking US federal holidays and local DST transition days.
+Offscreen native-Qt helper checks and a warning-free real-flag compile pass; no full
+rebuild, deployment or live hover check yet.
+
 The [compact calendar bounds candidate](panel-calendar.md) fixes reproduced
 scrollbar-induced clipping and available-work-area placement. The compiled native
 Qt source fixture passes 768 cases; it is not a full panel process or real WM test.

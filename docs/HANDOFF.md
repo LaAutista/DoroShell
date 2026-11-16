@@ -75,6 +75,12 @@ AT-SPI, or long-running desktop reliability. The personal Start color flash/edge
 symptom and calendar appearance have not been verified fixed in the live session.
 Preserve all existing session restrictions and the dirty original checkout.
 
+## Claude/Codex continuation — 2026-11-15
+
+Calendar holidays and daylight-saving days were added as panel patch `0012`; see
+[panel-calendar](panel-calendar.md#holidays-and-daylight-saving-days--2026-11-15).
+Mouse acceleration findings are recorded in [input-preferences](input-preferences.md).
+
 ## Decisions and constraints
 
 - LXQt/X11/Openbox is the working target. No required compositor. The user accepted
