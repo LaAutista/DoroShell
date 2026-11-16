@@ -86,8 +86,11 @@ treated from its own driver defaults. Because X can reuse both the XInput ID and
 event node, the helper first stamps a private `_DOROSHELL_INPUT_INSTANCE` property
 on the device and records it in the receipt. A replacement device never carries that
 marker, so no path (the page or the watcher, at any moment) restores the old mouse's
-value onto it. The write itself re-checks the marker against a fresh read. If the
-driver refuses the marker, nothing is applied. The watcher also
+value onto it. The write itself re-checks the marker against a fresh read, and the
+restoration baseline is read from the marked instance. If the driver refuses the
+marker, nothing is applied. Driver acceptance of the marker on real evdev and
+libinput devices is a post-deploy check: the first apply should report "applied and
+read back", not "instance marker" refusal. The watcher also
 re-reads preferences every 5 seconds, so it exits soon after you opt out, and a
 pass blocked by the page's lock stays pending until it runs. New sessions use their own
 baseline; old-session values are not forced onto a new session. Before retiring a
