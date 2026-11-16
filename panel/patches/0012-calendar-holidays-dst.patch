@@ -1,5 +1,5 @@
 diff --git a/plugin-worldclock/lxqtworldclock.cpp b/plugin-worldclock/lxqtworldclock.cpp
-index 7891e34..2c43ebb 100644
+index 7891e34..11c278c 100644
 --- a/plugin-worldclock/lxqtworldclock.cpp
 +++ b/plugin-worldclock/lxqtworldclock.cpp
 @@ -31,9 +31,11 @@
@@ -14,7 +14,7 @@ index 7891e34..2c43ebb 100644
  #include <QHBoxLayout>
  #include <QLocale>
  #include <QScopedArrayPointer>
-@@ -41,10 +43,66 @@
+@@ -41,10 +43,72 @@
  #include <QScreen>
  #include <QScrollArea>
  #include <QScrollBar>
@@ -64,9 +64,15 @@ index 7891e34..2c43ebb 100644
 +                notes[holiday.first].append(holiday.second);
 +    if (zone.isValid() && zone.hasTransitions())
 +        for (const auto &t : zone.transitions(first.startOfDay(zone), last.startOfDay(zone)))
-+            notes[t.atUtc.toTimeZone(zone).date()].append(t.daylightTimeOffset
-+                ? QCoreApplication::translate("LXQtWorldClock", "Daylight saving time begins")
-+                : QCoreApplication::translate("LXQtWorldClock", "Daylight saving time ends"));
++        {
++            // Skip pure standard-offset changes; describe direction, since some zones use negative DST.
++            const auto before = zone.offsetData(t.atUtc.addSecs(-1));
++            if (before.daylightTimeOffset == t.daylightTimeOffset || before.offsetFromUtc == t.offsetFromUtc)
++                continue;
++            notes[t.atUtc.toTimeZone(zone).date()].append(t.offsetFromUtc > before.offsetFromUtc
++                ? QCoreApplication::translate("LXQtWorldClock", "Daylight saving time: clocks move forward")
++                : QCoreApplication::translate("LXQtWorldClock", "Daylight saving time: clocks move back"));
++        }
 +    for (auto it = notes.cbegin(); it != notes.cend(); ++it)
 +    {
 +        QTextCharFormat format;
@@ -81,7 +87,7 @@ index 7891e34..2c43ebb 100644
  LXQtWorldClock::LXQtWorldClock(const ILXQtPanelPluginStartupInfo &startupInfo):
      QObject(),
      ILXQtPanelPlugin(startupInfo),
-@@ -445,6 +503,10 @@ void LXQtWorldClock::activated(ActivationReason reason)
+@@ -445,6 +509,10 @@ void LXQtWorldClock::activated(ActivationReason reason)
              QTimeZone timeZone(timeZoneName.toLatin1());
              calendarWidget->setFirstDayOfWeek(QLocale{}.firstDayOfWeek());
              calendarWidget->setSelectedDate(QDateTime::currentDateTime().toTimeZone(timeZone).date());

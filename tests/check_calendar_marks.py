@@ -33,14 +33,26 @@ int main(int argc, char **argv) {
         expect(tip(c, QDate(2026, e.m, e.d)) == QLatin1String(e.name), QStringLiteral("%1 on 2026-%2-%3").arg(e.name).arg(e.m).arg(e.d));
     }
     doroshellMarkCalendar(&c, la, 2026, 3);
-    expect(tip(c, QDate(2026,3,8)) == "Daylight saving time begins", "LA DST begins 2026-03-08");
+    expect(tip(c, QDate(2026,3,8)) == "Daylight saving time: clocks move forward", "LA DST begins 2026-03-08");
     expect(tip(c, QDate(2026,3,9)).isEmpty(), "no mark on 2026-03-09");
     doroshellMarkCalendar(&c, la, 2026, 11);
-    expect(tip(c, QDate(2026,11,1)) == "Daylight saving time ends", "LA DST ends 2026-11-01");
+    expect(tip(c, QDate(2026,11,1)) == "Daylight saving time: clocks move back", "LA DST ends 2026-11-01");
     expect(c.dateTextFormat(QDate(2026,11,26)).fontWeight() == QFont::Bold, "holiday is bold");
     expect(tip(c, QDate(2026,3,8)).isEmpty(), "old month marks cleared on page change");
     doroshellMarkCalendar(&c, QTimeZone("Europe/Berlin"), 2026, 3);
-    expect(tip(c, QDate(2026,3,29)) == "Daylight saving time begins", "Berlin DST begins 2026-03-29");
+    expect(tip(c, QDate(2026,3,29)) == "Daylight saving time: clocks move forward", "Berlin DST begins 2026-03-29");
+    // Negative DST: Qt reports Dublin summer as daylight offset 0, winter as -3600.
+    doroshellMarkCalendar(&c, QTimeZone("Europe/Dublin"), 2026, 3);
+    expect(tip(c, QDate(2026,3,29)) == "Daylight saving time: clocks move forward", "Dublin moves forward 2026-03-29");
+    doroshellMarkCalendar(&c, QTimeZone("Europe/Dublin"), 2026, 10);
+    expect(tip(c, QDate(2026,10,25)) == "Daylight saving time: clocks move back", "Dublin moves back 2026-10-25");
+    // Standard-offset change without DST must not be marked.
+    doroshellMarkCalendar(&c, QTimeZone("Asia/Almaty"), 2024, 2);
+    expect(tip(c, QDate(2024,2,29)).isEmpty() && tip(c, QDate(2024,3,1)).isEmpty(), "Almaty 2024 offset change not DST");
+    // Midnight rollback: marked on the local date right after the change (clock repeats 23:00 on Apr 4).
+    doroshellMarkCalendar(&c, QTimeZone("America/Santiago"), 2026, 4);
+    expect(tip(c, QDate(2026,4,4)) == "Daylight saving time: clocks move back", "Santiago moves back 2026-04-04");
+    expect(tip(c, QDate(2026,4,5)).isEmpty(), "Santiago no mark 2026-04-05");
     doroshellMarkCalendar(&c, QTimeZone("Asia/Tokyo"), 2026, 3);
     expect(c.dateTextFormat().isEmpty(), "no DST mark in Tokyo");
     QLocale::setDefault(QLocale(QLocale::German, QLocale::Germany));

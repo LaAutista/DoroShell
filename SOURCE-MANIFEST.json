@@ -353,8 +353,8 @@
     },
     {
       "path": "docs/input-preferences.md",
-      "sha256": "61d1806c690ca7efd4765cffddbcdef89339c2e660aa6e72e9bd2d52eff15d2b",
-      "size": 11672,
+      "sha256": "df42e0ae0a08b57064c851f0819f45ee29b3f0691ba3bc87b3c5cfbc61de5e85",
+      "size": 12086,
       "mode": "0o644"
     },
     {
@@ -383,8 +383,8 @@
     },
     {
       "path": "docs/panel-calendar.md",
-      "sha256": "0b7f6810d5c85ad645b6dc82256f9b383ba09940d6c80f8bab78012e9c0cfa63",
-      "size": 7829,
+      "sha256": "23511428c576668bd00e34d180fcf8c150de8ee95376be5e828474b4f0d31717",
+      "size": 8202,
       "mode": "0o644"
     },
     {
@@ -713,8 +713,8 @@
     },
     {
       "path": "panel/patches/0012-calendar-holidays-dst.patch",
-      "sha256": "1e46521caf3f9c9b2ecc4ea3165d0d0b2cc18500b7153460df906f270b92bec9",
-      "size": 4197,
+      "sha256": "172b515386bd0abb785e7839f6574ca459c8eb348dc614cd31257ec6af13a997",
+      "size": 4579,
       "mode": "0o644"
     },
     {
@@ -827,8 +827,8 @@
     },
     {
       "path": "tests/check_calendar_marks.py",
-      "sha256": "d5e2cd9bd6e759e933edbed8e0496d9ca8c08ec5314b965b2176bc8843d76ba4",
-      "size": 5098,
+      "sha256": "bccf34c4fd76ff81d15526516172a7eee477e93881bd592ff2e9ea612e652f4a",
+      "size": 6216,
       "mode": "0o644"
     },
     {
