@@ -152,6 +152,23 @@ class NativeRebuildTests(unittest.TestCase):
         manifest.unlink()  # Rolled back: no manifest.
         self.assertFalse(profile.upgrade(self.home, self.home/'n', require=newer))
 
+    def test_quick_launch_merge_waits_for_the_panel_lock(self):
+        import threading
+        from panel import profile
+        lock = self.home/'.local/state/doroshell/native-panel.lock'; lock.parent.mkdir(parents=True)
+        errors = []
+        def merge():
+            try: profile.merge_existing(self.home)
+            except ValueError as exc: errors.append(str(exc))
+        with lock.open('a') as held:
+            fcntl.flock(held, fcntl.LOCK_EX)  # An upgrade is mid-way through the manifest...
+            worker = threading.Thread(target=merge); worker.start()
+            worker.join(0.3)
+            self.assertTrue(worker.is_alive())  # ...so the merge has not read anything yet.
+            self.assertEqual(errors, [])
+        worker.join(5)
+        self.assertEqual(errors, ['DoroShell panel profile is not installed'])
+
     def test_not_staged_build_is_reported(self):
         with patch('native_rebuild.system_version', return_value='2.5.0'), \
              patch('native_rebuild.build_and_stage', return_value=(None, False)):

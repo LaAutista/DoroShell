@@ -210,6 +210,11 @@ def merge_existing(home, preview=False):
     is updated too (two-phase, like upgrade()), so restore/removal keep working. A profile
     the user already edited keeps its manifest; restoring it needs --keep-panel-edits as before.
     """
+    with panel_lock(home):  # The manifest read-modify-write must not interleave with upgrade/switch.
+        return locked_merge_existing(home, preview)
+
+
+def locked_merge_existing(home, preview):
     state=home/'.local/state/doroshell'
     config=home/'.config/doroshell/panel.conf';manifest=state/'native-panel.json'
     for path in (state,config,manifest):safe(path,home)
