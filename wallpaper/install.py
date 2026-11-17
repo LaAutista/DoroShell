@@ -54,7 +54,12 @@ def plans(home, binary):
                  '        with open(path, "rb") as stream:\n'
                  '            if hashlib.sha256(stream.read()).hexdigest() != expected:\n'
                  '                raise OSError("Wallpaper build changed")\n')
-    script = ('#!/usr/bin/python\nimport os, subprocess\n' 
+    recipe = binary.parents[2]/'recipe/native_rebuild.py' if len(binary.parents) > 2 else None
+    if recipe and recipe.is_file():
+        # Missing libraries after a system update: rebuild in the background, use stock PCManFM now.
+        check += ('    if subprocess.run(["/usr/bin/python", '+repr(str(recipe))+', "login", "desktop", "--current", '
+                  +repr(str(binary))+']).returncode: raise OSError("Desktop rebuild pending")\n')
+    script =('#!/usr/bin/python\nimport os, subprocess\n' 
               + ("subprocess.run(['systemctl', '--user', 'start', 'plasma-dolphin.service'])\n" if dolphin_hook else '') +
               'try:\n'+check+'    result = subprocess.run(['+repr(str(binary))+", '--desktop', '--profile=lxqt'])\n"
               'except OSError:\n    result = None\n'

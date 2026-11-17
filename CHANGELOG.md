@@ -2,6 +2,13 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Survive system updates: native desktop and taskbar builds now check their
+  libraries at login. If an update removed one, the stock program runs for that
+  session while DoroShell rebuilds against the system's current LXQt in the
+  background and notifies you; the new build is used from the next login. The
+  desktop build now follows the installed PCManFM release instead of pinning
+  2.4.0. See [rebuilding after system updates](docs/native-rebuild.md).
+
 - Fix unreadable taskbar group popups in dark themes: the panel's built-in light
   `LXQtGroupPopup` background (and checked-button / Show Desktop edge hover
   colors) were never overridden by the theme file, so Heretic drew light text on

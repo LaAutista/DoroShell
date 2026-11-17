@@ -77,8 +77,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "99133111eae57a350fa2f95db98ca93f7ecc26eb7a4010319508eac370041491",
-      "size": 13030,
+      "sha256": "92de40d79beeabf0fbda98cb1ee3bb0729eb00302c16d8461b7acca3faa6217a",
+      "size": 13490,
       "mode": "0o644"
     },
     {
@@ -215,8 +215,8 @@
     },
     {
       "path": "display/README.md",
-      "sha256": "daa389463d8710c4084c7f3a8fb9f7f6f4a4b39a45fbf4c7b5cdb6f8f6966ca5",
-      "size": 17802,
+      "sha256": "04a7761f38311faf7f839795aa922c6cea8ca2fa6d92978517cf4588925f3f49",
+      "size": 17855,
       "mode": "0o644"
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "41020b853f9f44947b7f23cb604ad96f97a4821ffefef8d6afdbb46360d3db23",
-      "size": 5165,
+      "sha256": "a8178f97bc06f0053e2062633fa7e76ea8de5c26133502b6a5bf10818158ad0e",
+      "size": 5290,
       "mode": "0o644"
     },
     {
@@ -263,8 +263,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "a9fbe943aa7436fb21f63376f532dd9712a58e6861c9d8de6aa1105dfa3683c9",
-      "size": 30171,
+      "sha256": "cb40b129a2999894976903ad20dcef85e2197608b43f269721e92047f3452508",
+      "size": 30875,
       "mode": "0o644"
     },
     {
@@ -605,8 +605,8 @@
     },
     {
       "path": "panel/build.py",
-      "sha256": "11e9a751e808dbd57f89e37d150cc4b89efa058339cc03c1e28a09baef076db4",
-      "size": 10934,
+      "sha256": "0cfd70c7a9d8eaa68c60a2dee6e066603a8651ddaa162ec7c7a39d7ba61a1a29",
+      "size": 11038,
       "mode": "0o644"
     },
     {
@@ -719,8 +719,8 @@
     },
     {
       "path": "panel/profile.py",
-      "sha256": "75167582e8384de9fa5105a5e670a50e74dd0e1ef41d463c045f7f93db6e03a8",
-      "size": 23911,
+      "sha256": "4637fea3e1f88c8bae16b6df498f8187b95fbb961d9eecb84352cf122ea749dd",
+      "size": 24572,
       "mode": "0o644"
     },
     {
@@ -1511,14 +1511,14 @@
     },
     {
       "path": "wallpaper/README.md",
-      "sha256": "e2db6ecfc5f45cd21181cf880dd15bd6dc2100a27a664ec23524b8391d1e597a",
-      "size": 14333,
+      "sha256": "1d0a3d051f56184a33ff937e700520671dd8caddfe6bbf84e2c624119e2093bc",
+      "size": 14541,
       "mode": "0o644"
     },
     {
       "path": "wallpaper/build.py",
-      "sha256": "ab7055fd85c71cd9d7d7b9bb1a13bd7659d19d9472c54de0e95375421986f5d3",
-      "size": 3030,
+      "sha256": "398980a92ae49f0a02290e89ac94f7ae98759bf42d46ae4aa229aa7099bd48ca",
+      "size": 4831,
       "mode": "0o644"
     },
     {
@@ -1565,8 +1565,8 @@
     },
     {
       "path": "wallpaper/install.py",
-      "sha256": "8d9eddd41e337111679ef59bb6531d2176aae3fb225d318308811197b42252b2",
-      "size": 5297,
+      "sha256": "b983600de00350aa886ff50eb2f54d760d4216c1a97f81f391422ac9dd9ddc77",
+      "size": 5745,
       "mode": "0o644"
     },
     {

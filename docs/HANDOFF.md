@@ -100,6 +100,17 @@ was hand-installed and has no deployment record:
   `profile.upgrade()` staged the new binary for next login. Rollback is the same
   upgrade with the previous binary (preview verified). The new binary has not run.
 
+## Rebuild after system updates — 2026-11-17
+
+The 2026-11-14 system update (libfm-qt 2.4 → 2.5, menu-cache removed) left the
+owner's DoroShell desktop unable to start, so stock PCManFM ran silently. Bundling
+private libfm-qt copies was rejected: the LXQt Qt platform theme loads the system
+libfm-qt into every Qt app, so two versions would share one process. Instead, each
+native build keeps a `recipe/` source copy, its launcher checks libraries at login,
+and a background rebuild follows the system version with notifications. See
+[native-rebuild](native-rebuild.md). The desktop builder now builds the installed
+PCManFM release and private lxqt-build-tools; 2.4.0 and 2.5.0 revisions are pinned.
+
 ## Decisions and constraints
 
 - LXQt/X11/Openbox is the working target. No required compositor. The user accepted

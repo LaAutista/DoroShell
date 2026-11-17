@@ -284,7 +284,15 @@ def prepare(home, output, binary, hidden=None, launchers=None, panel=None):
 
 
 def launcher(binary, config):
-    return '#!/usr/bin/python3\nimport os\nfrom pathlib import Path\np=Path.home()/".local/state/doroshell/native-panel.log"\np.parent.mkdir(parents=True,exist_ok=True)\nfd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_APPEND,0o600)\nos.dup2(fd,1);os.dup2(fd,2);os.close(fd)\nos.execv('+repr(str(binary))+','+repr([str(binary),'--config',str(config)])+')\n'
+    script = '#!/usr/bin/python3\nimport os\nfrom pathlib import Path\np=Path.home()/".local/state/doroshell/native-panel.log"\np.parent.mkdir(parents=True,exist_ok=True)\nfd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_APPEND,0o600)\nos.dup2(fd,1);os.dup2(fd,2);os.close(fd)\n'
+    recipe = Path(binary).parents[2]/'recipe/native_rebuild.py' if len(Path(binary).parents) > 2 else None
+    if recipe and recipe.is_file():
+        # Missing libraries after a system update: rebuild in the background and use the
+        # stock panel with its own LXQt profile, leaving DoroShell's panel.conf untouched.
+        script += ('import subprocess\nif os.access("/usr/bin/lxqt-panel",os.X_OK) and subprocess.run(["/usr/bin/python3",'
+                   +repr(str(recipe))+',"login","panel","--current",'+repr(str(binary))+']).returncode:\n'
+                   '    os.execv("/usr/bin/lxqt-panel",["/usr/bin/lxqt-panel"])\n')
+    return script+'os.execv('+repr(str(binary))+','+repr([str(binary),'--config',str(config)])+')\n'
 
 
 def validate_record(record):
