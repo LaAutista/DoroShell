@@ -42,8 +42,9 @@ family fails with a notification until DoroShell adds and reviews its build-tool
 
 The new build is checked for missing libraries (the desktop and its video worker)
 before anything is staged. The desktop is staged under the wallpaper module's lock,
-only if its launcher still runs the build being replaced; the panel is staged only if
-its launcher still runs the old build and its manifest record matches.
+only if its launcher still runs the build being replaced; the panel is staged under a
+panel lock (`native-panel.lock`, also taken by panel switch, upgrade and rollback) only
+if its launcher still runs the old build and its manifest record matches.
 
 Logs are in `~/.local/state/doroshell/native-rebuild-{desktop,panel}.log`, and the
 last result is in `native-rebuild.json` in the same folder.

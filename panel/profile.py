@@ -4,6 +4,8 @@
 import argparse
 import ast
 import base64
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import json
 import os
@@ -307,11 +309,33 @@ def validate_record(record):
                 raise ValueError('Invalid native panel recovery hash')
 
 
-def upgrade(home, binary, preview=False):
-    """Replace only the staged executable reference; retain the user's panel profile."""
+@contextmanager
+def panel_lock(home):
+    """Serialize every panel staging change: upgrade, switch, rollback and background rebuilds."""
+    lock = home/'.local/state/doroshell/native-panel.lock'
+    safe(lock, home)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with lock.open('a') as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        yield
+
+
+def upgrade(home, binary, preview=False, require=None):
+    """Replace only the staged executable reference; retain the user's panel profile.
+
+    With ``require``, upgrade only while the launcher still runs that executable and
+    return False otherwise, checked under the same lock as the change."""
+    with panel_lock(home):
+        return locked_upgrade(home, binary, preview, require)
+
+
+def locked_upgrade(home, binary, preview, require):
     manifest = home/'.local/state/doroshell/native-panel.json'
     wrapper = home/'.local/bin/doroshell-native-panel'
     for path in (manifest, wrapper): safe(path, home)
+    if require is not None and not (manifest.is_file() and wrapper.is_file()
+                                    and repr(str(require)) in wrapper.read_text()):
+        return False
     binary = binary.resolve()
     if not binary.is_file() or not os.access(binary, os.X_OK):
         raise ValueError('Build the native panel before upgrading')
@@ -324,15 +348,21 @@ def upgrade(home, binary, preview=False):
         raise RuntimeError('Edited panel launcher; refusing upgrade')
     desired = launcher(binary, home/'.config/doroshell/panel.conf').encode()
     print('Update native panel executable for next login; retain panel settings')
-    if preview: return
+    if preview: return True
     entry['pending_after'] = digest(desired)
     atomic(manifest, json.dumps(record, indent=2).encode())
     atomic(wrapper, desired, 0o755)
     entry['after'] = entry.pop('pending_after')
     atomic(manifest, json.dumps(record, indent=2).encode())
+    return True
 
 
 def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=False):
+    with panel_lock(home):
+        return locked_switch(home, prepared, rollback, preview, keep_panel_edits)
+
+
+def locked_switch(home, prepared, rollback, preview, keep_panel_edits):
     manifest=home/'.local/state/doroshell/native-panel.json'
     safe(manifest,home)
     saved = json.loads(manifest.read_text()) if manifest.exists() else None

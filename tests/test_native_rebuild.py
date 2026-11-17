@@ -116,20 +116,41 @@ class NativeRebuildTests(unittest.TestCase):
     def test_staging_skips_after_rollback_or_newer_selection(self):
         script, work = self.staged_desktop_launcher(True)
         current = work/'build/pcmanfm/pcmanfm-qt'
-        self.assertTrue(native_rebuild.still_selected('desktop', current, self.home))
-        self.assertFalse(native_rebuild.still_selected('desktop', self.home/'other/pcmanfm-qt', self.home))
+        self.assertTrue(native_rebuild.still_selected(current, self.home))
+        self.assertFalse(native_rebuild.still_selected(self.home/'other/pcmanfm-qt', self.home))
         with patch('modules.run') as run:  # Owner chose another build while this one compiled.
             self.assertFalse(native_rebuild.stage('desktop', self.home/'new/pcmanfm-qt', self.home/'other/pcmanfm-qt', self.home))
             run.assert_not_called()
         modules.run(self.home, 'wallpaper', rollback=True)  # Owner rolled back while it compiled.
-        self.assertFalse(native_rebuild.still_selected('desktop', current, self.home))
+        self.assertFalse(native_rebuild.still_selected(current, self.home))
         with patch('modules.run') as run:
             self.assertFalse(native_rebuild.stage('desktop', self.home/'new/pcmanfm-qt', current, self.home))
             run.assert_not_called()
-        self.assertFalse(native_rebuild.still_selected('panel', self.home/'p/runtime/bin/lxqt-panel', self.home))
-        with patch('panel.profile.upgrade') as upgrade:
-            self.assertFalse(native_rebuild.stage('panel', self.home/'n', self.home/'p/runtime/bin/lxqt-panel', self.home))
-            upgrade.assert_not_called()
+
+    def test_panel_staging_rechecks_selection_under_the_panel_lock(self):
+        import threading
+        from panel import profile
+        current = self.home/'p/runtime/bin/lxqt-panel'
+        newer = self.home/'q/runtime/bin/lxqt-panel'
+        wrapper = self.home/'.local/bin/doroshell-native-panel'; wrapper.parent.mkdir(parents=True)
+        manifest = self.home/'.local/state/doroshell/native-panel.json'; manifest.parent.mkdir(parents=True)
+        manifest.write_text('{}')
+        wrapper.write_text(profile.launcher(current, self.home/'panel.conf'))
+        lock = self.home/'.local/state/doroshell/native-panel.lock'
+        result = []
+        with lock.open('a') as held:
+            fcntl.flock(held, fcntl.LOCK_EX)  # A switch is in progress...
+            worker = threading.Thread(target=lambda: result.append(
+                native_rebuild.stage('panel', self.home/'n', current, self.home)))
+            worker.start()
+            worker.join(0.3)
+            self.assertTrue(worker.is_alive())  # ...so the rebuild waits for it,
+            wrapper.write_text(profile.launcher(newer, self.home/'panel.conf'))  # which selects a newer build.
+        worker.join(5)
+        self.assertEqual(result, [False])  # The newer selection is kept.
+        self.assertIn(repr(str(newer)), wrapper.read_text())
+        manifest.unlink()  # Rolled back: no manifest.
+        self.assertFalse(profile.upgrade(self.home, self.home/'n', require=newer))
 
     def test_not_staged_build_is_reported(self):
         with patch('native_rebuild.system_version', return_value='2.5.0'), \

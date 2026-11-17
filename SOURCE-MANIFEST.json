@@ -359,8 +359,8 @@
     },
     {
       "path": "docs/native-rebuild.md",
-      "sha256": "3f8508e6e3e1e59434346116f65b4ce9d5c0236d980661e9d886f5e618afd545",
-      "size": 3671,
+      "sha256": "1447b689e01f60b05667f85d95782f107852907a1a7b0c942ef12fa697c1ea86",
+      "size": 3762,
       "mode": "0o644"
     },
     {
@@ -605,8 +605,8 @@
     },
     {
       "path": "native_rebuild.py",
-      "sha256": "f183c669829698f63a0df162c64efbd9ee8d208d7e62949215a44eea76eeaa26",
-      "size": 10436,
+      "sha256": "9dc2f091bc624c58ec34f68e3b96bfca4d0a46af66bfa32547ada1b4666903e7",
+      "size": 10206,
       "mode": "0o644"
     },
     {
@@ -731,8 +731,8 @@
     },
     {
       "path": "panel/profile.py",
-      "sha256": "4637fea3e1f88c8bae16b6df498f8187b95fbb961d9eecb84352cf122ea749dd",
-      "size": 24572,
+      "sha256": "0545e7a0721dc58b39fd35b8fee34638aad01d83291ff411bba6269df014da4a",
+      "size": 25685,
       "mode": "0o644"
     },
     {
@@ -1361,8 +1361,8 @@
     },
     {
       "path": "tests/test_native_rebuild.py",
-      "sha256": "ac8fb974346cb5a9d5e6d06628247a69492d705f000c62788b560337b55d2d36",
-      "size": 11677,
+      "sha256": "276f7081aac8c78fa4b012a1ef75d99dba85cd772b45568b3de906c80e6ffecf",
+      "size": 12770,
       "mode": "0o644"
     },
     {
@@ -1379,8 +1379,8 @@
     },
     {
       "path": "tests/test_panel_selection.py",
-      "sha256": "33a47036d1bfe25ba5e49d6de8dace06719f649e86e3492433325723ed64e14b",
-      "size": 12249,
+      "sha256": "b5bac9a74e1b7975cf88c9aebe5aa1aecc5fe5b601af88c6c0492e8aa20aa028",
+      "size": 12315,
       "mode": "0o644"
     },
     {

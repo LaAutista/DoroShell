@@ -95,15 +95,13 @@ def login(kind, current):
     return 1
 
 
-def still_selected(kind, current, home):
-    """True while the owner's staged launcher still runs the broken build we replace."""
-    wrapper = home/'.local/bin'/('doroshell-wallpaper-desktop' if kind == 'desktop' else 'doroshell-native-panel')
+def still_selected(current, home):
+    """True while the staged desktop launcher still runs the broken build we replace."""
+    wrapper = home/'.local/bin/doroshell-wallpaper-desktop'
     try:
         if wrapper.is_symlink() or repr(str(current)) not in wrapper.read_text():
             return False
-        if kind == 'desktop':
-            return str(wrapper) in (home/'.config/autostart/lxqt-desktop.desktop').read_text()
-        return (home/'.local/state/doroshell/native-panel.json').is_file()
+        return str(wrapper) in (home/'.config/autostart/lxqt-desktop.desktop').read_text()
     except OSError:
         return False
 
@@ -112,11 +110,9 @@ def stage(kind, binary, current, home):
     """Stage the new build unless the owner rolled back or chose another build meanwhile."""
     sys.path.insert(0, str(ROOT))
     if kind == 'panel':
-        if not still_selected(kind, current, home):
-            return False
         from panel.profile import upgrade
-        upgrade(home, binary)  # Refuses a launcher edited since its manifest record.
-        return True
+        # Checked under the panel lock that switch and rollback also take.
+        return upgrade(home, binary, require=current)
     # Same lock and call as `modules.py wallpaper --apply`, held across the check.
     from modules import run, safe
     from config_root import choose
@@ -124,7 +120,7 @@ def stage(kind, binary, current, home):
     safe(lock, home)
     with lock.open('a') as stream:
         fcntl.flock(stream, fcntl.LOCK_EX)
-        if not still_selected(kind, current, home):
+        if not still_selected(current, home):
             return False
         run(home, 'wallpaper', True, False, wallpaper_binary=binary, config_root=choose(home, ['wallpaper'], None))
     return True
