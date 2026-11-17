@@ -23,10 +23,33 @@ LABEL = {'desktop': 'desktop', 'panel': 'taskbar'}
 RETRY_SECONDS = 24*3600
 
 
+RECIPE_FILES = 'RECIPE-FILES.json'
+
+
+def recipe_inventory():
+    """Tracked build sources only: git's index, a recipe's own list, or a release manifest."""
+    if (ROOT/'.git').exists():
+        names = subprocess.run(['git', 'ls-files', '-z'], cwd=ROOT, check=True, capture_output=True).stdout.decode().strip('\0').split('\0')
+    elif (ROOT/RECIPE_FILES).is_file():
+        names = json.loads((ROOT/RECIPE_FILES).read_text())
+    else:
+        names = [entry['path'] for entry in json.loads((ROOT/'SOURCE-MANIFEST.json').read_text())['source_payloads']]
+    skip = ('assets/', 'tests/')
+    return sorted(n for n in names if n and not n.startswith(skip) and n not in ('SOURCE-MANIFEST.json', 'SOURCE-SCAN.json', 'SHA256SUMS', RECIPE_FILES))
+
+
 def snapshot(work):
     """Keep the sources that made this build beside it, so it can rebuild itself."""
-    shutil.copytree(ROOT, work/'recipe', symlinks=True,
-                    ignore=shutil.ignore_patterns('assets', 'tests', '.git', '__pycache__', 'recipe', 'SOURCE-*', 'SHA256SUMS'))
+    recipe = (work/'recipe').resolve()
+    names = recipe_inventory()
+    for name in names:
+        source = ROOT/name
+        if source.is_symlink() or not source.is_file():
+            raise RuntimeError('Recipe source must be a regular file: '+name)
+        target = recipe/name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+    (recipe/RECIPE_FILES).write_text(json.dumps(names, indent=1))
 
 
 def missing_libraries(path):
@@ -72,6 +95,41 @@ def login(kind, current):
     return 1
 
 
+def still_selected(kind, current, home):
+    """True while the owner's staged launcher still runs the broken build we replace."""
+    wrapper = home/'.local/bin'/('doroshell-wallpaper-desktop' if kind == 'desktop' else 'doroshell-native-panel')
+    try:
+        if wrapper.is_symlink() or repr(str(current)) not in wrapper.read_text():
+            return False
+        if kind == 'desktop':
+            return str(wrapper) in (home/'.config/autostart/lxqt-desktop.desktop').read_text()
+        return (home/'.local/state/doroshell/native-panel.json').is_file()
+    except OSError:
+        return False
+
+
+def stage(kind, binary, current, home):
+    """Stage the new build unless the owner rolled back or chose another build meanwhile."""
+    sys.path.insert(0, str(ROOT))
+    if kind == 'panel':
+        if not still_selected(kind, current, home):
+            return False
+        from panel.profile import upgrade
+        upgrade(home, binary)  # Refuses a launcher edited since its manifest record.
+        return True
+    # Same lock and call as `modules.py wallpaper --apply`, held across the check.
+    from modules import run, safe
+    from config_root import choose
+    lock = home/'.local/state/doroshell/wallpaper.lock'
+    safe(lock, home)
+    with lock.open('a') as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        if not still_selected(kind, current, home):
+            return False
+        run(home, 'wallpaper', True, False, wallpaper_binary=binary, config_root=choose(home, ['wallpaper'], None))
+    return True
+
+
 def build_and_stage(kind, version, work, current, home, log):
     def run(args):
         log.write('$ '+' '.join(map(str, args))+'\n'); log.flush()
@@ -83,16 +141,15 @@ def build_and_stage(kind, version, work, current, home, log):
         run([sys.executable, ROOT/'wallpaper/build.py', '--work', work, '--tag', version, '--jobs', jobs]
             + (['--display-controls'] if record.get('format') == 3 else []))
         binary = work/'build/pcmanfm/pcmanfm-qt'
-        run([sys.executable, ROOT/'modules.py', 'wallpaper', '--home', home, '--wallpaper-binary', binary, '--apply'])
+        required = [binary, binary.with_name('doroshell-video-worker')]
     else:
         run([sys.executable, ROOT/'panel/build.py', '--work', work, '--jobs', jobs])
         binary = work/'runtime/bin/lxqt-panel'
-        sys.path.insert(0, str(ROOT))
-        from panel.profile import upgrade
-        upgrade(home, binary)
-    if missing_libraries(binary):
-        raise RuntimeError('The new build still has missing libraries')
-    return binary
+        required = [binary]
+    missing = sorted({name for path in required for name in missing_libraries(path)})
+    if missing:
+        raise RuntimeError('The new build still has missing libraries: '+', '.join(missing))
+    return binary, stage(kind, binary, current, home)
 
 
 def rebuild(kind, current, home, force=False):
@@ -130,16 +187,20 @@ def locked_rebuild(kind, current, home, state, force):
     try:
         with log_path.open('w') as log:
             log.write('DoroShell '+label+' rebuild for '+version+' from '+str(ROOT)+'\n')
-            build_and_stage(kind, version, work, current, home, log)
+            _, staged = build_and_stage(kind, version, work, current, home, log)
     except Exception as exc:
         status[kind] = dict(version=version, result='failed', time=time.time(), work=str(work))
         status_path.write_text(json.dumps(status, indent=2))
         notify('DoroShell '+label+' rebuild failed',
                str(exc)[:200]+'. Still using the stock '+label+'. Details: '+str(log_path), urgent=True)
         return 1
-    status[kind] = dict(version=version, result='ready', time=time.time(), work=str(work))
+    status[kind] = dict(version=version, result='ready' if staged else 'built-not-staged', time=time.time(), work=str(work))
     status_path.write_text(json.dumps(status, indent=2))
-    notify('DoroShell '+label+' is ready', 'Rebuilt for LXQt '+version+'. It will be used from your next login.')
+    if staged:
+        notify('DoroShell '+label+' is ready', 'Rebuilt for LXQt '+version+'. It will be used from your next login.')
+    else:
+        notify('DoroShell '+label+' rebuilt but not switched',
+               'Your '+label+' setting changed while it was building, so it was left as you set it. The new build is in '+str(work))
     return 0
 
 

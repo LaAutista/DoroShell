@@ -2,6 +2,7 @@
 import fcntl
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -57,7 +58,7 @@ class NativeRebuildTests(unittest.TestCase):
             self.assertEqual(build.call_count, 1)
             self.assertEqual(self.rebuild(force=True), 1)
             self.assertEqual(build.call_count, 2)
-        with patch('native_rebuild.system_version', return_value='2.5.1'), patch('native_rebuild.build_and_stage') as build:
+        with patch('native_rebuild.system_version', return_value='2.5.1'), patch('native_rebuild.build_and_stage', return_value=(None, True)) as build:
             self.assertEqual(self.rebuild(), 0)
             work = build.call_args.args[2]
             self.assertTrue(work.name.startswith('desktop-2.5.1-'))
@@ -78,14 +79,64 @@ class NativeRebuildTests(unittest.TestCase):
             build.assert_not_called()
             self.assertTrue(self.notify.call_args.kwargs['urgent'])
 
-    def test_snapshot_keeps_build_sources_only(self):
-        native_rebuild.snapshot(self.home)
-        recipe = self.home/'recipe'
-        for name in ('native_rebuild.py', 'modules.py', 'wallpaper/build.py', 'wallpaper/desktop-video.patch',
-                     'display/pcmanfm-advanced.patch', 'panel/build.py', 'panel/patches/0012-calendar-holidays-dst.patch'):
-            self.assertTrue((recipe/name).is_file(), name)
-        for name in ('assets', 'tests', '.git'):
-            self.assertFalse((recipe/name).exists(), name)
+    def test_snapshot_copies_tracked_sources_only(self):
+        root = Path(native_rebuild.ROOT)
+        private = root/'local-private-notes.env'
+        private.write_text('secret')
+        self.addCleanup(private.unlink)
+        inside = root/'build-in-checkout'  # A build directory inside the checkout must not copy itself.
+        self.addCleanup(lambda: __import__('shutil').rmtree(inside, ignore_errors=True))
+        for work in (self.home, inside):
+            native_rebuild.snapshot(work)
+            recipe = work/'recipe'
+            for name in ('native_rebuild.py', 'modules.py', 'wallpaper/build.py', 'wallpaper/desktop-video.patch',
+                         'display/pcmanfm-advanced.patch', 'panel/build.py', 'panel/patches/0012-calendar-holidays-dst.patch'):
+                self.assertTrue((recipe/name).is_file(), name)
+            for name in ('assets', 'tests', '.git', 'local-private-notes.env', 'build-in-checkout', 'SHA256SUMS'):
+                self.assertFalse((recipe/name).exists(), name)
+        # A recipe snapshots itself from its own inventory.
+        listed = json.loads((self.home/'recipe/RECIPE-FILES.json').read_text())
+        with patch('native_rebuild.ROOT', self.home/'recipe'):
+            native_rebuild.snapshot(self.home/'again')
+        self.assertEqual(json.loads((self.home/'again/recipe/RECIPE-FILES.json').read_text()), listed)
+
+    def test_new_build_with_missing_libraries_is_never_staged(self):
+        self.current.parent.mkdir(parents=True)
+        self.current.with_name('doroshell-wallpaper-build.json').write_text('{"format": 3}')
+        # Either the desktop or only its video worker may lack a library.
+        for results in ([['libfm-qt6.so.19'], []], [[], ['libQt6Multimedia.so.7']]):
+            answers = iter(results)
+            with patch('subprocess.run'), patch('native_rebuild.stage') as stage, \
+                 patch('native_rebuild.missing_libraries', side_effect=lambda path: next(answers)), \
+                 open(os.devnull, 'w') as log:
+                with self.assertRaisesRegex(RuntimeError, 'missing libraries'):
+                    native_rebuild.build_and_stage('desktop', '2.5.0', self.home/'new', self.current, self.home, log)
+                stage.assert_not_called()
+
+    def test_staging_skips_after_rollback_or_newer_selection(self):
+        script, work = self.staged_desktop_launcher(True)
+        current = work/'build/pcmanfm/pcmanfm-qt'
+        self.assertTrue(native_rebuild.still_selected('desktop', current, self.home))
+        self.assertFalse(native_rebuild.still_selected('desktop', self.home/'other/pcmanfm-qt', self.home))
+        with patch('modules.run') as run:  # Owner chose another build while this one compiled.
+            self.assertFalse(native_rebuild.stage('desktop', self.home/'new/pcmanfm-qt', self.home/'other/pcmanfm-qt', self.home))
+            run.assert_not_called()
+        modules.run(self.home, 'wallpaper', rollback=True)  # Owner rolled back while it compiled.
+        self.assertFalse(native_rebuild.still_selected('desktop', current, self.home))
+        with patch('modules.run') as run:
+            self.assertFalse(native_rebuild.stage('desktop', self.home/'new/pcmanfm-qt', current, self.home))
+            run.assert_not_called()
+        self.assertFalse(native_rebuild.still_selected('panel', self.home/'p/runtime/bin/lxqt-panel', self.home))
+        with patch('panel.profile.upgrade') as upgrade:
+            self.assertFalse(native_rebuild.stage('panel', self.home/'n', self.home/'p/runtime/bin/lxqt-panel', self.home))
+            upgrade.assert_not_called()
+
+    def test_not_staged_build_is_reported(self):
+        with patch('native_rebuild.system_version', return_value='2.5.0'), \
+             patch('native_rebuild.build_and_stage', return_value=(None, False)):
+            self.assertEqual(self.rebuild(), 0)
+        self.assertEqual(self.status()['result'], 'built-not-staged')
+        self.assertIn('left as you set it', self.notify.call_args.args[1])
 
     def test_build_record_marks_unreviewed_tags(self):
         from wallpaper.build import write_build_record, REVISIONS
