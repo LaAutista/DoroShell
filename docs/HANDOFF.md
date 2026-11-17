@@ -111,6 +111,15 @@ and a background rebuild follows the system version with notifications. See
 [native-rebuild](native-rebuild.md). The desktop builder now builds the installed
 PCManFM release and private lxqt-build-tools; 2.4.0 and 2.5.0 revisions are pinned.
 
+Owner machine (2026-11-17), after Codex LGTM on `198b6da`: a real
+`wallpaper/build.py --display-controls` build of PCManFM 2.5.0 (reviewed revision)
+went to `~/.local/share/doroshell/builds/desktop-2.5.0-20261117-105615`. ldd found no
+missing libraries in either executable, and the recipe was included. It was staged with
+`modules.py wallpaper --apply`, which kept the Dolphin hook, and the login check returns 0.
+It takes effect at next login and has not run as the desktop yet. The panel was not
+rebuilt and has no recipe until its next build. No automatic rebuild after a real
+library break has been observed.
+
 ## Decisions and constraints
 
 - LXQt/X11/Openbox is the working target. No required compositor. The user accepted
