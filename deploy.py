@@ -15,7 +15,7 @@ import sys
 import uuid
 
 import compatibility
-from install import atomic, safe as install_safe
+from install import atomic, panel_lock, safe as install_safe
 from setup import PACKAGES
 
 ROOT = Path(__file__).resolve().parent
@@ -273,7 +273,20 @@ def recovery_journal(home, previous):
     return path, journal
 
 
+PANEL_FILES = ('.local/bin/doroshell-native-panel', '.local/state/doroshell/native-panel.json')
+
+
 def undo(home, identifier):
+    # A journal that restores panel files takes the panel lock, so a background panel rebuild
+    # can't write between undo's checks and its restores; main() already holds the module locks.
+    _, journal = load_journal(home, identifier)
+    if not any(name in journal['before'] for name in PANEL_FILES):
+        return locked_undo(home, identifier)
+    with panel_lock(home):
+        return locked_undo(home, identifier)
+
+
+def locked_undo(home, identifier):
     path, journal = load_journal(home, identifier)
     if journal['status'] in ('pending', 'undone'): return _undo(home, identifier)
     launcher = '.local/bin/lxqt-comfort-menu'

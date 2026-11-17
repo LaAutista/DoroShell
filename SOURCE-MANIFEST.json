@@ -209,8 +209,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "3192406d340b08a35ba48e602d2a09160e20b981e79eaa90cb5a3f866007809d",
-      "size": 45556,
+      "sha256": "068d4c13235cb7ff3178867cddaada4a351219d2492fb4e7fed15f9be0aaef45",
+      "size": 46126,
       "mode": "0o644"
     },
     {
@@ -539,8 +539,8 @@
     },
     {
       "path": "install.py",
-      "sha256": "2aa109bf1f9b4da1c867e84f9f529b8e300e645f437ff98d5f323fb07e8252c2",
-      "size": 17981,
+      "sha256": "d59c9f9c3bafd5fc8003a675cbdd482c4c62a7584e5f99ac33392ad0dea2ef76",
+      "size": 18415,
       "mode": "0o644"
     },
     {
@@ -731,8 +731,8 @@
     },
     {
       "path": "panel/profile.py",
-      "sha256": "62749b8baeedba4bb12968f006659abf0bd80ee4d8a28ac782a4025a07fe9e7d",
-      "size": 25883,
+      "sha256": "f2b9d0d5e96bbf1d1c3ba389776039f48586f2896a563013e05097cc6c0beee8",
+      "size": 25482,
       "mode": "0o644"
     },
     {
@@ -1361,8 +1361,8 @@
     },
     {
       "path": "tests/test_native_rebuild.py",
-      "sha256": "f2725780075eaf1d543484b8c9a576ebd95e6f0ad64195be3a969e74140176aa",
-      "size": 13613,
+      "sha256": "e90761c2deec59fe06c9d55876d92afcd013cfd227fdfb33ee90f4177d5855dc",
+      "size": 14903,
       "mode": "0o644"
     },
     {

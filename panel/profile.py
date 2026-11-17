@@ -4,8 +4,6 @@
 import argparse
 import ast
 import base64
-from contextlib import contextmanager
-import fcntl
 import hashlib
 import json
 import os
@@ -17,7 +15,7 @@ import tempfile
 from PySide6.QtCore import QSettings
 from gi.repository import Gio
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from install import PlanError, safe, validate_backup
+from install import PlanError, panel_lock, safe, validate_backup
 from modules import atomic
 from panel.layout import installed_panel, preserve_sections, sections, select_panel
 
@@ -312,17 +310,6 @@ def validate_record(record):
             if field == 'pending_after' and field not in entry: continue
             if not isinstance(entry.get(field), str) or not re.fullmatch('[0-9a-f]{64}', entry[field]):
                 raise ValueError('Invalid native panel recovery hash')
-
-
-@contextmanager
-def panel_lock(home):
-    """Serialize every panel staging change: upgrade, switch, rollback and background rebuilds."""
-    lock = home/'.local/state/doroshell/native-panel.lock'
-    safe(lock, home)
-    lock.parent.mkdir(parents=True, exist_ok=True)
-    with lock.open('a') as stream:
-        fcntl.flock(stream, fcntl.LOCK_EX)
-        yield
 
 
 def upgrade(home, binary, preview=False, require=None):

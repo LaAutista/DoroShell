@@ -169,6 +169,29 @@ class NativeRebuildTests(unittest.TestCase):
         worker.join(5)
         self.assertEqual(errors, ['DoroShell panel profile is not installed'])
 
+    def test_deploy_undo_waits_for_the_panel_lock(self):
+        import threading
+        import deploy
+        lock = self.home/'.local/state/doroshell/native-panel.lock'; lock.parent.mkdir(parents=True)
+        reached = []
+        def fake_undo(home, identifier):
+            reached.append(identifier)
+        journal = {'before': {'.local/bin/doroshell-native-panel': {}}}
+        with patch('deploy.locked_undo', side_effect=fake_undo), patch('deploy.load_journal', return_value=(None, journal)):
+            with lock.open('a') as held:
+                fcntl.flock(held, fcntl.LOCK_EX)  # A rebuild is staging the panel...
+                worker = threading.Thread(target=deploy.undo, args=(self.home, 'job')); worker.start()
+                worker.join(0.3)
+                self.assertTrue(worker.is_alive())  # ...so undo has not checked or restored anything yet.
+                self.assertEqual(reached, [])
+            worker.join(5)
+        self.assertEqual(reached, ['job'])
+        journal['before'] = {'.config/other': {}}  # No panel files: no lock file is created.
+        lock.unlink()
+        with patch('deploy.locked_undo'), patch('deploy.load_journal', return_value=(None, journal)):
+            deploy.undo(self.home, 'job')
+        self.assertFalse(lock.exists())
+
     def test_not_staged_build_is_reported(self):
         with patch('native_rebuild.system_version', return_value='2.5.0'), \
              patch('native_rebuild.build_and_stage', return_value=(None, False)):

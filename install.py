@@ -2,6 +2,8 @@
 """Install only the menu module. Packages and panel settings are never changed."""
 import argparse
 import base64
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import json
 from pathlib import Path
@@ -194,6 +196,18 @@ def safe(path, home):
     if path.is_symlink() or not path.resolve().is_relative_to(home.resolve()):
         raise RuntimeError(f'Refusing symlink or path outside installation home: {path}')
 
+
+
+@contextmanager
+def panel_lock(home):
+    """Serialize every DoroShell panel launcher/manifest change, including journal undo
+    and background rebuilds."""
+    lock = home/'.local/state/doroshell/native-panel.lock'
+    safe(lock, home)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with lock.open('a') as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        yield
 
 def install(home, apply=False, icon=None):
     files = targets(home, icon)
