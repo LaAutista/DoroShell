@@ -207,6 +207,7 @@
     "tests/test_display_diagnostics.py",
     "tests/test_display_failure_record.py",
     "tests/test_display_install.py",
+    "tests/test_effective_defaults.py",
     "tests/test_folder_cascade.py",
     "tests/test_folder_separators.py",
     "tests/test_folders.py",
@@ -259,8 +260,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 258,
-  "source_payload_count": 256,
+  "file_count": 259,
+  "source_payload_count": 257,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",

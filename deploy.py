@@ -504,6 +504,15 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
         if 'start-shortcut' in selected:
             from integrate import shortcut_fingerprint
             request['shortcut_before']=None if remove else shortcut_fingerprint(home)
+        # Write down the system defaults a fresh login still runs from, before any adapter reads the
+        # user's files. The journal below records the originals, so --undo restores them exactly.
+        # shortcut: a crash between these writes and the journal leaves the equivalent effective
+        # files without undo evidence; journal first if that window ever matters.
+        defaults = {} if remove or config_root is not None else compatibility.effective_defaults(home, selected)
+        defaults_before = {name:file_state(home, name) for name in defaults}
+        for name, data in defaults.items():
+            print('Write effective system default: ~/'+name)
+            atomic(home/name, data, defaults_before[name]['mode'] or 0o644)
         if panel is not None and not remove and 'native-panel' in selected:
             panel_preflight(home, panel)
         if 'start-shortcut' in selected and not remove:
@@ -512,6 +521,8 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
         job.mkdir(parents=True); job.chmod(0o700)
         journal = dict(format=5 if config_root is not None else 4 if 'start-shortcut' in selected else 3 if panel is not None else 2, status='pending', request=request, done=[], active=None, active_files=[], installed_before=installed_modules(home),
                        before={str(pointer.relative_to(home)):file_state(home, str(pointer.relative_to(home)))}, after={})
+        journal['before'].update(defaults_before)
+        journal['after'].update({name:file_state(home, name) for name in defaults})
         validate_journal(home, journal, identifier)
         atomic(path, json.dumps(journal).encode())
         atomic(pointer, json.dumps(panel_record(dict(format=1,status='pending',transaction=identifier,modules=selected), panel)).encode())
@@ -559,6 +570,7 @@ def deploy(home, selected, binaries, theme='windows', remove=False, recover=Fals
     print('Exact previous-upgrade undo: python '+str(ROOT/'deploy.py')+' --apply --undo '+identifier)
     print('Module --remove restores first-install originals. Builds/backups and personal preferences remain.')
     print('No session restarted. Native panel/desktop changes take effect at your next normal login.')
+    if not remove: print('Status: deployed, waiting for your next normal login. The Start button then replaces the LXQt menu button on your panel.')
     return identifier
 
 
@@ -666,8 +678,13 @@ def main(argv=None):
     print(json.dumps(dict(platform={**report, 'issues':issues}, package_versions=versions, modules=selected, panel=panel, config_root=str(root)), indent=2))
     if not args.apply:
         print('Plan only. Add --apply. Optional modules: '+', '.join(OPTIONAL))
+        for name in report.get('effective_defaults', []):
+            print('Would write the effective system default to ~/'+name+' (your own keys are kept; --undo restores the original).')
         if issues:
             print('Plan blocked: resolve the reported prerequisites/layout before applying. No installation was performed.')
+            for issue in issues: print('  - '+issue)
+            print('Status: blocked. Nothing was installed; the source in '+str(ROOT)+' is only a downloaded copy.')
+        elif not args.undo: print('Status: plan only. Nothing was installed.')
         if args.undo: print('Would undo transaction:', args.undo)
         return 0
     if os.geteuid() == 0: raise ValueError('Run as the desktop user, not root')
@@ -677,7 +694,7 @@ def main(argv=None):
         if request['source'] != hashlib.sha256((ROOT/'SHA256SUMS').read_bytes()).hexdigest():
             raise ValueError('Recovery needs the same source revision; no packages or files were changed')
     if not (args.remove or args.undo):
-        if report['issues']: raise ValueError('\n'.join(issues))
+        if report['issues']: raise ValueError('Status: blocked. Nothing was installed; the source in '+str(ROOT)+' is only a downloaded copy.\n'+'\n'.join(issues))
         import source_release
         source_release.check(ROOT, source_release.source_files(ROOT))
         if panel_prerequisites:
