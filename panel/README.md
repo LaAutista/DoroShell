@@ -200,3 +200,10 @@ See [reproduction and limits](../docs/panel-calendar.md).
 `0012-calendar-holidays-dst.patch` bolds US federal holidays (US locale only) and the
 local daylight-saving transition days in the calendar, with tooltips. See
 [holiday and DST marks](../docs/panel-calendar.md#holidays-and-daylight-saving-days--2026-11-15).
+
+`0013-layout-request-loop.patch` stops two plugins from re-posting `LayoutRequest` on
+every layout pass. The clock's `fitClock()` reset and re-shrank its font each pass, and
+the show-desktop edge button cleared and re-set its size limits each pass; either one kept
+the panel at most of a CPU core (11,000-23,000 wakeups per second) and loaded the X server
+through the taskbar's icon-geometry refresh. Measured on the owner machine after the fix:
+under 1% CPU and about one wakeup per second.

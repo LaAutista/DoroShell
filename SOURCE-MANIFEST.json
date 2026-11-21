@@ -107,8 +107,8 @@
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "d1d9458a42474cbed674529d0f6d86ab3919df71c261cd2f12e4cc1e70942178",
-      "size": 9142,
+      "sha256": "f409c89915fdb560ef92ef81dda137b24222e1caf23e71775997206ee345cdd4",
+      "size": 9194,
       "mode": "0o644"
     },
     {
@@ -611,14 +611,14 @@
     },
     {
       "path": "panel/README.md",
-      "sha256": "aff93c4e77e4141ae2704fcdf75d55418d5898ddb999b2b327dd20351ded79c8",
-      "size": 17031,
+      "sha256": "1d68a78fc184ef811db63536a4c0742ffa3e7dc81e9ff44e616f0d7dcc6e7c7b",
+      "size": 17524,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "0cfd70c7a9d8eaa68c60a2dee6e066603a8651ddaa162ec7c7a39d7ba61a1a29",
-      "size": 11038,
+      "sha256": "e05b27770ce38a9a48daed8cb48f75065d0747ccf2914c7e32599267ec3b8311",
+      "size": 11071,
       "mode": "0o644"
     },
     {
@@ -727,6 +727,12 @@
       "path": "panel/patches/0012-calendar-holidays-dst.patch",
       "sha256": "172b515386bd0abb785e7839f6574ca459c8eb348dc614cd31257ec6af13a997",
       "size": 4579,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0013-layout-request-loop.patch",
+      "sha256": "9bdf3181aa64dd496c268ba3492a1f8054ebe6e1ccd0cdc4676f0912032e589f",
+      "size": 2382,
       "mode": "0o644"
     },
     {

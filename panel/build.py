@@ -18,7 +18,7 @@ TOOLS = {
 }
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT.parent))
-PATCHES = ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch','0009-tray-registration-popup.patch','0010-tray-shortcut.patch','0011-calendar-bounds.patch','0012-calendar-holidays-dst.patch')
+PATCHES = ('0001-hidden-tray-popup.patch','0002-wallpaper-glass.patch','0003-launcher-identity.patch','0004-filtered-pins.patch','0005-tray-attention-popup.patch','0006-tray-keyboard-context.patch','0007-show-desktop-drag.patch','0008-panel-density.patch','0009-tray-registration-popup.patch','0010-tray-shortcut.patch','0011-calendar-bounds.patch','0012-calendar-holidays-dst.patch','0013-layout-request-loop.patch')
 
 
 class BuildError(RuntimeError):

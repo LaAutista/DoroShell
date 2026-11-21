@@ -113,6 +113,7 @@
     "panel/patches/0010-tray-shortcut.patch",
     "panel/patches/0011-calendar-bounds.patch",
     "panel/patches/0012-calendar-holidays-dst.patch",
+    "panel/patches/0013-layout-request-loop.patch",
     "panel/profile.py",
     "portable_settings.py",
     "release.json",
@@ -258,8 +259,8 @@
     "wallpaper/install.py",
     "wallpaper/preferences.py"
   ],
-  "file_count": 257,
-  "source_payload_count": 255,
+  "file_count": 258,
+  "source_payload_count": 256,
   "checks": [
     "Tracked regular UTF-8 source and explicitly hash-catalogued artwork; no executable binaries or symlinks",
     "Payload hashes and complete file inventory checked",
