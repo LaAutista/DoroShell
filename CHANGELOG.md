@@ -2,6 +2,17 @@
 
 ## 0.2.0-dev — 2026-11-14
 
+- Install on a fresh LXQt/Openbox login: a profile whose `panel.conf` holds only
+  plugin overrides (no `[panel1]`) and that has no `rc.xml` yet used to stop with
+  "Plan blocked" and leave only a source checkout behind. The installer now resolves
+  the effective configuration from the system defaults, writes it into the profile
+  with the user's keys kept, and restores the originals on `--undo`. Remaining
+  refusals name the missing file and the way out, and the final `Status:` line
+  separates plan only, blocked, and deployed-awaiting-login.
+
+- Fix the native panel using most of a CPU core: the clock and the Show Desktop
+  edge button each re-requested a layout on every layout pass (patch 0013).
+
 - Survive system updates: native desktop and taskbar builds now check their
   libraries at login. If an update removed one, the stock program runs for that
   session while DoroShell rebuilds against the system's current LXQt in the

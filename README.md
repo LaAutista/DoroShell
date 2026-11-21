@@ -9,7 +9,7 @@ desktop environment. No compositor is required. Development is ongoing.
 
 ## Install on an Arch-based LXQt computer
 
-From your normal user account in an initialized **LXQt/X11 + Openbox** session:
+From your normal user account in an **LXQt/X11 + Openbox** session:
 
 ```sh
 bash -c '
@@ -66,6 +66,19 @@ Each stage prints its package command before invoking `sudo pacman -Syu --needed
 installation may update the system before a layout can be checked; no DoroShell
 configuration is written until that check passes. Selected module/runtime/build
 packages follow validation. There is no AUR helper, unattended approval or package removal.
+
+A fresh login that still runs from the system defaults is supported. When your own
+`~/.config/lxqt/panel.conf` defines no panel and the system layout is a single `panel1`,
+or `~/.config/openbox/rc.xml` does not exist yet, the installer writes the effective
+system default into your profile first, keeps every key you already set, and records the
+original so `--undo` restores it. Layouts with several panels are never guessed: choose
+one with `--panel panelN`.
+
+The last `Status:` line says where you ended up: **plan only** (nothing installed),
+**blocked** (nothing installed; the folder under `~/.local/share/doroshell/sources/` is
+only a downloaded copy, and each reason is listed with what to do), or **deployed,
+waiting for your next normal login**. After that login the Start button replaces the
+LXQt menu button on your existing panel, with the DoroShell taskbar beside it.
 
 Desktop components are staged for your **next normal login**. The installer never logs
 you out, restarts the panel/desktop, changes refresh rate/VSync, or closes applications.

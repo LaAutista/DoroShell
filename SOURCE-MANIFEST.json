@@ -77,8 +77,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "92de40d79beeabf0fbda98cb1ee3bb0729eb00302c16d8461b7acca3faa6217a",
-      "size": 13490,
+      "sha256": "5c01a2017b9a531b2b76a745d231493fd13fd591e9101d0a893e3d170f76d7d0",
+      "size": 14198,
       "mode": "0o644"
     },
     {
@@ -95,8 +95,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "3a78976a241fe1e225b9dc71bce8b77a6c8fa630270b6edbbd2094f0f8e74647",
-      "size": 10941,
+      "sha256": "760dae7a2790d30fba1124128255b7dab1529dbdf9eed1de622ef40134bb7447",
+      "size": 11811,
       "mode": "0o644"
     },
     {
@@ -107,8 +107,8 @@
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "f409c89915fdb560ef92ef81dda137b24222e1caf23e71775997206ee345cdd4",
-      "size": 9194,
+      "sha256": "6dc4bf5a724a0517504a61d4d0b032077c2fb92410f744642eba21d6e7fb36a8",
+      "size": 9234,
       "mode": "0o644"
     },
     {
@@ -191,8 +191,8 @@
     },
     {
       "path": "compatibility.py",
-      "sha256": "e106203e07499d343de69e7577d7512d9d89cb515f16c5f812c571ac77d25a1c",
-      "size": 3497,
+      "sha256": "043859d2eb842d5dcd6a64d5b5d44119c53160bf584767820e5e9e88a053c81d",
+      "size": 6946,
       "mode": "0o644"
     },
     {
@@ -209,8 +209,8 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "068d4c13235cb7ff3178867cddaada4a351219d2492fb4e7fed15f9be0aaef45",
-      "size": 46126,
+      "sha256": "6536bc00b7391f246f4256aaebe95bb364ac17e7c2ccd3e483ad38e3eec66bd3",
+      "size": 47695,
       "mode": "0o644"
     },
     {
@@ -1259,8 +1259,8 @@
     },
     {
       "path": "tests/test_deployment.py",
-      "sha256": "9f2014bdafe944df4eb53602e46b2d963a7c0d368ea7a3c71884a8e2d2fb7da3",
-      "size": 17386,
+      "sha256": "c3f140d3d45e5470e58e7cdb2f5c401e9daf3384113dcf8779446ac26854ff65",
+      "size": 17527,
       "mode": "0o644"
     },
     {
@@ -1291,6 +1291,12 @@
       "path": "tests/test_display_install.py",
       "sha256": "fdf5b98cb9c0e2af2d931dfdf351234001838d2cd5a9f264b91de3550c88a277",
       "size": 5337,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/test_effective_defaults.py",
+      "sha256": "3881452e394f6254208b75f61c21d89ad71880266309ff9b62f67e41d8a86757",
+      "size": 7412,
       "mode": "0o644"
     },
     {

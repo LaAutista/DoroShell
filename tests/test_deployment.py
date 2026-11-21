@@ -73,7 +73,8 @@ class DeploymentTests(unittest.TestCase):
         self.fixture()
         panel = self.home/'.config/lxqt/panel.conf'
         panel.write_text('[General]\n__userfile__=true\n\n[panel1]\nplugins=fancymenu, quicklaunch, taskbar\n')
-        env = dict(XDG_CURRENT_DESKTOP='LXQt', XDG_SESSION_TYPE='x11')
+        # No system defaults here: the host's own /etc/xdg must not decide these results.
+        env = dict(XDG_CURRENT_DESKTOP='LXQt', XDG_SESSION_TYPE='x11', XDG_CONFIG_DIRS=str(self.home/'no-system-config'))
         with patch.object(compatibility.shutil, 'which', return_value='/usr/bin/pacman'):
             self.assertEqual(compatibility.inspect(self.home, deploy.CORE, env, dict(ID='cachyos', ID_LIKE='arch'))['issues'], [])
             panel.write_text('[General]\npanels = panel1, panel2\n[panel1]\n')
