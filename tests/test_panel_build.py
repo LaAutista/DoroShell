@@ -77,6 +77,7 @@ class PanelDependenciesTests(unittest.TestCase):
         self.pkg = self.enterContext(patch.object(build.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)))
         self.commands = []
         self.run = self.enterContext(patch.object(build, 'run', side_effect=self.fake_run))
+        self.enterContext(patch('native_rebuild.snapshot'))  # Recipe copying is covered in test_native_rebuild.
 
     def write_version(self, version, tools=None):
         tools = tools or '.'.join(version.split('.')[:2])+'.0'

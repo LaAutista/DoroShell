@@ -100,6 +100,26 @@ was hand-installed and has no deployment record:
   `profile.upgrade()` staged the new binary for next login. Rollback is the same
   upgrade with the previous binary (preview verified). The new binary has not run.
 
+## Rebuild after system updates — 2026-11-17
+
+The 2026-11-14 system update (libfm-qt 2.4 → 2.5, menu-cache removed) left the
+owner's DoroShell desktop unable to start, so stock PCManFM ran silently. Bundling
+private libfm-qt copies was rejected: the LXQt Qt platform theme loads the system
+libfm-qt into every Qt app, so two versions would share one process. Instead, each
+native build keeps a `recipe/` source copy, its launcher checks libraries at login,
+and a background rebuild follows the system version with notifications. See
+[native-rebuild](native-rebuild.md). The desktop builder now builds the installed
+PCManFM release and private lxqt-build-tools; 2.4.0 and 2.5.0 revisions are pinned.
+
+Owner machine (2026-11-17), after Codex LGTM on `198b6da`: a real
+`wallpaper/build.py --display-controls` build of PCManFM 2.5.0 (reviewed revision)
+went to `~/.local/share/doroshell/builds/desktop-2.5.0-20261117-105615`. ldd found no
+missing libraries in either executable, and the recipe was included. It was staged with
+`modules.py wallpaper --apply`, which kept the Dolphin hook, and the login check returns 0.
+It takes effect at next login and has not run as the desktop yet. The panel was not
+rebuilt and has no recipe until its next build. No automatic rebuild after a real
+library break has been observed.
+
 ## Decisions and constraints
 
 - LXQt/X11/Openbox is the working target. No required compositor. The user accepted

@@ -45,7 +45,7 @@ class PanelSelectionTests(unittest.TestCase):
 
     def snapshot(self):
         return {str(p.relative_to(self.home)): (p.read_bytes(), p.stat().st_mode & 0o777)
-                for p in self.home.rglob('*') if p.is_file()}
+                for p in self.home.rglob('*') if p.is_file() and p.name != 'native-panel.lock'}  # Empty sync lock is retained.
 
     def test_explicit_selection_preserves_other_sections_and_chosen_geometry(self):
         for selected, untouched in [('panel2', ['panel1', 'taskOne', 'trayOne', 'clockOne']),

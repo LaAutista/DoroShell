@@ -1,0 +1,54 @@
+diff --git a/plugin-showdesktop/showdesktop.cpp b/plugin-showdesktop/showdesktop.cpp
+index 39d1b38..9909a34 100644
+--- a/plugin-showdesktop/showdesktop.cpp
++++ b/plugin-showdesktop/showdesktop.cpp
+@@ -89,14 +89,17 @@ void ShowDesktop::settingsChanged()
+ 
+ void ShowDesktop::realign()
+ {
+-    mButton.setMinimumSize(0, 0);
+-    mButton.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
++    // Set the final limits in one step: resetting them first changes the size on every pass,
++    // which posts a LayoutRequest and re-enters realign() forever.
++    QSize min(0, 0), max(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+     if (settings()->value(QStringLiteral("doroshellEdge"), false).toBool())
+     {
+         const int extent = qBound(8, settings()->value(QStringLiteral("doroshellEdgeWidth"), 12).toInt(), 32);
+-        if (panel()->isHorizontal()) mButton.setFixedWidth(extent);
+-        else mButton.setFixedHeight(extent);
++        if (panel()->isHorizontal()) { min.setWidth(extent); max.setWidth(extent); }
++        else { min.setHeight(extent); max.setHeight(extent); }
+     }
++    mButton.setMinimumSize(min);
++    mButton.setMaximumSize(max);
+ }
+ 
+ bool ShowDesktop::eventFilter(QObject * watched, QEvent * event)
+diff --git a/plugin-worldclock/lxqtworldclock.cpp b/plugin-worldclock/lxqtworldclock.cpp
+index 11c278c..1d7a95e 100644
+--- a/plugin-worldclock/lxqtworldclock.cpp
++++ b/plugin-worldclock/lxqtworldclock.cpp
+@@ -700,6 +700,11 @@ void LXQtWorldClock::fitClock()
+         return;
+     QFont font = mMainWidget->font();
+     font.setPixelSize(QFontInfo(font).pixelSize());
++    // setFont() posts a LayoutRequest that re-enters realign() -> fitClock(); refit only when an input changed.
++    const QString key = QString::number(mMainWidget->height()) + QLatin1Char('|') + font.toString() + QLatin1Char('|') + mContent->text();
++    if (key == mFitKey)
++        return;
++    mFitKey = key;
+     mContent->setFont(font);
+     while (mContent->sizeHint().height() > mMainWidget->height() - 2 && font.pixelSize() > 1)
+     {
+diff --git a/plugin-worldclock/lxqtworldclock.h b/plugin-worldclock/lxqtworldclock.h
+index 7e3565a..3a9de1a 100644
+--- a/plugin-worldclock/lxqtworldclock.h
++++ b/plugin-worldclock/lxqtworldclock.h
+@@ -94,6 +94,7 @@ private:
+ 
+     void positionPopup();
+     void fitClock();
++    QString mFitKey;
+     void restartTimer();
+ 
+     void setTimeText();

@@ -77,8 +77,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "99133111eae57a350fa2f95db98ca93f7ecc26eb7a4010319508eac370041491",
-      "size": 13030,
+      "sha256": "92de40d79beeabf0fbda98cb1ee3bb0729eb00302c16d8461b7acca3faa6217a",
+      "size": 13490,
       "mode": "0o644"
     },
     {
@@ -107,8 +107,8 @@
     },
     {
       "path": "SOURCE-SCAN.json",
-      "sha256": "e8a86bbbbb46ea8313e89cfedb47808d21607a3e8f2f13c8f82e52ca78701697",
-      "size": 9051,
+      "sha256": "f409c89915fdb560ef92ef81dda137b24222e1caf23e71775997206ee345cdd4",
+      "size": 9194,
       "mode": "0o644"
     },
     {
@@ -209,14 +209,14 @@
     },
     {
       "path": "deploy.py",
-      "sha256": "3192406d340b08a35ba48e602d2a09160e20b981e79eaa90cb5a3f866007809d",
-      "size": 45556,
+      "sha256": "068d4c13235cb7ff3178867cddaada4a351219d2492fb4e7fed15f9be0aaef45",
+      "size": 46126,
       "mode": "0o644"
     },
     {
       "path": "display/README.md",
-      "sha256": "daa389463d8710c4084c7f3a8fb9f7f6f4a4b39a45fbf4c7b5cdb6f8f6966ca5",
-      "size": 17802,
+      "sha256": "04a7761f38311faf7f839795aa922c6cea8ca2fa6d92978517cf4588925f3f49",
+      "size": 17855,
       "mode": "0o644"
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "41020b853f9f44947b7f23cb604ad96f97a4821ffefef8d6afdbb46360d3db23",
-      "size": 5165,
+      "sha256": "a8178f97bc06f0053e2062633fa7e76ea8de5c26133502b6a5bf10818158ad0e",
+      "size": 5290,
       "mode": "0o644"
     },
     {
@@ -263,8 +263,8 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "a9fbe943aa7436fb21f63376f532dd9712a58e6861c9d8de6aa1105dfa3683c9",
-      "size": 30171,
+      "sha256": "7dc045d98cc01165174ac6b05351e22b6175daa21847a2f9ed1294ccad847713",
+      "size": 31490,
       "mode": "0o644"
     },
     {
@@ -355,6 +355,12 @@
       "path": "docs/input-preferences.md",
       "sha256": "301ac0fbee54bb8bc013a40ccb68ac113f0a471a5c461ff7a2c6ab195b01924f",
       "size": 14122,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/native-rebuild.md",
+      "sha256": "1447b689e01f60b05667f85d95782f107852907a1a7b0c942ef12fa697c1ea86",
+      "size": 3762,
       "mode": "0o644"
     },
     {
@@ -533,8 +539,8 @@
     },
     {
       "path": "install.py",
-      "sha256": "2aa109bf1f9b4da1c867e84f9f529b8e300e645f437ff98d5f323fb07e8252c2",
-      "size": 17981,
+      "sha256": "d59c9f9c3bafd5fc8003a675cbdd482c4c62a7584e5f99ac33392ad0dea2ef76",
+      "size": 18415,
       "mode": "0o644"
     },
     {
@@ -598,15 +604,21 @@
       "mode": "0o644"
     },
     {
+      "path": "native_rebuild.py",
+      "sha256": "9dc2f091bc624c58ec34f68e3b96bfca4d0a46af66bfa32547ada1b4666903e7",
+      "size": 10206,
+      "mode": "0o644"
+    },
+    {
       "path": "panel/README.md",
-      "sha256": "aff93c4e77e4141ae2704fcdf75d55418d5898ddb999b2b327dd20351ded79c8",
-      "size": 17031,
+      "sha256": "1d68a78fc184ef811db63536a4c0742ffa3e7dc81e9ff44e616f0d7dcc6e7c7b",
+      "size": 17524,
       "mode": "0o644"
     },
     {
       "path": "panel/build.py",
-      "sha256": "11e9a751e808dbd57f89e37d150cc4b89efa058339cc03c1e28a09baef076db4",
-      "size": 10934,
+      "sha256": "e05b27770ce38a9a48daed8cb48f75065d0747ccf2914c7e32599267ec3b8311",
+      "size": 11071,
       "mode": "0o644"
     },
     {
@@ -718,9 +730,15 @@
       "mode": "0o644"
     },
     {
+      "path": "panel/patches/0013-layout-request-loop.patch",
+      "sha256": "9bdf3181aa64dd496c268ba3492a1f8054ebe6e1ccd0cdc4676f0912032e589f",
+      "size": 2382,
+      "mode": "0o644"
+    },
+    {
       "path": "panel/profile.py",
-      "sha256": "75167582e8384de9fa5105a5e670a50e74dd0e1ef41d463c045f7f93db6e03a8",
-      "size": 23911,
+      "sha256": "f2b9d0d5e96bbf1d1c3ba389776039f48586f2896a563013e05097cc6c0beee8",
+      "size": 25482,
       "mode": "0o644"
     },
     {
@@ -1348,9 +1366,15 @@
       "mode": "0o644"
     },
     {
+      "path": "tests/test_native_rebuild.py",
+      "sha256": "e90761c2deec59fe06c9d55876d92afcd013cfd227fdfb33ee90f4177d5855dc",
+      "size": 14903,
+      "mode": "0o644"
+    },
+    {
       "path": "tests/test_panel_build.py",
-      "sha256": "9bc13a3f6606950b4dd348536e68d6671dabd999d5a02294f53b2aa9c89cf13d",
-      "size": 15665,
+      "sha256": "3bb2f7fa9197a2f6ed28b5002fadd7daefd576d1ad3266ebc13277fad0e891df",
+      "size": 15778,
       "mode": "0o644"
     },
     {
@@ -1361,8 +1385,8 @@
     },
     {
       "path": "tests/test_panel_selection.py",
-      "sha256": "33a47036d1bfe25ba5e49d6de8dace06719f649e86e3492433325723ed64e14b",
-      "size": 12249,
+      "sha256": "b5bac9a74e1b7975cf88c9aebe5aa1aecc5fe5b601af88c6c0492e8aa20aa028",
+      "size": 12315,
       "mode": "0o644"
     },
     {
@@ -1511,14 +1535,14 @@
     },
     {
       "path": "wallpaper/README.md",
-      "sha256": "e2db6ecfc5f45cd21181cf880dd15bd6dc2100a27a664ec23524b8391d1e597a",
-      "size": 14333,
+      "sha256": "1d0a3d051f56184a33ff937e700520671dd8caddfe6bbf84e2c624119e2093bc",
+      "size": 14541,
       "mode": "0o644"
     },
     {
       "path": "wallpaper/build.py",
-      "sha256": "ab7055fd85c71cd9d7d7b9bb1a13bd7659d19d9472c54de0e95375421986f5d3",
-      "size": 3030,
+      "sha256": "398980a92ae49f0a02290e89ac94f7ae98759bf42d46ae4aa229aa7099bd48ca",
+      "size": 4831,
       "mode": "0o644"
     },
     {
@@ -1565,8 +1589,8 @@
     },
     {
       "path": "wallpaper/install.py",
-      "sha256": "8d9eddd41e337111679ef59bb6531d2176aae3fb225d318308811197b42252b2",
-      "size": 5297,
+      "sha256": "b983600de00350aa886ff50eb2f54d760d4216c1a97f81f391422ac9dd9ddc77",
+      "size": 5745,
       "mode": "0o644"
     },
     {

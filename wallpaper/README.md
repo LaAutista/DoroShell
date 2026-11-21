@@ -6,13 +6,13 @@ The design was informed by [Smart Video Wallpaper Reborn](https://github.com/lui
 
 ## Build and prepare
 
-Runtime: PCManFM-Qt/libfm-qt 2.4, Qt 6 Multimedia with its FFmpeg backend, KF6 WindowSystem, X11, Xext, XScreenSaver, Openbox and PySide6 for controls. Build requirements additionally include their development headers, Git, CMake, Ninja, C++ and lxqt-build-tools 2.4. The scripts do not install packages. The existing panel build's `deps` prefix can supply lxqt-build-tools through `CMAKE_PREFIX_PATH`.
+Runtime: the installed PCManFM-Qt/libfm-qt (2.4 or newer), Qt 6 Multimedia with its FFmpeg backend, KF6 WindowSystem, X11, Xext, XScreenSaver, Openbox and PySide6 for controls. Build requirements additionally include their development headers, Git, CMake, Ninja and C++. The builder clones the PCManFM release matching `pcmanfm-qt --version` (or `--tag`) and builds the lxqt-build-tools release it needs into the build's private `deps`. The scripts do not install packages. Each build keeps a `recipe/` copy of these sources so it can [rebuild itself after a breaking system update](../docs/native-rebuild.md).
 
 ```sh
-python wallpaper/build.py --work "$HOME/.local/share/doroshell/wallpaper-2.4.0"
-python setup.py wallpaper --wallpaper-binary "$HOME/.local/share/doroshell/wallpaper-2.4.0/build/pcmanfm/pcmanfm-qt"
+python wallpaper/build.py --work "$HOME/.local/share/doroshell/wallpaper-2.5.0"
+python setup.py wallpaper --wallpaper-binary "$HOME/.local/share/doroshell/wallpaper-2.5.0/build/pcmanfm/pcmanfm-qt"
 # After reviewing the preview, stage the optional desktop for your next normal login:
-python setup.py wallpaper --wallpaper-binary "$HOME/.local/share/doroshell/wallpaper-2.4.0/build/pcmanfm/pcmanfm-qt" --apply
+python setup.py wallpaper --wallpaper-binary "$HOME/.local/share/doroshell/wallpaper-2.5.0/build/pcmanfm/pcmanfm-qt" --apply
 ```
 
 Use a permanent empty build directory. Keep `pcmanfm-qt`, `doroshell-video-worker` and `doroshell-wallpaper-build.json` together. The builder records both executable hashes; staging checks both, and the launcher verifies the pair again before startup. Missing, non-executable or changed files select the stock desktop fallback. Legacy single-process build records remain supported for rollback. Staging backs up the user `lxqt-desktop.desktop` autostart override. If the candidate cannot start or exits with an error, its launcher falls back once to the system desktop. The existing running desktop is not stopped. The new desktop starts at a user-chosen normal login. Do not start a second PCManFM desktop in your personal session to test it.

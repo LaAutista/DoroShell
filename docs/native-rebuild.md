@@ -1,0 +1,62 @@
+# Rebuilding after system updates
+
+DoroShell's desktop (patched PCManFM) and taskbar (patched lxqt-panel) are native
+programs linked against the system's LXQt libraries. When a system update replaces
+one of those libraries with an incompatible version, the old build can no longer
+start. On 2026-11-14, for example, libfm-qt 2.4 (`libfm-qt6.so.17`) was replaced by
+2.5 (`.so.18`) and menu-cache was removed. The desktop then silently fell back to
+stock PCManFM, losing the video wallpaper and the display controls.
+
+## What happens now
+
+Each native build keeps a copy of the DoroShell sources that made it, in `recipe/`
+inside its build directory (about 1.6 MB). Only tracked source files are copied (git's
+index, or the recipe's own `RECIPE-FILES.json` list), never artwork, tests or local
+untracked files. At every login,
+its launcher runs `recipe/native_rebuild.py login`, which checks with `ldd` that every
+library the build needs still resolves.
+
+- **All libraries present:** the DoroShell build starts as before.
+- **A library is missing:** the stock program starts for this session. The stock
+  taskbar uses its own LXQt profile, so DoroShell's `panel.conf` is never touched.
+  A background rebuild starts at low priority, and you get a desktop notification:
+  - *Rebuilding…* when it starts,
+  - *…is ready* when the new build is staged; it is used from the next login,
+  - *…rebuilt but not switched* if you rolled the module back or chose another build
+    while it was compiling; your choice is kept and the new build is left unused,
+  - *…rebuild failed* with the log path if a step fails. A failed version is retried
+    after 24 hours, or immediately with `rebuild <kind> --current <exe> --force`.
+
+The desktop rebuild follows the system: it builds the PCManFM release matching the
+installed `pcmanfm-qt --version`, together with the lxqt-build-tools release that
+PCManFM states it needs, built privately (no packages are installed). Releases with a
+reviewed upstream revision (PCManFM 2.4.0 and 2.5.0) are verified against it. A newer
+release still builds, and is recorded as `"reviewed": false` in
+`doroshell-wallpaper-build.json`. The new launcher is staged through the normal
+wallpaper module, so its backup and conflict checks apply.
+
+The taskbar rebuild uses the same pinned lxqt-panel source and patches as before,
+built against the system's current liblxqt, and staged with the usual panel upgrade.
+The panel build currently knows only the LXQt 2.4 and 2.5 families. A later liblxqt
+family fails with a notification until DoroShell adds and reviews its build-tools pin.
+
+The new build is checked for missing libraries (the desktop and its video worker)
+before anything is staged. The desktop is staged under the wallpaper module's lock,
+only if its launcher still runs the build being replaced; the panel is staged under a
+panel lock (`native-panel.lock`, also taken by panel switch, upgrade and rollback) only
+if its launcher still runs the old build and its manifest record matches.
+
+Logs are in `~/.local/state/doroshell/native-rebuild-{desktop,panel}.log`, and the
+last result is in `native-rebuild.json` in the same folder.
+
+## Limits
+
+- Only missing libraries are detected. An incompatible library that keeps the same
+  version number is not detected; the desktop launcher still falls back to stock if
+  the program exits with an error.
+- When an upstream change makes a DoroShell patch stop applying, the rebuild fails
+  and tells you. Fixing that needs a DoroShell update.
+- Builds made before this change have no `recipe/` and keep the old behaviour until
+  they are rebuilt once.
+- The taskbar rebuild path is covered by unit tests only. A real automatic rebuild
+  after an actual library break has not been observed yet.

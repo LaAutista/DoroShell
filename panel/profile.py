@@ -15,7 +15,7 @@ import tempfile
 from PySide6.QtCore import QSettings
 from gi.repository import Gio
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from install import PlanError, safe, validate_backup
+from install import PlanError, panel_lock, safe, validate_backup
 from modules import atomic
 from panel.layout import installed_panel, preserve_sections, sections, select_panel
 
@@ -208,6 +208,11 @@ def merge_existing(home, preview=False):
     is updated too (two-phase, like upgrade()), so restore/removal keep working. A profile
     the user already edited keeps its manifest; restoring it needs --keep-panel-edits as before.
     """
+    with panel_lock(home):  # The manifest read-modify-write must not interleave with upgrade/switch.
+        return locked_merge_existing(home, preview)
+
+
+def locked_merge_existing(home, preview):
     state=home/'.local/state/doroshell'
     config=home/'.config/doroshell/panel.conf';manifest=state/'native-panel.json'
     for path in (state,config,manifest):safe(path,home)
@@ -284,7 +289,15 @@ def prepare(home, output, binary, hidden=None, launchers=None, panel=None):
 
 
 def launcher(binary, config):
-    return '#!/usr/bin/python3\nimport os\nfrom pathlib import Path\np=Path.home()/".local/state/doroshell/native-panel.log"\np.parent.mkdir(parents=True,exist_ok=True)\nfd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_APPEND,0o600)\nos.dup2(fd,1);os.dup2(fd,2);os.close(fd)\nos.execv('+repr(str(binary))+','+repr([str(binary),'--config',str(config)])+')\n'
+    script = '#!/usr/bin/python3\nimport os\nfrom pathlib import Path\np=Path.home()/".local/state/doroshell/native-panel.log"\np.parent.mkdir(parents=True,exist_ok=True)\nfd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_APPEND,0o600)\nos.dup2(fd,1);os.dup2(fd,2);os.close(fd)\n'
+    recipe = Path(binary).parents[2]/'recipe/native_rebuild.py' if len(Path(binary).parents) > 2 else None
+    if recipe and recipe.is_file():
+        # Missing libraries after a system update: rebuild in the background and use the
+        # stock panel with its own LXQt profile, leaving DoroShell's panel.conf untouched.
+        script += ('import subprocess\nif os.access("/usr/bin/lxqt-panel",os.X_OK) and subprocess.run(["/usr/bin/python3",'
+                   +repr(str(recipe))+',"login","panel","--current",'+repr(str(binary))+']).returncode:\n'
+                   '    os.execv("/usr/bin/lxqt-panel",["/usr/bin/lxqt-panel"])\n')
+    return script+'os.execv('+repr(str(binary))+','+repr([str(binary),'--config',str(config)])+')\n'
 
 
 def validate_record(record):
@@ -299,11 +312,22 @@ def validate_record(record):
                 raise ValueError('Invalid native panel recovery hash')
 
 
-def upgrade(home, binary, preview=False):
-    """Replace only the staged executable reference; retain the user's panel profile."""
+def upgrade(home, binary, preview=False, require=None):
+    """Replace only the staged executable reference; retain the user's panel profile.
+
+    With ``require``, upgrade only while the launcher still runs that executable and
+    return False otherwise, checked under the same lock as the change."""
+    with panel_lock(home):
+        return locked_upgrade(home, binary, preview, require)
+
+
+def locked_upgrade(home, binary, preview, require):
     manifest = home/'.local/state/doroshell/native-panel.json'
     wrapper = home/'.local/bin/doroshell-native-panel'
     for path in (manifest, wrapper): safe(path, home)
+    if require is not None and not (manifest.is_file() and wrapper.is_file()
+                                    and repr(str(require)) in wrapper.read_text()):
+        return False
     binary = binary.resolve()
     if not binary.is_file() or not os.access(binary, os.X_OK):
         raise ValueError('Build the native panel before upgrading')
@@ -316,15 +340,21 @@ def upgrade(home, binary, preview=False):
         raise RuntimeError('Edited panel launcher; refusing upgrade')
     desired = launcher(binary, home/'.config/doroshell/panel.conf').encode()
     print('Update native panel executable for next login; retain panel settings')
-    if preview: return
+    if preview: return True
     entry['pending_after'] = digest(desired)
     atomic(manifest, json.dumps(record, indent=2).encode())
     atomic(wrapper, desired, 0o755)
     entry['after'] = entry.pop('pending_after')
     atomic(manifest, json.dumps(record, indent=2).encode())
+    return True
 
 
 def switch(home, prepared=None, rollback=False, preview=False, keep_panel_edits=False):
+    with panel_lock(home):
+        return locked_switch(home, prepared, rollback, preview, keep_panel_edits)
+
+
+def locked_switch(home, prepared, rollback, preview, keep_panel_edits):
     manifest=home/'.local/state/doroshell/native-panel.json'
     safe(manifest,home)
     saved = json.loads(manifest.read_text()) if manifest.exists() else None

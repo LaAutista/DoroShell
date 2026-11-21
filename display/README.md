@@ -71,7 +71,7 @@ CMAKE_PREFIX_PATH=/path/to/lxqt-build-deps python wallpaper/build.py \
   --display-controls --work /path/to/new-permanent-candidate
 ```
 
-The work directory must be empty. This clones the existing pinned PCManFM revision, applies the existing isolated-video patch, then adds the display controls. It produces `build/pcmanfm/pcmanfm-qt`, `doroshell-video-worker`, `doroshell-display-backend.py` and `doroshell-wallpaper-build.json` together. A format-3 build record pins all three payload digests. Omitting `--display-controls` preserves the legacy format-2 paired build. Format-1/2 installations remain supported.
+The work directory must be empty. This clones the PCManFM release matching the installed `pcmanfm-qt` (reviewed revisions are verified), applies the existing isolated-video patch, then adds the display controls. It produces `build/pcmanfm/pcmanfm-qt`, `doroshell-video-worker`, `doroshell-display-backend.py` and `doroshell-wallpaper-build.json` together. A format-3 build record pins all three payload digests. Omitting `--display-controls` preserves the legacy format-2 paired build. Format-1/2 installations remain supported.
 
 For a future explicitly authorized next-login staging, the existing command is:
 
