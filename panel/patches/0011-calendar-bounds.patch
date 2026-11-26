@@ -1,0 +1,39 @@
+diff --git a/plugin-worldclock/lxqtworldclock.cpp b/plugin-worldclock/lxqtworldclock.cpp
+--- a/plugin-worldclock/lxqtworldclock.cpp
++++ b/plugin-worldclock/lxqtworldclock.cpp
+@@ -41,4 +41,5 @@
+ #include <QScreen>
+ #include <QScrollArea>
++#include <QScrollBar>
+ #include <QWheelEvent>
+ #include <QToolTip>
+@@ -595,15 +596,25 @@
+         return;
+     }
+-    QRect bounds = mMainWidget->screen()->geometry();
++    QRect bounds = mMainWidget->screen()->availableGeometry();
+     QWidget *bar = mMainWidget->window();
+     const int barTop = bar->mapToGlobal(QPoint()).y();
+     if (panel()->position() == ILXQtPanel::PositionBottom)
+-        bounds.setBottom(barTop - 1);
++        bounds.setBottom(qMin(bounds.bottom(), barTop - 1));
+     else
+-        bounds.setTop(barTop + bar->height());
++        bounds.setTop(qMax(bounds.top(), barTop + bar->height()));
+     if (!bounds.isValid())
+         return;
+     mPopup->setMaximumSize(bounds.size());
+-    const QSize size = mPopup->sizeHint().boundedTo(bounds.size());
++    QSize size = mPopup->sizeHint();
++    if (auto *scroll = mPopup->findChild<QScrollArea*>())
++    {
++        // A constrained axis needs a scrollbar without stealing the other axis.
++        const QSize content = scroll->widget()->minimumSizeHint();
++        if (content.width() > bounds.width())
++            size.rheight() += scroll->horizontalScrollBar()->sizeHint().height();
++        if (content.height() > bounds.height())
++            size.rwidth() += scroll->verticalScrollBar()->sizeHint().width();
++    }
++    size = size.boundedTo(bounds.size());
+     QRect target(QPoint(), size);
+     target.moveRight(qBound(bounds.left() + size.width() - 1,

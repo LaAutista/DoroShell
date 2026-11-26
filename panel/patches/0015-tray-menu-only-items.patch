@@ -1,0 +1,110 @@
+diff --git a/plugin-statusnotifier/statusnotifierbutton.cpp b/plugin-statusnotifier/statusnotifierbutton.cpp
+index c668f8d..d922aeb 100644
+--- a/plugin-statusnotifier/statusnotifierbutton.cpp
++++ b/plugin-statusnotifier/statusnotifierbutton.cpp
+@@ -29,6 +29,7 @@
+ #include "statusnotifierbutton.h"
+ 
+ #include <QDir>
++#include <QXmlStreamReader>
+ #include <QFile>
+ #include <dbusmenu-lxqt/dbusmenuimporter.h>
+ #include "../panel/ilxqtpanelplugin.h"
+@@ -88,6 +89,49 @@ StatusNotifierButton::StatusNotifierButton(QString service, QString objectPath,
+         }
+     });
+ 
++    // DoroShell: AppIndicator items implement no Activate, so a left click did nothing.
++    // The specification's ItemIsMenu flag is rarely set; the item's own method list is reliable.
++    interface->propertyGetAsync(QLatin1String("ItemIsMenu"), [this] (bool menu) {
++        if (menu)
++            mMenuOnly = true;
++    });
++    connect(new QDBusPendingCallWatcher{QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, objectPath,
++                QStringLiteral("org.freedesktop.DBus.Introspectable"), QStringLiteral("Introspect"))), this},
++            &QDBusPendingCallWatcher::finished, this, [this] (QDBusPendingCallWatcher *call) {
++        QDBusPendingReply<QString> reply = *call;
++        call->deleteLater();
++        if (reply.isError())
++            return;
++        // Only this interface's own methods count; anything unreadable keeps regular activation.
++        QXmlStreamReader xml(reply.value());
++        bool described = false, activates = false, inside = false;
++        int depth = 0;
++        while (!xml.atEnd())
++        {
++            const auto token = xml.readNext();
++            if (token == QXmlStreamReader::StartElement)
++            {
++                ++depth;
++                const auto name = xml.attributes().value(QLatin1String("name"));
++                if (depth == 2 && xml.name() == QLatin1String("interface"))
++                {
++                    inside = name == QLatin1String("org.kde.StatusNotifierItem");
++                    described = described || inside;
++                }
++                else if (depth == 3 && inside && xml.name() == QLatin1String("method") && name == QLatin1String("Activate"))
++                    activates = true;
++            }
++            else if (token == QXmlStreamReader::EndElement)
++            {
++                if (depth == 2)
++                    inside = false;
++                --depth;
++            }
++        }
++        if (!xml.hasError() && described && !activates)
++            mMenuOnly = true;
++    });
++
+     interface->propertyGetAsync(QLatin1String("Status"), [this] (QString status) {
+         newStatus(status);
+     });
+@@ -333,7 +377,9 @@ void StatusNotifierButton::mouseReleaseEvent(QMouseEvent *event)
+ {
+     if (event->button() == Qt::LeftButton)
+     {
+-        if (!dispatch(QStringLiteral("Activate"), QCursor::pos()))
++        if (mMenuOnly)
++            showContextMenu(QCursor::pos());
++        else if (!dispatch(QStringLiteral("Activate"), QCursor::pos()))
+             interface->Activate(QCursor::pos().x(), QCursor::pos().y());
+     }
+     else if (event->button() == Qt::MiddleButton)
+diff --git a/plugin-statusnotifier/statusnotifierbutton.h b/plugin-statusnotifier/statusnotifierbutton.h
+index ab27105..215d1dd 100644
+--- a/plugin-statusnotifier/statusnotifierbutton.h
++++ b/plugin-statusnotifier/statusnotifierbutton.h
+@@ -86,10 +86,13 @@ private:
+     QString mTitle;
+     bool mAutoHide;
+     QTimer mHideTimer;
++    bool mMenuOnly = false;
+ 
+ protected:
+     // DoroShell: lets a view take over a request the application may answer with its own menu or window.
+     virtual bool dispatch(const QString &, const QPoint &) { return false; }
++    // DoroShell: true for an item that offers a menu but no Activate method, such as an AppIndicator.
++    bool menuOnly() const { return mMenuOnly; }
+ 
+     void contextMenuEvent(QContextMenuEvent * event);
+     void mouseReleaseEvent(QMouseEvent *event);
+diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
+index 126a92b..0a812e2 100644
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp
+@@ -127,7 +127,13 @@ protected:
+             if (!event->isAutoRepeat() && mActivationKey == event->key())
+             {
+                 mActivationKey = 0;
+-                dispatch(QStringLiteral("Activate"), mapToGlobal(rect().center()));
++                if (menuOnly())
++                {
++                    QContextMenuEvent menuEvent(QContextMenuEvent::Keyboard, rect().center(), mapToGlobal(rect().center()));
++                    contextMenuEvent(&menuEvent);
++                }
++                else
++                    dispatch(QStringLiteral("Activate"), mapToGlobal(rect().center()));
+             }
+             event->accept();
+         }

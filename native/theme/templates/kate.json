@@ -1,0 +1,251 @@
+{
+  "metadata": {
+    "name": "DoroShell",
+    "revision": 1,
+    "license": "MIT",
+    "copyright": [
+      "DoroShell theme contributors"
+    ]
+  },
+  "text-styles": {
+    "Normal": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Keyword": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": true,
+      "italic": false,
+      "underline": false
+    },
+    "Function": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Variable": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "ControlFlow": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": true,
+      "italic": false,
+      "underline": false
+    },
+    "Operator": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "BuiltIn": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Extension": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Preprocessor": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Attribute": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Char": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "SpecialChar": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "String": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "VerbatimString": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "SpecialString": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Import": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "DataType": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "DecVal": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "BaseN": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Float": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Constant": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Comment": {
+      "text-color": "@muted@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": true,
+      "underline": false
+    },
+    "Documentation": {
+      "text-color": "@muted@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": true,
+      "underline": false
+    },
+    "Annotation": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "CommentVar": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "RegionMarker": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Information": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Warning": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    },
+    "Alert": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": true,
+      "italic": false,
+      "underline": false
+    },
+    "Error": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": true
+    },
+    "Others": {
+      "text-color": "@ink@",
+      "selected-text-color": "@ink@",
+      "bold": false,
+      "italic": false,
+      "underline": false
+    }
+  },
+  "editor-colors": {
+    "BackgroundColor": "@base@",
+    "CurrentLine": "@window@",
+    "IconBorder": "@window@",
+    "LineNumbers": "@muted@",
+    "CurrentLineNumber": "@ink@",
+    "TextSelection": "@selection@",
+    "BracketMatching": "@selection@",
+    "SearchHighlight": "@selection@",
+    "ReplaceHighlight": "@selection@",
+    "CodeFolding": "@edge@",
+    "IndentationLine": "@edge@",
+    "Separator": "@edge@",
+    "WordWrapMarker": "@edge@",
+    "TabMarker": "@edge@",
+    "SpellChecking": "@accent@",
+    "MarkBookmark": "@accent@",
+    "ModifiedLines": "@accent@",
+    "SavedLines": "@edge@",
+    "MarkError": "@accent@",
+    "MarkWarning": "@accent@"
+  }
+}

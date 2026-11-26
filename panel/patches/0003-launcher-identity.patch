@@ -1,0 +1,307 @@
+diff --git a/panel/backends/ilxqtabstractwmiface.h b/panel/backends/ilxqtabstractwmiface.h
+index 48022e5..df3c2a6 100644
+--- a/panel/backends/ilxqtabstractwmiface.h
++++ b/panel/backends/ilxqtabstractwmiface.h
+@@ -30,6 +30,7 @@
+ #define ILXQT_ABSTRACT_WM_INTERFACE_H
+ 
+ #include <QObject>
++#include <QStringList>
+ 
+ #include "../lxqtpanelglobals.h"
+ #include "lxqttaskbartypes.h"
+@@ -59,6 +60,8 @@ public:
+     virtual QIcon getApplicationIcon(WId windowId, int fallbackDevicePixels) const = 0;
+ 
+     virtual QString getWindowClass(WId windowId) const = 0;
++    virtual QStringList getWindowAppIds(WId) const { return {}; }
++    virtual QStringList getWindowClasses(WId windowId) const { return {getWindowClass(windowId)}; }
+ 
+     virtual LXQtTaskBarWindowLayer getWindowLayer(WId windowId) const = 0;
+     virtual bool setWindowLayer(WId windowId, LXQtTaskBarWindowLayer layer) = 0;
+diff --git a/panel/backends/xcb/lxqtwmbackend_x11.cpp b/panel/backends/xcb/lxqtwmbackend_x11.cpp
+index 84929a6..74ffed1 100644
+--- a/panel/backends/xcb/lxqtwmbackend_x11.cpp
++++ b/panel/backends/xcb/lxqtwmbackend_x11.cpp
+@@ -94,7 +94,7 @@ void LXQtWMBackendX11::onWindowChanged(WId windowId, NET::Properties prop, NET::
+         emit windowPropertyChanged(windowId, int(LXQtTaskBarWindowProperty::Geometry));
+     }
+ 
+-    if (prop2.testFlag(NET::WM2WindowClass))
++    if ((prop2 & (NET::WM2WindowClass | NET::WM2DesktopFileName | NET::WM2GTKApplicationId)))
+     {
+         emit windowPropertyChanged(windowId, int(LXQtTaskBarWindowProperty::WindowClass));
+     }
+@@ -110,7 +110,7 @@ void LXQtWMBackendX11::onWindowChanged(WId windowId, NET::Properties prop, NET::
+ 
+     // XXX: we are setting window icon geometry -> don't need to handle NET::WMIconGeometry
+     // Icon of the button can be based on windowClass
+-    if (prop.testFlag(NET::WMIcon) || prop2.testFlag(NET::WM2WindowClass))
++    if (prop.testFlag(NET::WMIcon) || (prop2 & (NET::WM2WindowClass | NET::WM2DesktopFileName | NET::WM2GTKApplicationId)))
+         emit windowPropertyChanged(windowId, int(LXQtTaskBarWindowProperty::Icon));
+ 
+     bool update_urgency = false;
+@@ -315,7 +315,8 @@ bool LXQtWMBackendX11::applicationDemandsAttention(WId windowId) const
+ 
+ QIcon LXQtWMBackendX11::getApplicationIcon(WId windowId, int devicePixels) const
+ {
+-    return KX11Extras::icon(windowId, devicePixels, devicePixels);
++    return KX11Extras::icon(windowId, devicePixels, devicePixels, false,
++                           KX11Extras::NETWM | KX11Extras::WMHints);
+ }
+ 
+ QString LXQtWMBackendX11::getWindowClass(WId windowId) const
+@@ -324,6 +325,18 @@ QString LXQtWMBackendX11::getWindowClass(WId windowId) const
+     return QString::fromUtf8(info.windowClassClass());
+ }
+ 
++QStringList LXQtWMBackendX11::getWindowAppIds(WId windowId) const
++{
++    KWindowInfo info(windowId, NET::Properties(), NET::WM2DesktopFileName | NET::WM2GTKApplicationId);
++    return {QString::fromUtf8(info.desktopFileName()), QString::fromUtf8(info.gtkApplicationId())};
++}
++
++QStringList LXQtWMBackendX11::getWindowClasses(WId windowId) const
++{
++    KWindowInfo info(windowId, NET::Properties(), NET::WM2WindowClass);
++    return {QString::fromUtf8(info.windowClassClass()), QString::fromUtf8(info.windowClassName())};
++}
++
+ LXQtTaskBarWindowLayer LXQtWMBackendX11::getWindowLayer(WId windowId) const
+ {
+     NET::States state = KWindowInfo(windowId, NET::WMState).state();
+diff --git a/panel/backends/xcb/lxqtwmbackend_x11.h b/panel/backends/xcb/lxqtwmbackend_x11.h
+index 55eb8d1..5890287 100644
+--- a/panel/backends/xcb/lxqtwmbackend_x11.h
++++ b/panel/backends/xcb/lxqtwmbackend_x11.h
+@@ -54,6 +54,8 @@ public:
+     virtual bool applicationDemandsAttention(WId windowId) const override;
+     virtual QIcon getApplicationIcon(WId windowId, int devicePixels) const override;
+     virtual QString getWindowClass(WId windowId) const override;
++    QStringList getWindowAppIds(WId windowId) const override;
++    QStringList getWindowClasses(WId windowId) const override;
+ 
+     virtual LXQtTaskBarWindowLayer getWindowLayer(WId windowId) const override;
+     virtual bool setWindowLayer(WId windowId, LXQtTaskBarWindowLayer layer) override;
+diff --git a/plugin-taskbar/lxqttaskbar.cpp b/plugin-taskbar/lxqttaskbar.cpp
+index f0dfe5d..f1a8002 100644
+--- a/plugin-taskbar/lxqttaskbar.cpp
++++ b/plugin-taskbar/lxqttaskbar.cpp
+@@ -346,44 +346,81 @@ LXQtTaskGroup *LXQtTaskBar::createGroup(const QString &name, WId window)
+     return group;
+ }
+ 
+-void LXQtTaskBar::addPinAction(QMenu* menu, WId window, const QString& pinnedPath)
++QString LXQtTaskBar::desktopForWindow(WId window) const
+ {
+-    const QString identity = window ? mBackend->getWindowClass(window) : QString();
+-    QString path = pinnedPath;
+-    if (path.isEmpty() && mKnownWindows.contains(window)) path = mKnownWindows.value(window)->pinnedDesktop();
+-    if (path.isEmpty() && !identity.isEmpty())
+-    {
+-        QStringList matches;
+-        for (const auto& saved : mPinnedPaths)
++    const auto appIds = mBackend->getWindowAppIds(window);
++    const auto classes = mBackend->getWindowClasses(window);
++    int best = 0;
++    QSet<QString> matches;
++    QSet<QString> seen;
++    const auto consider = [&](GDesktopAppInfo* info) {
++        const char* filename = g_desktop_app_info_get_filename(info);
++        if (!filename) return;
++        const QString path = QString::fromUtf8(filename);
++        if (!QFileInfo(path).isAbsolute() || seen.contains(path)) return;
++        seen.insert(path);
++        const QString id = QString::fromUtf8(g_app_info_get_id(G_APP_INFO(info)));
++        const QString basename = QFileInfo(path).completeBaseName();
++        const char* startup = g_desktop_app_info_get_startup_wm_class(info);
++        const QString wmClass = startup ? QString::fromUtf8(startup) : QString();
++        int score = 0;
++        for (auto appId : appIds)
+         {
+-            XdgDesktopFile entry;
+-            if (!entry.load(saved)) continue;
+-            QString id = entry.value(QStringLiteral("StartupWMClass")).toString();
+-            if (id.isEmpty()) id = QFileInfo(saved).completeBaseName();
+-            if (id.compare(identity, Qt::CaseInsensitive) == 0) matches << saved;
++            if (appId.endsWith(QStringLiteral(".desktop"))) appId.chop(8);
++            if (!appId.isEmpty() && (appId + QStringLiteral(".desktop") == id
++                || appId + QStringLiteral(".desktop") == path)) score = 3;
+         }
+-        if (matches.size() == 1) path = matches.first();
+-        else if (!matches.isEmpty()) return;
+-    }
+-    if (path.isEmpty() && !identity.isEmpty())
+-    {
+-        QSet<QString> matches;
+-        GList* apps = g_app_info_get_all();
+-        for (GList* item = apps; item; item = item->next)
++        for (const auto& cls : classes)
++        {
++            if (cls.isEmpty()) continue;
++            if (!wmClass.isEmpty() && cls.compare(wmClass, Qt::CaseInsensitive) == 0) score = qMax(score, 2);
++            if (cls.compare(basename, Qt::CaseInsensitive) == 0) score = qMax(score, 1);
++        }
++        if (score > best) { best = score; matches.clear(); }
++        if (score && score == best) matches.insert(path);
++    };
++    // GIO caches catalog metadata; do not reopen every desktop file per window event.
++    GList* apps = g_app_info_get_all();
++    for (GList* item = apps; item; item = item->next)
++        if (G_IS_DESKTOP_APP_INFO(item->data) && g_app_info_should_show(G_APP_INFO(item->data)))
++            consider(G_DESKTOP_APP_INFO(item->data));
++    for (const auto& path : mPinnedPaths)
++    {
++        if (seen.contains(path)) continue;
++        if (auto info = g_desktop_app_info_new_from_filename(path.toUtf8().constData()))
+         {
+-            if (!G_IS_DESKTOP_APP_INFO(item->data) || !g_app_info_should_show(G_APP_INFO(item->data))) continue;
+-            auto info = G_DESKTOP_APP_INFO(item->data);
+-            const char* filename = g_desktop_app_info_get_filename(info);
+-            if (!filename) continue;
+-            const QString candidate = QString::fromUtf8(filename);
+-            const char* wmClass = g_desktop_app_info_get_startup_wm_class(info);
+-            QString id = wmClass ? QString::fromUtf8(wmClass) : QFileInfo(candidate).completeBaseName();
+-            if (id.isEmpty()) id = QFileInfo(candidate).completeBaseName();
+-            if (id.compare(identity, Qt::CaseInsensitive) == 0 && QFileInfo(candidate).isAbsolute()) matches.insert(candidate);
++            consider(info);
++            g_object_unref(info);
+         }
+-        g_list_free_full(apps, g_object_unref);
+-        if (matches.size() == 1) path = *matches.cbegin();
+     }
++    g_list_free_full(apps, g_object_unref);
++    if (matches.size() == 1) return *matches.cbegin();
++    // An explicit pin breaks only equal-strength ties, never a stronger app ID.
++    QSet<QString> pinnedMatches;
++    for (const auto& path : mPinnedPaths)
++        if (matches.contains(path)) pinnedMatches.insert(path);
++    return pinnedMatches.size() == 1 ? *pinnedMatches.cbegin() : QString();
++}
++
++QString LXQtTaskBar::windowGroupName(WId window) const
++{
++    const QString desktop = desktopForWindow(window);
++    return desktop.isEmpty() ? mBackend->getWindowClass(window) : desktop;
++}
++
++QIcon LXQtTaskBar::launcherIcon(WId window) const
++{
++    XdgDesktopFile entry;
++    if (!entry.load(desktopForWindow(window))) return {};
++    const QString name = entry.value(QStringLiteral("Icon")).toString();
++    return QFileInfo(name).isAbsolute() ? QIcon(name) : QIcon::fromTheme(name);
++}
++
++void LXQtTaskBar::addPinAction(QMenu* menu, WId window, const QString& pinnedPath)
++{
++    QString path = pinnedPath;
++    if (path.isEmpty() && mKnownWindows.contains(window)) path = mKnownWindows.value(window)->pinnedDesktop();
++    if (path.isEmpty() && window) path = desktopForWindow(window);
+     if (path.isEmpty()) return;
+     const bool pinned = mPinnedPaths.contains(path);
+     QAction* action = menu->addAction(pinned ? tr("Unpin from taskbar") : tr("Pin to taskbar"));
+@@ -421,9 +458,7 @@ void LXQtTaskBar::loadPinnedLaunchers()
+     {
+         XdgDesktopFile entry;
+         if (!QFileInfo(path).isAbsolute() || !entry.load(path) || entry.value(QStringLiteral("Type")).toString() != QStringLiteral("Application")) continue;
+-        QString identity = entry.value(QStringLiteral("StartupWMClass")).toString();
+-        if (identity.isEmpty()) identity = QFileInfo(path).completeBaseName();
+-        auto group = createGroup(identity, 0);
++        auto group = createGroup(path, 0);
+         group->setPinnedDesktop(path, entry.name(), XdgIcon::fromTheme(entry.value(QStringLiteral("Icon")).toString()));
+     }
+ }
+@@ -433,7 +468,7 @@ void LXQtTaskBar::addWindow(WId window)
+     if (mExcludedList.contains(mBackend->getWindowClass(window), Qt::CaseInsensitive))
+         return;
+     // If grouping disabled group behaves like regular button
+-    const QString group_id = mGroupingEnabled ? mBackend->getWindowClass(window) : QString::number(window);
++    const QString group_id = mGroupingEnabled ? windowGroupName(window) : QString::number(window);
+ 
+     LXQtTaskGroup *group = nullptr;
+     auto i_group = mKnownWindows.find(window);
+diff --git a/plugin-taskbar/lxqttaskbar.h b/plugin-taskbar/lxqttaskbar.h
+index a292716..a757d11 100644
+--- a/plugin-taskbar/lxqttaskbar.h
++++ b/plugin-taskbar/lxqttaskbar.h
+@@ -69,6 +69,9 @@ public:
+     virtual ~LXQtTaskBar();
+ 
+     void realign();
++    QString desktopForWindow(WId window) const;
++    QString windowGroupName(WId window) const;
++    QIcon launcherIcon(WId window) const;
+     void addPinAction(QMenu* menu, WId window, const QString& pinnedPath = QString());
+ 
+     Qt::ToolButtonStyle buttonStyle() const { return mButtonStyle; }
+diff --git a/plugin-taskbar/lxqttaskbutton.cpp b/plugin-taskbar/lxqttaskbutton.cpp
+index 5bb9e32..f74e469 100644
+--- a/plugin-taskbar/lxqttaskbutton.cpp
++++ b/plugin-taskbar/lxqttaskbutton.cpp
+@@ -142,14 +142,20 @@ void LXQtTaskButton::updateIcon()
+     QIcon ico;
+     if (mParentTaskBar->isIconByClass())
+     {
+-        ico = XdgIcon::fromTheme(mBackend->getWindowClass(mWindow).toLower());
++        ico = mParentTaskBar->launcherIcon(mWindow);
++        if (ico.isNull() && QIcon::hasThemeIcon(mBackend->getWindowClass(mWindow).toLower()))
++            ico = QIcon::fromTheme(mBackend->getWindowClass(mWindow).toLower());
+     }
+     if (ico.isNull())
+     {
+         int devicePixels = mIconSize * devicePixelRatioF();
+         ico = mBackend->getApplicationIcon(mWindow, devicePixels);
+     }
++    if (ico.isNull()) ico = mParentTaskBar->launcherIcon(mWindow);
++    if (ico.isNull() && QIcon::hasThemeIcon(mBackend->getWindowClass(mWindow).toLower()))
++        ico = QIcon::fromTheme(mBackend->getWindowClass(mWindow).toLower());
+     setIcon(ico.isNull() ? XdgIcon::defaultApplicationIcon() : ico);
++
+ }
+ 
+ /************************************************
+diff --git a/plugin-taskbar/lxqttaskgroup.cpp b/plugin-taskbar/lxqttaskgroup.cpp
+index 048326a..3a3f553 100644
+--- a/plugin-taskbar/lxqttaskgroup.cpp
++++ b/plugin-taskbar/lxqttaskgroup.cpp
+@@ -81,7 +81,7 @@ void LXQtTaskGroup::setPinnedDesktop(const QString &path, const QString &name, c
+ {
+     mPinnedDesktop = path;
+     mPinnedName = name;
+-    mPinnedIcon = icon;
++    mPinnedIcon = icon.isNull() ? XdgIcon::defaultApplicationIcon() : icon;
+     if (mButtonHash.isEmpty()) showPinnedLauncher();
+ }
+ 
+@@ -403,7 +403,11 @@ void LXQtTaskGroup::regroup()
+         {
+             setTextExplicitly(button->text());
+             setToolTip(button->toolTip());
+-            setWindowId(button->windowId());
++            if (windowId() != button->windowId())
++            {
++                setWindowId(button->windowId());
++                updateIcon();
++            }
+         }
+     }
+     else if (cont == 0)
+@@ -411,7 +415,7 @@ void LXQtTaskGroup::regroup()
+     else
+     {
+         mSingleButton = false;
+-        QString t = QString(QStringLiteral("%1 - %2 windows")).arg(mGroupName).arg(cont);
++        QString t = QString(QStringLiteral("%1 - %2 windows")).arg(mPinnedName.isEmpty() ? mButtonHash.constBegin().value()->text() : mPinnedName).arg(cont);
+         setTextExplicitly(t);
+         setToolTip(parentTaskBar()->isShowGroupOnHover() ? QString() : t);
+     }
+@@ -709,7 +713,7 @@ bool LXQtTaskGroup::onWindowChanged(WId window, LXQtTaskBarWindowProperty prop)
+         // if class is changed the window won't belong to our group any more
+         if (parentTaskBar()->isGroupingEnabled() && prop == LXQtTaskBarWindowProperty::WindowClass)
+         {
+-            if (mBackend->getWindowClass(window).compare(mGroupName, Qt::CaseInsensitive) != 0)
++            if (parentTaskBar()->windowGroupName(window).compare(mGroupName, Qt::CaseInsensitive) != 0)
+             {
+                 onWindowRemoved(window);
+                 return false;

@@ -1,0 +1,147 @@
+diff --git a/lxqt-config-input/lxqt-config-input.cpp b/lxqt-config-input/lxqt-config-input.cpp
+index 1320295..a6f46e2 100644
+--- a/lxqt-config-input/lxqt-config-input.cpp
++++ b/lxqt-config-input/lxqt-config-input.cpp
+@@ -24,6 +24,15 @@
+ #include <LXQt/Settings>
+ #include <QCommandLineParser>
+ #include <QMessageBox>
++#include <QCheckBox>
++#include <QDir>
++#include <QJsonDocument>
++#include <QJsonObject>
++#include <QLabel>
++#include <QProcess>
++#include <QScrollArea>
++#include <QSignalBlocker>
++#include <QVBoxLayout>
+ #include "mouseconfig.h"
+ #include "keyboardconfig.h"
+ #include "../liblxqt-config-cursor/selectwnd.h"
+@@ -93,7 +102,58 @@ int main(int argc, char** argv) {
+ 
+     /*** Mouse Config ***/
+     MouseConfig* mouseConfig = new MouseConfig(&settings, &qtSettings, &dlg);
+-    dlg.addPage(mouseConfig, QObject::tr("Mouse"), QStringLiteral("input-mouse"));
++    auto *pointerPage = new QScrollArea(&dlg);
++    pointerPage->setObjectName(QStringLiteral("MouseConfig"));
++    pointerPage->setWidgetResizable(true);
++    pointerPage->setFrameShape(QFrame::NoFrame);
++    auto *controls = new QWidget(pointerPage);
++    auto *layout = new QVBoxLayout(controls);
++    layout->addWidget(mouseConfig);
++    auto *flat = new QCheckBox(QObject::tr("Disable mouse acceleration"), controls);
++    flat->setToolTip(QObject::tr("Use a flat profile for supported mice, including newly connected mice. Individual device choices in DoroShell Settings take precedence."));
++    layout->addWidget(flat);
++    auto *feedback = new QLabel(controls);
++    feedback->setWordWrap(true);
++    layout->addWidget(feedback);
++    pointerPage->setWidget(controls);
++    dlg.addPage(pointerPage, QObject::tr("Mouse and Touchpad"), QStringLiteral("input-mouse"));
++
++    const QString helper = QDir::homePath() + QStringLiteral("/.local/share/doroshell/toolkit/input_preferences.py");
++    QString revision;
++    bool savedFlat = false;
++    auto callHelper = [&](const QStringList &args, QByteArray &output) {
++        QProcess child;
++        child.start(QStringLiteral("/usr/bin/python"), QStringList{helper} + args);
++        if (!child.waitForFinished()) {
++            feedback->setText(child.errorString());
++            return false;
++        }
++        output = child.readAllStandardOutput().trimmed();
++        if (child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0)
++            return true;
++        const QString reason = QString::fromUtf8(child.readAllStandardError()).trimmed();
++        feedback->setText(reason.isEmpty() ? QObject::tr("Could not update mouse acceleration.") : reason);
++        return false;
++    };
++    auto loadFlat = [&]() {
++        QByteArray output;
++        flat->setEnabled(false);
++        if (!callHelper({QStringLiteral("--global-status")}, output))
++            return;
++        const auto state = QJsonDocument::fromJson(output).object();
++        revision = state.value(QStringLiteral("revision")).toString();
++        if (!state.value(QStringLiteral("enabled")).isBool() || revision.isEmpty()) {
++            feedback->setText(QObject::tr("Could not read mouse acceleration preferences."));
++            return;
++        }
++        QSignalBlocker block(flat);
++        savedFlat = state.value(QStringLiteral("enabled")).toBool();
++        flat->setChecked(savedFlat);
++        flat->setEnabled(true);
++    };
++    loadFlat();
++    QObject::connect(flat, &QCheckBox::toggled, &dlg, [&dlg] { dlg.enableButton(QDialogButtonBox::Apply, true); });
++    QObject::connect(&dlg, &LXQt::ConfigDialog::reset, &dlg, [&] { feedback->clear(); loadFlat(); });
+     QObject::connect(&dlg, &LXQt::ConfigDialog::reset, mouseConfig, &MouseConfig::reset);
+     QObject::connect(mouseConfig, &MouseConfig::settingsChanged, &dlg, [&dlg] {
+         dlg.enableButton(QDialogButtonBox::Apply, true); // enable Apply button when something is changed
+@@ -135,7 +195,7 @@ int main(int argc, char** argv) {
+     {
+         /*** Touchpad Config ***/
+         touchpadConfig = new TouchpadConfig(&settings, &dlg);
+-        dlg.addPage(touchpadConfig, QObject::tr("Mouse and Touchpad"), QStringLiteral("input-tablet"));
++        layout->addWidget(touchpadConfig);
+         QObject::connect(&dlg, &LXQt::ConfigDialog::reset, touchpadConfig, &TouchpadConfig::reset);
+         QObject::connect(touchpadConfig, &TouchpadConfig::settingsChanged, &dlg, [&dlg] {
+             dlg.enableButton(QDialogButtonBox::Apply, true);
+@@ -143,10 +203,21 @@ int main(int argc, char** argv) {
+     }
+ #endif
+ 
++    layout->addStretch();
++
+     // apply all changes on clicking Apply
+-    QObject::connect(&dlg, &LXQt::ConfigDialog::clicked, [=, &dlg] (QDialogButtonBox::StandardButton btn) {
++    QObject::connect(&dlg, &LXQt::ConfigDialog::clicked, [=, &dlg, &savedFlat, &revision, &callHelper, &loadFlat] (QDialogButtonBox::StandardButton btn) {
+         if (btn == QDialogButtonBox::Apply)
+         {
++            if (flat->isEnabled() && flat->isChecked() != savedFlat) {
++                QByteArray output;
++                if (!callHelper({QStringLiteral("--global-set"), flat->isChecked() ? QStringLiteral("on") : QStringLiteral("off"), revision}, output)) {
++                    loadFlat();
++                    return;
++                }
++                feedback->setText(QString::fromUtf8(output));
++                loadFlat();
++            }
+             mouseConfig->applyConfig();
+             cursorConfig->applyCusorTheme();
+             if (configOtherToolKits)
+@@ -181,7 +252,7 @@ int main(int argc, char** argv) {
+ 
+     const QString initialPage = dlgOptions.page();
+     if (!initialPage.isEmpty())
+-        dlg.showPage(initialPage);
++        dlg.showPage(initialPage == QStringLiteral("TouchpadConfig") ? QStringLiteral("MouseConfig") : initialPage);
+ 
+     dlg.exec();
+     mConfigInputSettings.setValue(QStringLiteral("size"), dlg.size());
+diff --git a/lxqt-config-input/mouseconfig.ui b/lxqt-config-input/mouseconfig.ui
+index c23b0cd..7ec1a55 100644
+--- a/lxqt-config-input/mouseconfig.ui
++++ b/lxqt-config-input/mouseconfig.ui
+@@ -20,7 +20,7 @@
+    <item row="0" column="0" colspan="2">
+     <widget class="QLabel" name="label_43">
+      <property name="text">
+-      <string>&lt;b&gt;Mouse&lt;/b&gt;</string>
++      <string>&lt;b&gt;Mouse and Touchpad&lt;/b&gt;</string>
+      </property>
+     </widget>
+    </item>
+diff --git a/lxqt-config-input/touchpadconfig.ui b/lxqt-config-input/touchpadconfig.ui
+index c3ab7ff..708c4b1 100644
+--- a/lxqt-config-input/touchpadconfig.ui
++++ b/lxqt-config-input/touchpadconfig.ui
+@@ -17,7 +17,7 @@
+    <item row="0" column="0" colspan="2">
+     <widget class="QLabel" name="label">
+      <property name="text">
+-      <string>&lt;b&gt;Mouse and Touchpad&lt;/b&gt;</string>
++      <string>&lt;b&gt;Device settings&lt;/b&gt;</string>
+      </property>
+     </widget>
+    </item>

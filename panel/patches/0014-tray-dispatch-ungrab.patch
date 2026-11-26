@@ -1,0 +1,91 @@
+diff --git a/plugin-statusnotifier/statusnotifierbutton.cpp b/plugin-statusnotifier/statusnotifierbutton.cpp
+index 73008cf..c668f8d 100644
+--- a/plugin-statusnotifier/statusnotifierbutton.cpp
++++ b/plugin-statusnotifier/statusnotifierbutton.cpp
+@@ -325,16 +325,22 @@ void StatusNotifierButton::showContextMenu(const QPoint &position)
+         mPlugin->willShowWindow(mMenu);
+         mMenu->popup(mPlugin->panel()->calculatePopupWindowPos(position, mMenu->sizeHint()).topLeft());
+     }
+-    else
++    else if (!dispatch(QStringLiteral("ContextMenu"), position))
+         interface->ContextMenu(position.x(), position.y());
+ }
+ 
+ void StatusNotifierButton::mouseReleaseEvent(QMouseEvent *event)
+ {
+     if (event->button() == Qt::LeftButton)
+-        interface->Activate(QCursor::pos().x(), QCursor::pos().y());
++    {
++        if (!dispatch(QStringLiteral("Activate"), QCursor::pos()))
++            interface->Activate(QCursor::pos().x(), QCursor::pos().y());
++    }
+     else if (event->button() == Qt::MiddleButton)
+-        interface->SecondaryActivate(QCursor::pos().x(), QCursor::pos().y());
++    {
++        if (!dispatch(QStringLiteral("SecondaryActivate"), QCursor::pos()))
++            interface->SecondaryActivate(QCursor::pos().x(), QCursor::pos().y());
++    }
+     else if (Qt::RightButton == event->button())
+         showContextMenu(QCursor::pos());
+ 
+diff --git a/plugin-statusnotifier/statusnotifierbutton.h b/plugin-statusnotifier/statusnotifierbutton.h
+index 3d3a243..ab27105 100644
+--- a/plugin-statusnotifier/statusnotifierbutton.h
++++ b/plugin-statusnotifier/statusnotifierbutton.h
+@@ -88,6 +88,9 @@ private:
+     QTimer mHideTimer;
+ 
+ protected:
++    // DoroShell: lets a view take over a request the application may answer with its own menu or window.
++    virtual bool dispatch(const QString &, const QPoint &) { return false; }
++
+     void contextMenuEvent(QContextMenuEvent * event);
+     void mouseReleaseEvent(QMouseEvent *event);
+     void wheelEvent(QWheelEvent *event);
+diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
+index 7978313..126a92b 100644
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp
+@@ -39,6 +39,8 @@
+ #include <QScrollArea>
+ #include <QScrollBar>
+ #include <QScreen>
++#include <QGuiApplication>
++#include <QTimer>
+ #include <QKeyEvent>
+ #include <QDBusMessage>
+ #include <QKeySequence>
+@@ -84,6 +86,21 @@ public:
+     OverflowButton(const QString &service, const QString &path, ILXQtPanelPlugin *plugin, QWidget *parent)
+         : StatusNotifierButton(service, path, plugin, parent), mService(service), mPath(path) {}
+ protected:
++    // The open popup holds the X11 pointer and keyboard grab. A GTK applet or an
++    // XEmbed client answers with its own menu, which is refused while we hold it.
++    // Close first; send once the ungrab has reached the server. This button is
++    // deleted with the popup, so the queued call must not touch it.
++    bool dispatch(const QString &method, const QPoint &position) override
++    {
++        auto message = QDBusMessage::createMethodCall(mService, mPath, QStringLiteral("org.kde.StatusNotifierItem"), method);
++        message << position.x() << position.y();
++        window()->close();
++        QTimer::singleShot(0, qApp, [message] {
++            QGuiApplication::sync();
++            QDBusConnection::sessionBus().asyncCall(message);
++        });
++        return true;
++    }
+     void keyPressEvent(QKeyEvent *event) override
+     {
+         if (event->key() == Qt::Key_F10 && event->modifiers() == Qt::ShiftModifier)
+@@ -110,10 +127,7 @@ protected:
+             if (!event->isAutoRepeat() && mActivationKey == event->key())
+             {
+                 mActivationKey = 0;
+-                auto message = QDBusMessage::createMethodCall(mService, mPath, QStringLiteral("org.kde.StatusNotifierItem"), QStringLiteral("Activate"));
+-                auto point = mapToGlobal(rect().center());
+-                message << point.x() << point.y();
+-                QDBusConnection::sessionBus().asyncCall(message);
++                dispatch(QStringLiteral("Activate"), mapToGlobal(rect().center()));
+             }
+             event->accept();
+         }

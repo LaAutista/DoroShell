@@ -1,0 +1,63 @@
+diff --git a/src/core/core.cpp b/src/core/core.cpp
+index fa0b1b6..76224c9 100644
+--- a/src/core/core.cpp
++++ b/src/core/core.cpp
+@@ -66,6 +66,7 @@ Core::Core()
+     _cmdLine.setApplicationDescription(QStringLiteral("ScreenGrab ") + tr("is a crossplatform application for fast creating screenshots of your desktop."));
+     _cmdLine.addHelpOption();
+     _cmdLine.addVersionOption();
++    _cmdLine.addOption(QCommandLineOption(QStringLiteral("import-png"), tr("Open a PNG from standard input")));
+
+     QCommandLineOption optFullScreen(QStringList() << QStringLiteral("f") << QStringLiteral("fullscreen"), tr("Take a fullscreen screenshot"));
+     _cmdLine.addOption(optFullScreen);
+@@ -124,7 +125,13 @@ void Core::initWindow(const QString& ipcMessage)
+         _wnd->updateModulesActions(_modules.generateModulesActions());
+         _wnd->updateModulesMenus(_modules.generateModulesMenus());
+
+-        screenShot(true); // first screenshot
++        if (_pixelMap->isNull())
++            screenShot(true);
++        else
++        {
++            _wnd->updatePixmap(_pixelMap);
++            showScreenshot();
++        }
+     }
+     else
+     {
+diff --git a/src/core/main.cpp b/src/core/main.cpp
+index 626b8e9..15cc0a3 100644
+--- a/src/core/main.cpp
++++ b/src/core/main.cpp
+@@ -22,6 +22,8 @@
+
+ #include <signal.h>
+ #include <QDebug>
++#include <QFile>
++#include <cstdio>
+
+ void handleQuitSignals (const std::vector<int>& quitSignals)
+ { // a minimal signal handler
+@@ -46,6 +48,22 @@ int main(int argc, char *argv[])
+
+     Core *ScreenGrab = Core::instance();
+     ScreenGrab->processCmdLineOpts(scr.arguments());
++    // DoroShell import is independent of any ScreenGrab instance taking a new shot.
++    if (scr.arguments().contains(QStringLiteral("--import-png")))
++    {
++        QFile input;
++        constexpr qint64 limit = 256LL * 1024 * 1024;
++        if (!input.open(stdin, QIODevice::ReadOnly))
++            return 1;
++        const QByteArray png = input.read(limit + 1);
++        if (png.size() > limit || !ScreenGrab->getPixmap()->loadFromData(png, "PNG"))
++            return 1;
++        ScreenGrab->modules()->initModules();
++        ScreenGrab->initWindow();
++        std::puts("IMPORTED");
++        std::fflush(stdout);
++        return scr.exec();
++    }
+     // SingleApp should be initialized only after processing command-line options
+     // because otherwise, if the help or version option is given, the app will
+     // exit suddenly, without clearing the shared memory.

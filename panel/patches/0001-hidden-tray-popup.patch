@@ -1,0 +1,1552 @@
+diff --git a/panel/lxqtpanel.cpp b/panel/lxqtpanel.cpp
+index 317b01b..0099f56 100644
+--- a/panel/lxqtpanel.cpp
++++ b/panel/lxqtpanel.cpp
+@@ -39,6 +39,8 @@
+ #include <LXQt/PluginInfo>
+ 
+ #include <QScreen>
++#include <QFile>
++#include <QStandardPaths>
+ #include <QWindow>
+ #include <QDebug>
+ #include <QString>
+@@ -1165,6 +1167,31 @@ void LXQtPanel::updateStyleSheet()
+     if (QFileInfo::exists(mBackgroundImage))
+         sheet << QString(QStringLiteral("LXQtPanel #BackgroundWidget { background-image: url('") + mBackgroundImage + QStringLiteral("');}"));
+ 
++    // DoroShell's opt-in native theme. Original artwork is not embedded.
++    if (mSettings->value(QStringLiteral("doroshellTheme"), false).toBool())
++    {
++        sheet << QStringLiteral("LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #f9d7ed,stop:0.08 #e9a4cd,stop:0.47 #c975a5,stop:0.5 #c078a2,stop:1 #d783b3); border-top: 1px solid #fff0fa; }");
++        if (KX11Extras::compositingActive())
++            sheet << QStringLiteral("LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 rgba(249,215,237,240),stop:0.12 rgba(233,164,205,235),stop:0.48 rgba(211,137,177,230),stop:0.51 rgba(202,129,170,230),stop:1 rgba(222,151,192,238)); border-top: 1px solid #ddb1cc; }");
++        sheet << QStringLiteral("QLabel#WorldClockContent { margin: 0; padding: 0; border: none; }");
++        sheet << QStringLiteral("QLabel#WorldClockContent, LXQtTaskButton, QuickLaunchButton { color: #351329; }");
++        sheet << QStringLiteral("LXQtTaskButton, QuickLaunchButton { background: transparent; border: 1px solid transparent; border-radius: 5px; margin: 2px; }");
++        sheet << QStringLiteral("LXQtTaskButton:hover, QuickLaunchButton:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("LXQtTaskButton[doroshellRunning=\"true\"] { border-bottom: 2px solid #5b143d; }");
++        sheet << QStringLiteral("LXQtTaskButton:checked { background: rgba(255,230,247,160); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("QToolButton#doroshellTrayArrow { color: #351329; background: transparent; border: 1px solid transparent; border-radius: 4px; }");
++        sheet << QStringLiteral("QToolButton#doroshellTrayArrow:hover { background: rgba(255,230,247,110); border: 1px solid #fff0fa; }");
++        sheet << QStringLiteral("QToolButton[doroshellEdge=\"true\"] { background: #e9a4cd; border: 1px solid #803656; border-radius: 2px; }");
++        sheet << QStringLiteral("QToolButton[doroshellEdge=\"true\"]:hover, QToolButton[doroshellEdge=\"true\"]:focus { background: #fff0f8; border: 1px solid #5b143d; }");
++        sheet << QStringLiteral("LXQtGroupPopup { background: #fff0f8; border: 1px solid #a84e7c; }");
++        sheet << QStringLiteral("QFrame#doroshellTrayPopup { background: #51263e; color: #fff5fb; border: 1px solid #a84e7c; border-radius: 5px; }");
++        sheet << QStringLiteral("QFrame#doroshellTrayPopup QToolButton { background: transparent; color: #fff5fb; border: 1px solid transparent; border-radius: 4px; }");
++        sheet << QStringLiteral("QFrame#doroshellTrayPopup QToolButton:hover, QFrame#doroshellTrayPopup QToolButton:focus { background: #51263e; border-color: #fff5fb; }");
++    }
++    const QString themeFile = KX11Extras::compositingActive() ? QStringLiteral("/doroshell/panel-theme-glass.qss") : QStringLiteral("/doroshell/panel-theme.qss");
++    QFile theme(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + themeFile);
++    if (mSettings->value(QStringLiteral("doroshellTheme"), false).toBool() && theme.open(QIODevice::ReadOnly))
++        sheet << QString::fromUtf8(theme.readAll());
+     setStyleSheet(sheet.join(QStringLiteral("\n")));
+ }
+ 
+diff --git a/panel/pluginsettings.cpp b/panel/pluginsettings.cpp
+index 3f6c864..11524b1 100644
+--- a/panel/pluginsettings.cpp
++++ b/panel/pluginsettings.cpp
+@@ -163,6 +163,13 @@ void PluginSettings::clear()
+     emit settingsChanged();
+ }
+ 
++void PluginSettings::syncKeepingResetState()
++{
++    Q_D(PluginSettings);
++    d->mSettings->sync();
++    emit settingsChanged();
++}
++
+ void PluginSettings::sync()
+ {
+     Q_D(PluginSettings);
+diff --git a/panel/pluginsettings.h b/panel/pluginsettings.h
+index a1a3785..23dbef2 100644
+--- a/panel/pluginsettings.h
++++ b/panel/pluginsettings.h
+@@ -72,6 +72,7 @@ public:
+ 
+     void clear();
+     void sync();
++    void syncKeepingResetState();
+ 
+     QStringList allKeys() const;
+     QStringList childGroups() const;
+diff --git a/plugin-showdesktop/showdesktop.cpp b/plugin-showdesktop/showdesktop.cpp
+index 309cdb6..c4ab2fb 100644
+--- a/plugin-showdesktop/showdesktop.cpp
++++ b/plugin-showdesktop/showdesktop.cpp
+@@ -26,6 +26,7 @@
+  * END_COMMON_COPYRIGHT_HEADER */
+ 
+ #include <QAction>
++#include <QStyle>
+ #include <QDragEnterEvent>
+ #include <QDragLeaveEvent>
+ #include <lxqt-globalkeys.h>
+@@ -62,6 +63,32 @@ ShowDesktop::ShowDesktop(const ILXQtPanelPluginStartupInfo &startupInfo) :
+     mButton.setAutoRaise(true);
+     mButton.installEventFilter(this);
+     mButton.setAcceptDrops(true);
++    mButton.setAccessibleName(tr("Show Desktop"));
++    settingsChanged();
++}
++
++void ShowDesktop::settingsChanged()
++{
++    const bool edge = settings()->value(QStringLiteral("doroshellEdge"), false).toBool();
++    mButton.setProperty("doroshellEdge", edge);
++    mButton.setIcon(edge ? QIcon() : XdgIcon::fromTheme(QStringLiteral("user-desktop")));
++    mButton.setText(edge ? QString() : tr("Show Desktop"));
++    mButton.setToolTip(tr("Show Desktop"));
++    mButton.style()->unpolish(&mButton);
++    mButton.style()->polish(&mButton);
++    realign();
++}
++
++void ShowDesktop::realign()
++{
++    mButton.setMinimumSize(0, 0);
++    mButton.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
++    if (settings()->value(QStringLiteral("doroshellEdge"), false).toBool())
++    {
++        const int extent = qBound(8, settings()->value(QStringLiteral("doroshellEdgeWidth"), 12).toInt(), 32);
++        if (panel()->isHorizontal()) mButton.setFixedWidth(extent);
++        else mButton.setFixedHeight(extent);
++    }
+ }
+ 
+ bool ShowDesktop::eventFilter(QObject * watched, QEvent * event)
+diff --git a/plugin-showdesktop/showdesktop.h b/plugin-showdesktop/showdesktop.h
+index f6bc826..0d8e889 100644
+--- a/plugin-showdesktop/showdesktop.h
++++ b/plugin-showdesktop/showdesktop.h
+@@ -46,6 +46,9 @@ class ShowDesktop :  public QObject, public ILXQtPanelPlugin
+ public:
+     ShowDesktop(const ILXQtPanelPluginStartupInfo &startupInfo);
+ 
++    void settingsChanged() override;
++    void realign() override;
++
+     virtual QWidget *widget() override { return &mButton; }
+     virtual QString themeId() const override { return QStringLiteral("ShowDesktop"); }
+ 
+diff --git a/plugin-statusnotifier/statusnotifierconfiguration.cpp b/plugin-statusnotifier/statusnotifierconfiguration.cpp
+index f644c26..702e3b4 100644
+--- a/plugin-statusnotifier/statusnotifierconfiguration.cpp
++++ b/plugin-statusnotifier/statusnotifierconfiguration.cpp
+@@ -60,17 +60,31 @@ void StatusNotifierConfiguration::loadSettings()
+     ui->orderCB->setChecked(settings().value(QStringLiteral("reverseOrder"), false).toBool());
+     ui->attentionSB->setValue(settings().value(QStringLiteral("attentionPeriod"), 5).toInt());
+     mAutoHideList = settings().value(QStringLiteral("autoHideList")).toStringList();
++    mCollapseNew = settings().value(QStringLiteral("doroshellPopup"), false).toBool()
++        && settings().value(QStringLiteral("doroshellCollapseNew"), false).toBool();
++    mVisibleList = settings().value(QStringLiteral("doroshellVisibleList")).toStringList();
+     mHideList = settings().value(QStringLiteral("hideList")).toStringList();
+ }
+ 
+ void StatusNotifierConfiguration::saveSettings()
+ {
++    if (mCollapseNew)
++        settings().setValue(QStringLiteral("doroshellVisibleList"), mVisibleList);
+     settings().setValue(QStringLiteral("reverseOrder"), ui->orderCB->isChecked());
+     settings().setValue(QStringLiteral("attentionPeriod"), ui->attentionSB->value());
+     settings().setValue(QStringLiteral("autoHideList"), mAutoHideList);
+     settings().setValue(QStringLiteral("hideList"), mHideList);
+ }
+ 
++int StatusNotifierConfiguration::visibility(const QString &title) const
++{
++    if (mAutoHideList.contains(title))
++        return 1;
++    if (mHideList.contains(title) || (mCollapseNew && !mVisibleList.contains(title)))
++        return 2;
++    return 0;
++}
++
+ void StatusNotifierConfiguration::addItems(const QStringList &items)
+ {
+     ui->tableWidget->setRowCount(items.size());
+@@ -85,11 +99,11 @@ void StatusNotifierConfiguration::addItems(const QStringList &items)
+         // second column
+         QComboBox *cb = new QComboBox();
+         cb->addItems(QStringList() << tr("Always show") << tr("Auto-hide") << tr("Always hide"));
+-        if (mAutoHideList.contains(item))
+-            cb->setCurrentIndex(1);
+-        else if (mHideList.contains(item))
+-            cb->setCurrentIndex(2);
++        cb->setCurrentIndex(visibility(item));
+         connect(cb, &QComboBox::currentIndexChanged, this, [this, item] (int indx) {
++            mVisibleList.removeAll(item);
++            if (mCollapseNew && indx == 0)
++                mVisibleList << item;
+             if (indx == 0)
+             {
+                 mAutoHideList.removeAll(item);
+@@ -131,12 +145,7 @@ void StatusNotifierConfiguration::dialogButtonsAction(QAbstractButton *btn)
+                 if (QTableWidgetItem *widgetItem = ui->tableWidget->item(i, 0))
+                 {
+                     cb->blockSignals(true); // we neither change visibility lists nor save settings here
+-                    if (mAutoHideList.contains(widgetItem->text()))
+-                        cb->setCurrentIndex(1);
+-                    else if (mHideList.contains(widgetItem->text()))
+-                        cb->setCurrentIndex(2);
+-                    else
+-                        cb->setCurrentIndex(0);
++                    cb->setCurrentIndex(visibility(widgetItem->text()));
+                     cb->blockSignals(false);
+                 }
+             }
+diff --git a/plugin-statusnotifier/statusnotifierconfiguration.h b/plugin-statusnotifier/statusnotifierconfiguration.h
+index 3e2d520..4fb8b14 100644
+--- a/plugin-statusnotifier/statusnotifierconfiguration.h
++++ b/plugin-statusnotifier/statusnotifierconfiguration.h
+@@ -48,6 +48,9 @@ private:
+ 
+     QStringList mAutoHideList;
+     QStringList mHideList;
++    QStringList mVisibleList;
++    bool mCollapseNew = false;
++    int visibility(const QString &title) const;
+ 
+     void loadSettings();
+ 
+diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
+index 6410519..aea5e41 100644
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp
+@@ -31,6 +31,50 @@
+ #include "../panel/pluginsettings.h"
+ #include "../panel/ilxqtpanelplugin.h"
+ 
++// DoroShell modification: optional native hidden-icon popup, LGPL-2.1-or-later.
++#include <QFrame>
++#include <QPainter>
++#include <QGridLayout>
++#include <QScreen>
++#include <QKeyEvent>
++#include <QDBusMessage>
++#include <algorithm>
++
++namespace {
++class OverflowButton : public StatusNotifierButton
++{
++public:
++    OverflowButton(const QString &service, const QString &path, ILXQtPanelPlugin *plugin, QWidget *parent)
++        : StatusNotifierButton(service, path, plugin, parent), mService(service), mPath(path) {}
++protected:
++    void keyPressEvent(QKeyEvent *event) override
++    {
++        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter || event->key() == Qt::Key_Space)
++            event->accept();
++        else
++            StatusNotifierButton::keyPressEvent(event);
++    }
++    void keyReleaseEvent(QKeyEvent *event) override
++    {
++        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter || event->key() == Qt::Key_Space)
++        {
++            if (!event->isAutoRepeat())
++            {
++                auto message = QDBusMessage::createMethodCall(mService, mPath, QStringLiteral("org.kde.StatusNotifierItem"), QStringLiteral("Activate"));
++                auto point = mapToGlobal(rect().center());
++                message << point.x() << point.y();
++                QDBusConnection::sessionBus().asyncCall(message);
++            }
++            event->accept();
++        }
++        else
++            StatusNotifierButton::keyReleaseEvent(event);
++    }
++private:
++    QString mService, mPath;
++};
++}
++
+ StatusNotifierWidget::StatusNotifierWidget(ILXQtPanelPlugin *plugin, QWidget *parent) :
+     QWidget(parent),
+     mPlugin(plugin),
+@@ -45,9 +89,17 @@ StatusNotifierWidget::StatusNotifierWidget(ILXQtPanelPlugin *plugin, QWidget *pa
+     mShowBtn->setAutoRaise(true);
+     mShowBtn->setToolButtonStyle(Qt::ToolButtonTextOnly);
+     mShowBtn->setText(QStringLiteral("+"));
++    mShowBtn->setObjectName(QStringLiteral("doroshellTrayArrow"));
++    mShowBtn->setAccessibleName(tr("Show hidden icons"));
++    mShowBtn->setToolTip(tr("Show hidden icons"));
+     layout()->addWidget(mShowBtn);
+     mShowBtn->hide();
+     connect(mShowBtn, &QAbstractButton::clicked, this, [this] {
++        if (mPlugin->settings()->value(QStringLiteral("doroshellPopup"), false).toBool())
++        {
++            showOverflow();
++            return;
++        }
+         if (mForceVisible)
+             return; // all items are visible; nothing to do
+         mShowBtn->hide();
+@@ -71,7 +123,7 @@ StatusNotifierWidget::StatusNotifierWidget(ILXQtPanelPlugin *plugin, QWidget *pa
+         {
+             if (btn->hasAttention()
+                 || (!mAutoHideList.contains(btn->title())
+-                     && !mHideList.contains(btn->title())))
++                     && !isHidden(btn->title())))
+             {
+                 continue;
+             }
+@@ -121,7 +173,7 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
+                 mShowBtn->show();
+             button->setAutoHide(true, mAttentionPeriod, mForceVisible);
+         }
+-        else if (mHideList.contains(title))
++        else if (isHidden(title))
+         {
+             button->setAutoHide(false);
+             if (!mForceVisible)
+@@ -144,7 +196,7 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
+                         // or shown only because mShowBtn was clicked
+                         || (mForceVisible && !btn->hasAttention()
+                             && (mAutoHideList.contains(btn->title())
+-                                || mHideList.contains(btn->title()))))
++                                || isHidden(btn->title()))))
+                     {
+                         return;
+                     }
+@@ -166,6 +218,8 @@ void StatusNotifierWidget::itemAdded(QString serviceAndPath)
+ 
+ void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
+ {
++    if (mOverflow)
++        mOverflow->close();
+     StatusNotifierButton *button = mServices.value(serviceAndPath, nullptr);
+     if (button)
+     {
+@@ -175,7 +229,7 @@ void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
+             bool showBtn = false;
+             for (const auto &name : std::as_const(mItemTitles))
+             {
+-                if (mAutoHideList.contains(name) || mHideList.contains(name))
++                if (mAutoHideList.contains(name) || isHidden(name))
+                 {
+                     showBtn = true;
+                     break;
+@@ -194,8 +248,35 @@ void StatusNotifierWidget::itemRemoved(const QString &serviceAndPath)
+     }
+ }
+ 
++bool StatusNotifierWidget::isHidden(const QString &title) const
++{
++    return mHideList.contains(title) || (mCollapseNew && !mVisibleList.contains(title));
++}
++
+ void StatusNotifierWidget::settingsChanged()
+ {
++    if (mOverflow)
++        mOverflow->close();
++    const bool drawer = mPlugin->settings()->value(QStringLiteral("doroshellPopup"), false).toBool();
++    mShowBtn->setToolButtonStyle(drawer ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextOnly);
++    if (drawer)
++    {
++        const qreal scale = devicePixelRatioF();
++        QPixmap icon(QSize(16, 16) * scale);
++        icon.setDevicePixelRatio(scale);
++        icon.fill(Qt::transparent);
++        QPainter painter(&icon);
++        painter.setRenderHint(QPainter::Antialiasing);
++        painter.setPen(QPen(mShowBtn->palette().buttonText().color(), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
++        painter.drawPolyline(QPolygonF{QPointF(2, 10), QPointF(8, 4), QPointF(14, 10)});
++        painter.end();
++        mShowBtn->setIcon(QIcon(icon));
++        mShowBtn->setIconSize(QSize(16, 16));
++    }
++    else
++        mShowBtn->setIcon(QIcon());
++    mShowBtn->setMinimumSize(drawer ? QSize(24, 24) : QSize(0, 0));
++    mShowBtn->setText(drawer ? QString() : QStringLiteral("+"));
+     LXQt::GridLayout *layout = qobject_cast<LXQt::GridLayout*>(this->layout());
+     if (mPlugin->settings()->value(QStringLiteral("reverseOrder"), false).toBool())
+     {
+@@ -206,6 +287,8 @@ void StatusNotifierWidget::settingsChanged()
+         layout->setItemsOrder(LXQt::GridLayout::ItemsOrder::FirstToLast);
+     }
+ 
++    mCollapseNew = drawer && mPlugin->settings()->value(QStringLiteral("doroshellCollapseNew"), false).toBool();
++    mVisibleList = mPlugin->settings()->value(QStringLiteral("doroshellVisibleList")).toStringList();
+     mAttentionPeriod = mPlugin->settings()->value(QStringLiteral("attentionPeriod"), 5).toInt();
+     mAutoHideList = mPlugin->settings()->value(QStringLiteral("autoHideList")).toStringList();
+     mHideList = mPlugin->settings()->value(QStringLiteral("hideList")).toStringList();
+@@ -225,7 +308,7 @@ void StatusNotifierWidget::settingsChanged()
+                 showBtn = true;
+             }
+         }
+-        else if (mHideList.contains(btn->title()))
++        else if (isHidden(btn->title()))
+         {
+             showBtn = true;
+             btn->setAutoHide(false);
+@@ -273,3 +356,63 @@ QStringList StatusNotifierWidget::itemTitles() const
+     names.removeDuplicates();
+     return names;
+ }
++
++// Keep the host buttons in place: moving them would break upstream attention,
++// registration and auto-hide handling. Popup views use the same native SNI code.
++void StatusNotifierWidget::showOverflow()
++{
++    if (mOverflow)
++    {
++        mOverflow->close();
++        return;
++    }
++    auto popup = new QFrame(this, Qt::Popup);
++    popup->setObjectName(QStringLiteral("doroshellTrayPopup"));
++    popup->setWindowTitle(tr("Hidden icons"));
++    popup->setAccessibleName(tr("Hidden notification icons"));
++    popup->setAttribute(Qt::WA_DeleteOnClose);
++    popup->setFrameShape(QFrame::StyledPanel);
++    auto grid = new QGridLayout(popup);
++    grid->setContentsMargins(8, 8, 8, 8);
++    grid->setSpacing(4);
++    int count = 0;
++    auto services = mServices.keys();
++    services.sort();
++    for (const auto &service : services)
++    {
++        auto original = mServices.value(service);
++        if (!original || original->isVisible())
++            continue;
++        const int slash = service.indexOf(QLatin1Char('/'));
++        auto button = new OverflowButton(service.left(slash), service.mid(slash), mPlugin, popup);
++        button->setAutoHide(false);
++        button->setFixedSize(36, 36);
++        button->setFocusPolicy(Qt::StrongFocus);
++        button->setAccessibleName(original->title());
++        grid->addWidget(button, count / 4, count % 4);
++        ++count;
++    }
++    if (!count)
++    {
++        delete popup;
++        return;
++    }
++    mOverflow = popup;
++    popup->ensurePolished();
++    popup->setFixedSize(popup->sizeHint());
++    auto anchor = mShowBtn->mapToGlobal(QPoint(0, 0));
++    auto bounds = mShowBtn->screen()->availableGeometry();
++    QPoint position(anchor.x(), anchor.y() - popup->height());
++    if (mPlugin->panel()->position() == ILXQtPanel::PositionTop)
++        position.setY(anchor.y() + mShowBtn->height());
++    else if (mPlugin->panel()->position() == ILXQtPanel::PositionLeft)
++        position = QPoint(anchor.x() + mShowBtn->width(), anchor.y());
++    else if (mPlugin->panel()->position() == ILXQtPanel::PositionRight)
++        position = QPoint(anchor.x() - popup->width(), anchor.y());
++    position.setX(std::clamp(position.x(), bounds.left(), std::max(bounds.left(), bounds.right() - popup->width() + 1)));
++    position.setY(std::clamp(position.y(), bounds.top(), std::max(bounds.top(), bounds.bottom() - popup->height() + 1)));
++    popup->move(position);
++    popup->show();
++    if (auto first = popup->findChild<StatusNotifierButton *>())
++        first->setFocus();
++}
+diff --git a/plugin-statusnotifier/statusnotifierwidget.h b/plugin-statusnotifier/statusnotifierwidget.h
+index 379722e..dd61f81 100644
+--- a/plugin-statusnotifier/statusnotifierwidget.h
++++ b/plugin-statusnotifier/statusnotifierwidget.h
+@@ -29,6 +29,7 @@
+ #pragma once
+ 
+ #include <QTimer>
++#include <QPointer>
+ 
+ #include <LXQt/GridLayout>
+ 
+@@ -60,6 +61,9 @@ protected:
+     void enterEvent(QEnterEvent *event) override;
+ 
+ private:
++    bool isHidden(const QString &title) const;
++    void showOverflow();
++    QPointer<QWidget> mOverflow;
+     ILXQtPanelPlugin *mPlugin;
+ 
+     QTimer mHideTimer;
+@@ -69,6 +73,8 @@ private:
+     QStringList mItemTitles;
+     QStringList mAutoHideList;
+     QStringList mHideList;
++    QStringList mVisibleList;
++    bool mCollapseNew = false;
+     QToolButton *mShowBtn;
+     int mAttentionPeriod;
+     bool mForceVisible;
+diff --git a/plugin-taskbar/CMakeLists.txt b/plugin-taskbar/CMakeLists.txt
+index 1d627f2..3646632 100644
+--- a/plugin-taskbar/CMakeLists.txt
++++ b/plugin-taskbar/CMakeLists.txt
+@@ -1,6 +1,9 @@
+ set(PLUGIN "taskbar")
++find_package(PkgConfig REQUIRED)
++pkg_check_modules(DORO_GIO REQUIRED IMPORTED_TARGET gio-unix-2.0)
+ 
+ set(HEADERS
++    doroshellpinsdialog.h
+     lxqttaskbar.h
+     lxqttaskbutton.h
+     lxqttaskbarconfiguration.h
+@@ -10,6 +13,7 @@ set(HEADERS
+ )
+ 
+ set(SOURCES
++    doroshellpinsdialog.cpp
+     lxqttaskbar.cpp
+     lxqttaskbutton.cpp
+     lxqttaskbarconfiguration.cpp
+@@ -23,6 +27,7 @@ set(UIS
+ )
+ 
+ set(LIBRARIES
++    PkgConfig::DORO_GIO
+     lxqt
+     lxqt-globalkeys
+     Qt6Xdg
+diff --git a/plugin-taskbar/doroshellpinsdialog.cpp b/plugin-taskbar/doroshellpinsdialog.cpp
+new file mode 100644
+index 0000000..861de74
+--- /dev/null
++++ b/plugin-taskbar/doroshellpinsdialog.cpp
+@@ -0,0 +1,120 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++#include "doroshellpinsdialog.h"
++#include <QDialogButtonBox>
++#include <QFileDialog>
++#include <QFileInfo>
++#include <QHBoxLayout>
++#include <QLabel>
++#include <QListWidget>
++#include <QMessageBox>
++#include <QPalette>
++#include <QColor>
++#include <QPushButton>
++#include <QSet>
++#include <QStandardPaths>
++#include <QVBoxLayout>
++#include <XdgDesktopFile>
++#include <XdgIcon>
++
++DoroShellPinsDialog::DoroShellPinsDialog(const QStringList &paths, QWidget *parent)
++    : QDialog(parent), mList(new QListWidget(this))
++{
++    setWindowTitle(tr("Pinned applications"));
++    setObjectName(QStringLiteral("doroshellPinsEditor"));
++    QPalette colors = palette();
++    for (auto role : {QPalette::Window, QPalette::Button}) colors.setColor(role, QColor(QStringLiteral("#f7d6e4")));
++    colors.setColor(QPalette::Base, QColor(QStringLiteral("#fff9fc")));
++    for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText, QPalette::HighlightedText})
++        colors.setColor(role, QColor(QStringLiteral("#351329")));
++    colors.setColor(QPalette::Highlight, QColor(QStringLiteral("#edafd2")));
++    for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
++        colors.setColor(QPalette::Disabled, role, QColor(QStringLiteral("#684b5c")));
++    setPalette(colors);
++
++    resize(520, 400);
++    auto layout = new QVBoxLayout(this);
++    auto help = new QLabel(tr("Choose application desktop entries. Changes apply only when you save. Unified pins require task grouping."), this);
++    help->setWordWrap(true);
++    layout->addWidget(help);
++    mList->setObjectName(QStringLiteral("pinnedApplications"));
++    mList->setAccessibleName(tr("Pinned applications in taskbar order"));
++    layout->addWidget(mList);
++    for (const QString &path : paths) addPath(path);
++    mList->setCurrentRow(0);
++    auto row = new QHBoxLayout;
++    auto add = new QPushButton(tr("Add application…"), this);
++    auto remove = new QPushButton(tr("Remove"), this);
++    auto up = new QPushButton(tr("Move up"), this);
++    auto down = new QPushButton(tr("Move down"), this);
++    add->setObjectName(QStringLiteral("addPin"));
++    remove->setObjectName(QStringLiteral("removePin"));
++    up->setObjectName(QStringLiteral("movePinUp"));
++    down->setObjectName(QStringLiteral("movePinDown"));
++    for (auto button : {add, remove, up, down}) row->addWidget(button);
++    layout->addLayout(row);
++    connect(add, &QPushButton::clicked, this, [this] {
++        const auto files = QFileDialog::getOpenFileNames(this, tr("Choose applications"),
++            QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("applications"), QStandardPaths::LocateDirectory),
++            tr("Desktop entries (*.desktop)"), nullptr, QFileDialog::DontUseNativeDialog);
++        for (const auto &path : files) if (!this->paths().contains(path)) addPath(path);
++    });
++    connect(remove, &QPushButton::clicked, this, [this] { delete mList->takeItem(mList->currentRow()); });
++    connect(up, &QPushButton::clicked, this, [this] { moveCurrent(-1); });
++    connect(down, &QPushButton::clicked, this, [this] { moveCurrent(1); });
++    auto buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
++    buttons->setObjectName(QStringLiteral("pinEditorButtons"));
++    layout->addWidget(buttons);
++    connect(buttons, &QDialogButtonBox::accepted, this, &DoroShellPinsDialog::accept);
++    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
++}
++
++void DoroShellPinsDialog::addPath(const QString &path)
++{
++    XdgDesktopFile entry;
++    const bool valid = entry.load(path);
++    auto item = new QListWidgetItem(valid ? XdgIcon::fromTheme(entry.value(QStringLiteral("Icon")).toString()) : QIcon(),
++        valid ? entry.name() : tr("Unavailable: %1").arg(QFileInfo(path).fileName()), mList);
++    item->setData(Qt::UserRole, path);
++    item->setToolTip(path);
++}
++
++QStringList DoroShellPinsDialog::paths() const
++{
++    QStringList result;
++    for (int i = 0; i < mList->count(); ++i) result << mList->item(i)->data(Qt::UserRole).toString();
++    return result;
++}
++
++void DoroShellPinsDialog::moveCurrent(int delta)
++{
++    const int from = mList->currentRow(), to = from + delta;
++    if (from < 0 || to < 0 || to >= mList->count()) return;
++    auto item = mList->takeItem(from);
++    mList->insertItem(to, item);
++    mList->setCurrentRow(to);
++}
++
++void DoroShellPinsDialog::accept()
++{
++    QSet<QString> identities;
++    for (const auto &path : paths())
++    {
++        XdgDesktopFile entry;
++        if (!QFileInfo(path).isAbsolute() || !QFileInfo(path).isFile() || !entry.load(path)
++            || entry.value(QStringLiteral("Type")).toString() != QStringLiteral("Application"))
++        {
++            QMessageBox::warning(this, tr("Cannot save pins"), tr("Remove or replace this unavailable application:\n%1").arg(path));
++            return;
++        }
++        QString identity = entry.value(QStringLiteral("StartupWMClass")).toString();
++        if (identity.isEmpty()) identity = QFileInfo(path).completeBaseName();
++        identity = identity.toCaseFolded();
++        if (identities.contains(identity))
++        {
++            QMessageBox::warning(this, tr("Cannot save pins"), tr("Two entries use the same application identity: %1").arg(identity));
++            return;
++        }
++        identities.insert(identity);
++    }
++    QDialog::accept();
++}
+diff --git a/plugin-taskbar/doroshellpinsdialog.h b/plugin-taskbar/doroshellpinsdialog.h
+new file mode 100644
+index 0000000..5cb5caf
+--- /dev/null
++++ b/plugin-taskbar/doroshellpinsdialog.h
+@@ -0,0 +1,20 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++#ifndef DOROSHELLPINSDIALOG_H
++#define DOROSHELLPINSDIALOG_H
++#include <QDialog>
++#include <QStringList>
++class QListWidget;
++
++class DoroShellPinsDialog : public QDialog
++{
++public:
++    explicit DoroShellPinsDialog(const QStringList &paths, QWidget *parent = nullptr);
++    QStringList paths() const;
++protected:
++    void accept() override;
++private:
++    QListWidget *mList;
++    void addPath(const QString &path);
++    void moveCurrent(int delta);
++};
++#endif
+diff --git a/plugin-taskbar/lxqttaskbar.cpp b/plugin-taskbar/lxqttaskbar.cpp
+index edc4d81..f0dfe5d 100644
+--- a/plugin-taskbar/lxqttaskbar.cpp
++++ b/plugin-taskbar/lxqttaskbar.cpp
+@@ -28,7 +28,11 @@
+  *
+  * END_COMMON_COPYRIGHT_HEADER */
+ 
++#include <gio/gdesktopappinfo.h> // Before Qt keyword macros.
+ #include "lxqttaskbar.h"
++#include <QMenu>
++#include <QMessageBox>
++#include <QSet>
+ 
+ #include <QApplication>
+ #include <QDebug>
+@@ -37,9 +41,13 @@
+ #include <QSettings>
+ #include <QList>
+ #include <QMimeData>
++#include <QUrl>
+ #include <QWheelEvent>
+ #include <QFlag>
+ #include <QTimer>
++#include <QFileInfo>
++#include <XdgDesktopFile>
++#include <XdgIcon>
+ 
+ #include "../panel/ilxqtpanelplugin.h"
+ #include "../panel/pluginsettings.h"
+@@ -127,8 +135,68 @@ LXQtTaskBar::~LXQtTaskBar()
+ /************************************************
+ 
+  ************************************************/
++QStringList LXQtTaskBar::launcherDropPaths(const QMimeData* data) const
++{
++    if (!mGroupingEnabled || !data->hasUrls()) return {};
++    const auto urls = data->urls();
++    if (urls.isEmpty() || urls.size() > 100) return {};
++    QStringList paths;
++    for (const QUrl& url : urls)
++    {
++        if (!url.isLocalFile()) return {};
++        const QString path = url.toLocalFile();
++        if (!QFileInfo(path).isAbsolute() || !QFileInfo(path).isFile() || !path.endsWith(QStringLiteral(".desktop"))) return {};
++        auto app = g_desktop_app_info_new_from_filename(path.toUtf8().constData());
++        if (!app) return {};
++        g_object_unref(app);
++        if (!paths.contains(path)) paths.append(path);
++    }
++    return paths;
++}
++
++bool LXQtTaskBar::pinDrop(const QMimeData* data)
++{
++    const QStringList paths = launcherDropPaths(data);
++    if (paths.isEmpty()) return false;
++    const QStringList original = mPinnedPaths;
++    // Rebuilding task buttons must happen after the drag/drop event returns.
++    QTimer::singleShot(0, this, [this, paths, original] {
++        auto settings = mPlugin->settings();
++        settings->syncKeepingResetState();
++        if (settings->value(QStringLiteral("doroshellPinned")).toStringList() != original)
++        {
++            QMessageBox::warning(this, tr("Taskbar pins changed"), tr("Try the drop again after the other pin changes finish."));
++            return;
++        }
++        QStringList updated = original;
++        for (const QString& path : paths)
++            if (!updated.contains(path)) updated.append(path);
++        if (updated == original) return;
++        settings->setValue(QStringLiteral("doroshellPinned"), updated);
++        settings->syncKeepingResetState();
++    });
++    return true;
++}
++
++void LXQtTaskBar::dropEvent(QDropEvent* event)
++{
++    if ((event->possibleActions() & Qt::CopyAction) && pinDrop(event->mimeData()))
++    {
++        event->setDropAction(Qt::CopyAction);
++        event->accept();
++        return;
++    }
++    QWidget::dropEvent(event);
++}
++
+ void LXQtTaskBar::dragEnterEvent(QDragEnterEvent* event)
+ {
++    if ((event->possibleActions() & Qt::CopyAction) && !launcherDropPaths(event->mimeData()).isEmpty())
++    {
++        event->setDropAction(Qt::CopyAction);
++        event->accept();
++        return;
++    }
+     if (event->mimeData()->hasFormat(LXQtTaskGroup::mimeDataFormat()))
+     {
+         event->acceptProposedAction();
+@@ -143,6 +211,12 @@ void LXQtTaskBar::dragEnterEvent(QDragEnterEvent* event)
+  ************************************************/
+ void LXQtTaskBar::dragMoveEvent(QDragMoveEvent * event)
+ {
++    if ((event->possibleActions() & Qt::CopyAction) && mGroupingEnabled && event->mimeData()->hasUrls())
++    {
++        event->setDropAction(Qt::CopyAction);
++        event->accept();
++        return;
++    }
+     //we don't get any dragMoveEvents if dragEnter wasn't accepted
+     buttonMove(nullptr, qobject_cast<LXQtTaskGroup *>(event->source()), event->position().toPoint());
+     QWidget::dragMoveEvent(event);
+@@ -221,6 +295,18 @@ void LXQtTaskBar::buttonMove(LXQtTaskGroup * dst, LXQtTaskGroup * src, QPoint co
+         return;
+ 
+     mLayout->moveItem(src_index, dst_index, true);
++    if (!mPinnedPaths.isEmpty())
++    {
++        QStringList ordered;
++        for (int i = 0; i < mLayout->count(); ++i)
++        {
++            auto group = qobject_cast<LXQtTaskGroup*>(mLayout->itemAt(i)->widget());
++            if (group && !group->pinnedDesktop().isEmpty()) ordered << group->pinnedDesktop();
++        }
++        mPinnedPaths = ordered;
++        mPlugin->settings()->setValue(QStringLiteral("doroshellPinned"), ordered);
++        mPlugin->settings()->sync();
++    }
+ }
+ 
+ /************************************************
+@@ -246,6 +332,102 @@ void LXQtTaskBar::groupBecomeEmptySlot()
+ /************************************************
+ 
+  ************************************************/
++LXQtTaskGroup *LXQtTaskBar::createGroup(const QString &name, WId window)
++{
++    auto group = new LXQtTaskGroup(name, window, this);
++    connect(group, &LXQtTaskGroup::groupBecomeEmpty,  this, &LXQtTaskBar::groupBecomeEmptySlot);
++    connect(group, &LXQtTaskGroup::visibilityChanged, this, &LXQtTaskBar::refreshPlaceholderVisibility);
++    connect(group, &LXQtTaskGroup::popupShown,        this, &LXQtTaskBar::popupShown);
++    connect(group, &LXQtTaskButton::dragging,         this, [this] (QObject * dragSource, QPoint const & pos) {
++        buttonMove(qobject_cast<LXQtTaskGroup *>(sender()), qobject_cast<LXQtTaskGroup *>(dragSource), pos);
++    });
++    mLayout->addWidget(group);
++    group->setToolButtonsStyle(mButtonStyle);
++    return group;
++}
++
++void LXQtTaskBar::addPinAction(QMenu* menu, WId window, const QString& pinnedPath)
++{
++    const QString identity = window ? mBackend->getWindowClass(window) : QString();
++    QString path = pinnedPath;
++    if (path.isEmpty() && mKnownWindows.contains(window)) path = mKnownWindows.value(window)->pinnedDesktop();
++    if (path.isEmpty() && !identity.isEmpty())
++    {
++        QStringList matches;
++        for (const auto& saved : mPinnedPaths)
++        {
++            XdgDesktopFile entry;
++            if (!entry.load(saved)) continue;
++            QString id = entry.value(QStringLiteral("StartupWMClass")).toString();
++            if (id.isEmpty()) id = QFileInfo(saved).completeBaseName();
++            if (id.compare(identity, Qt::CaseInsensitive) == 0) matches << saved;
++        }
++        if (matches.size() == 1) path = matches.first();
++        else if (!matches.isEmpty()) return;
++    }
++    if (path.isEmpty() && !identity.isEmpty())
++    {
++        QSet<QString> matches;
++        GList* apps = g_app_info_get_all();
++        for (GList* item = apps; item; item = item->next)
++        {
++            if (!G_IS_DESKTOP_APP_INFO(item->data) || !g_app_info_should_show(G_APP_INFO(item->data))) continue;
++            auto info = G_DESKTOP_APP_INFO(item->data);
++            const char* filename = g_desktop_app_info_get_filename(info);
++            if (!filename) continue;
++            const QString candidate = QString::fromUtf8(filename);
++            const char* wmClass = g_desktop_app_info_get_startup_wm_class(info);
++            QString id = wmClass ? QString::fromUtf8(wmClass) : QFileInfo(candidate).completeBaseName();
++            if (id.isEmpty()) id = QFileInfo(candidate).completeBaseName();
++            if (id.compare(identity, Qt::CaseInsensitive) == 0 && QFileInfo(candidate).isAbsolute()) matches.insert(candidate);
++        }
++        g_list_free_full(apps, g_object_unref);
++        if (matches.size() == 1) path = *matches.cbegin();
++    }
++    if (path.isEmpty()) return;
++    const bool pinned = mPinnedPaths.contains(path);
++    QAction* action = menu->addAction(pinned ? tr("Unpin from taskbar") : tr("Pin to taskbar"));
++    action->setObjectName(QStringLiteral("doroshellPinAction"));
++    if (!pinned && !mGroupingEnabled)
++    {
++        action->setEnabled(false);
++        action->setToolTip(tr("Enable task grouping to use unified launcher pins."));
++    }
++    const QStringList original = mPinnedPaths;
++    connect(action, &QAction::triggered, this, [this, path, pinned, original] {
++        // PluginSettings sync rebuilds buttons; wait until the menu event unwinds.
++        QTimer::singleShot(0, this, [this, path, pinned, original] {
++            auto settings = mPlugin->settings();
++            settings->syncKeepingResetState();
++            if (settings->value(QStringLiteral("doroshellPinned")).toStringList() != original)
++            {
++                QMessageBox::warning(this, tr("Taskbar pins changed"), tr("Reopen the menu after the other pin changes finish."));
++                return;
++            }
++            QStringList updated = original;
++            if (pinned) updated.removeAll(path);
++            else updated.append(path);
++            settings->setValue(QStringLiteral("doroshellPinned"), updated);
++            settings->syncKeepingResetState();
++        });
++    });
++    menu->addSeparator();
++}
++
++void LXQtTaskBar::loadPinnedLaunchers()
++{
++    if (!mGroupingEnabled) return;
++    for (const QString &path : mPinnedPaths)
++    {
++        XdgDesktopFile entry;
++        if (!QFileInfo(path).isAbsolute() || !entry.load(path) || entry.value(QStringLiteral("Type")).toString() != QStringLiteral("Application")) continue;
++        QString identity = entry.value(QStringLiteral("StartupWMClass")).toString();
++        if (identity.isEmpty()) identity = QFileInfo(path).completeBaseName();
++        auto group = createGroup(identity, 0);
++        group->setPinnedDesktop(path, entry.name(), XdgIcon::fromTheme(entry.value(QStringLiteral("Icon")).toString()));
++    }
++}
++
+ void LXQtTaskBar::addWindow(WId window)
+ {
+     if (mExcludedList.contains(mBackend->getWindowClass(window), Qt::CaseInsensitive))
+@@ -257,7 +439,7 @@ void LXQtTaskBar::addWindow(WId window)
+     auto i_group = mKnownWindows.find(window);
+     if (mKnownWindows.end() != i_group)
+     {
+-        if ((*i_group)->groupName() == group_id)
++        if ((*i_group)->groupName().compare(group_id, Qt::CaseInsensitive) == 0)
+             group = *i_group;
+         else
+             (*i_group)->onWindowRemoved(window);
+@@ -266,11 +448,12 @@ void LXQtTaskBar::addWindow(WId window)
+     //check if window belongs to some existing group
+     if (!group && mGroupingEnabled)
+     {
+-        for (auto i = mKnownWindows.cbegin(), i_e = mKnownWindows.cend(); i != i_e; ++i)
++        for (int i = 0; i < mLayout->count(); ++i)
+         {
+-            if ((*i)->groupName() == group_id)
++            auto candidate = qobject_cast<LXQtTaskGroup*>(mLayout->itemAt(i)->widget());
++            if (candidate && candidate->groupName().compare(group_id, Qt::CaseInsensitive) == 0)
+             {
+-                group = *i;
++                group = candidate;
+                 break;
+             }
+         }
+@@ -278,15 +461,7 @@ void LXQtTaskBar::addWindow(WId window)
+ 
+     if (!group)
+     {
+-        group = new LXQtTaskGroup(group_id, window, this);
+-        connect(group, &LXQtTaskGroup::groupBecomeEmpty,  this, &LXQtTaskBar::groupBecomeEmptySlot);
+-        connect(group, &LXQtTaskGroup::visibilityChanged, this, &LXQtTaskBar::refreshPlaceholderVisibility);
+-        connect(group, &LXQtTaskGroup::popupShown,        this, &LXQtTaskBar::popupShown);
+-        connect(group, &LXQtTaskButton::dragging,         this, [this] (QObject * dragSource, QPoint const & pos) {
+-            buttonMove(qobject_cast<LXQtTaskGroup *>(sender()), qobject_cast<LXQtTaskGroup *>(dragSource), pos);
+-        });
+-        mLayout->addWidget(group);
+-        group->setToolButtonsStyle(mButtonStyle);
++        group = createGroup(group_id, window);
+ 
+         if (mUngroupedNextToExisting)
+         {
+@@ -452,17 +627,8 @@ void LXQtTaskBar::settingsChanged()
+ 
+     mExcludedList = mPlugin->settings()->value(QStringLiteral("excludedList")).toString()
+                     .split(QRegularExpression(QStringLiteral("\\s*,\\s*")), Qt::SkipEmptyParts);
+-    const auto wins = mBackend->getCurrentWindows();
+-    for(WId win : wins)
+-    {
+-        if (mExcludedList.contains(mBackend->getWindowClass(win), Qt::CaseInsensitive))
+-            onWindowRemoved(win);
+-        else
+-            onWindowAdded(win);
+-    }
+-
+-    // Delete all groups if grouping or ungrouped next to existing feature toggled and start over
+-    if (groupingEnabledOld != mGroupingEnabled || ungroupedNextToExistingOld != mUngroupedNextToExisting)
++    const QStringList pinned = mPlugin->settings()->value(QStringLiteral("doroshellPinned")).toStringList();
++    if (groupingEnabledOld != mGroupingEnabled || ungroupedNextToExistingOld != mUngroupedNextToExisting || pinned != mPinnedPaths)
+     {
+         for (int i = mLayout->count() - 1; 0 <= i; --i)
+         {
+@@ -474,8 +640,20 @@ void LXQtTaskBar::settingsChanged()
+             }
+         }
+         mKnownWindows.clear();
++        mPinnedPaths = pinned;
++        loadPinnedLaunchers();
+     }
+ 
++    const auto wins = mBackend->getCurrentWindows();
++    for(WId win : wins)
++    {
++        if (mExcludedList.contains(mBackend->getWindowClass(win), Qt::CaseInsensitive))
++            onWindowRemoved(win);
++        else
++            onWindowAdded(win);
++    }
++
++
+     if (showOnlyOneDesktopTasksOld != mShowOnlyOneDesktopTasks
+             || (mShowOnlyOneDesktopTasks && showDesktopNumOld != mShowDesktopNum)
+             || showOnlyCurrentScreenTasksOld != mShowOnlyCurrentScreenTasks
+@@ -584,7 +762,7 @@ void LXQtTaskBar::wheelEvent(QWheelEvent* event)
+         if (!g)
+             continue;
+ 
+-        if (g->isVisible())
++        if (g->isVisible() && g->visibleButtonsCount() > 0)
+             list.append(g);
+         if (g->isChecked())
+             group = g;
+@@ -689,7 +867,7 @@ void LXQtTaskBar::activateTask(int pos)
+             pos--;
+             if (pos == 0)
+             {
+-                g->raiseApplication();
++                g->activatePinnedOrRaise();
+                 break;
+             }
+         }
+diff --git a/plugin-taskbar/lxqttaskbar.h b/plugin-taskbar/lxqttaskbar.h
+index 769e3f6..a292716 100644
+--- a/plugin-taskbar/lxqttaskbar.h
++++ b/plugin-taskbar/lxqttaskbar.h
+@@ -42,8 +42,10 @@ class ILXQtPanel;
+ class ILXQtPanelPlugin;
+ 
+ class QSignalMapper;
++class QMenu;
+ 
+ class LXQtTaskGroup;
++class QMimeData;
+ 
+ class LeftAlignedTextStyle;
+ 
+@@ -67,6 +69,7 @@ public:
+     virtual ~LXQtTaskBar();
+ 
+     void realign();
++    void addPinAction(QMenu* menu, WId window, const QString& pinnedPath = QString());
+ 
+     Qt::ToolButtonStyle buttonStyle() const { return mButtonStyle; }
+     int buttonWidth() const { return mButtonWidth; }
+@@ -88,6 +91,9 @@ public:
+ 
+     inline ILXQtAbstractWMInterface *getBackend() const { return mBackend; }
+ 
++    QStringList launcherDropPaths(const QMimeData* data) const;
++    bool pinDrop(const QMimeData* data);
++
+ public slots:
+     void settingsChanged();
+ 
+@@ -102,6 +108,7 @@ signals:
+ protected:
+     virtual void dragEnterEvent(QDragEnterEvent * event);
+     virtual void dragMoveEvent(QDragMoveEvent * event);
++    void dropEvent(QDropEvent* event) override;
+ 
+ private slots:
+     void refreshButtonRotation();
+@@ -120,6 +127,9 @@ private:
+     typedef QMap<WId, LXQtTaskGroup*> windowMap_t;
+ 
+ private:
++    LXQtTaskGroup *createGroup(const QString &name, WId window);
++    void loadPinnedLaunchers();
++    QStringList mPinnedPaths;
+     void addWindow(WId window);
+     windowMap_t::iterator removeWindow(windowMap_t::iterator pos);
+     void buttonMove(LXQtTaskGroup * dst, LXQtTaskGroup * src, QPoint const & pos);
+diff --git a/plugin-taskbar/lxqttaskbarconfiguration.cpp b/plugin-taskbar/lxqttaskbarconfiguration.cpp
+index c4eaba6..f37f546 100644
+--- a/plugin-taskbar/lxqttaskbarconfiguration.cpp
++++ b/plugin-taskbar/lxqttaskbarconfiguration.cpp
+@@ -28,6 +28,9 @@
+  * END_COMMON_COPYRIGHT_HEADER */
+ 
+ #include "lxqttaskbarconfiguration.h"
++#include "doroshellpinsdialog.h"
++#include <QMessageBox>
++#include <QPushButton>
+ #include "ui_lxqttaskbarconfiguration.h"
+ 
+ #include "../panel/lxqtpanelapplication.h"
+@@ -40,6 +43,23 @@ LXQtTaskbarConfiguration::LXQtTaskbarConfiguration(PluginSettings *settings, QWi
+     setAttribute(Qt::WA_DeleteOnClose);
+     setObjectName(QStringLiteral("TaskbarConfigurationWindow"));
+     ui->setupUi(this);
++    auto pins = new QPushButton(tr("Pinned applications…"), this);
++    pins->setObjectName(QStringLiteral("editPinnedApplications"));
++    ui->verticalLayout->insertWidget(ui->verticalLayout->count() - 2, pins);
++    connect(pins, &QPushButton::clicked, this, [this] {
++        const auto original = this->settings().value(QStringLiteral("doroshellPinned")).toStringList();
++        DoroShellPinsDialog editor(original, this);
++        if (editor.exec() != QDialog::Accepted) return;
++        this->settings().syncKeepingResetState();
++        if (this->settings().value(QStringLiteral("doroshellPinned")).toStringList() != original)
++        {
++            QMessageBox::warning(this, tr("Pins changed"), tr("The pinned applications changed while the editor was open. Reopen it before saving."));
++            return;
++        }
++        this->settings().setValue(QStringLiteral("doroshellPinned"), editor.paths());
++        this->settings().syncKeepingResetState();
++    });
++
+ 
+     connect(ui->buttons, &QDialogButtonBox::clicked, this, &LXQtTaskbarConfiguration::dialogButtonsAction);
+ 
+diff --git a/plugin-taskbar/lxqttaskbutton.cpp b/plugin-taskbar/lxqttaskbutton.cpp
+index 5ae03af..5bb9e32 100644
+--- a/plugin-taskbar/lxqttaskbutton.cpp
++++ b/plugin-taskbar/lxqttaskbutton.cpp
+@@ -111,7 +111,7 @@ LXQtTaskButton::LXQtTaskButton(const WId window, LXQtTaskBar * taskbar, QWidget
+         mWheelDelta = 0; // forget previous wheel deltas
+     });
+ 
+-    setUrgencyHint(mBackend->applicationDemandsAttention(mWindow));
++    setUrgencyHint(mWindow && mBackend->applicationDemandsAttention(mWindow));
+ 
+     connect(LXQt::Settings::globalSettings(), &LXQt::GlobalSettings::iconThemeChanged, this, &LXQtTaskButton::updateIcon);
+     connect(mParentTaskBar,                   &LXQtTaskBar::iconByClassChanged,        this, &LXQtTaskButton::updateIcon);
+@@ -127,6 +127,7 @@ LXQtTaskButton::~LXQtTaskButton() = default;
+  ************************************************/
+ void LXQtTaskButton::updateText()
+ {
++    if (!mWindow) return;
+     QString title = mBackend->getWindowTitle(mWindow);
+     setTextExplicitly(title.replace(QStringLiteral("&"), QStringLiteral("&&")));
+     setToolTip(title);
+@@ -137,6 +138,7 @@ void LXQtTaskButton::updateText()
+  ************************************************/
+ void LXQtTaskButton::updateIcon()
+ {
++    if (!mWindow) return;
+     QIcon ico;
+     if (mParentTaskBar->isIconByClass())
+     {
+@@ -175,6 +177,12 @@ void LXQtTaskButton::changeEvent(QEvent *event)
+  ************************************************/
+ void LXQtTaskButton::dragEnterEvent(QDragEnterEvent *event)
+ {
++    if ((event->possibleActions() & Qt::CopyAction) && !parentTaskBar()->launcherDropPaths(event->mimeData()).isEmpty())
++    {
++        event->setDropAction(Qt::CopyAction);
++        event->accept();
++        return;
++    }
+     // It must be here otherwise dragLeaveEvent and dragMoveEvent won't be called
+     // on the other hand drop and dragmove events of parent widget won't be called
+     if (event->mimeData()->hasFormat(mimeDataFormat()))
+@@ -191,6 +199,12 @@ void LXQtTaskButton::dragEnterEvent(QDragEnterEvent *event)
+ 
+ void LXQtTaskButton::dragMoveEvent(QDragMoveEvent * event)
+ {
++    if ((event->possibleActions() & Qt::CopyAction) && parentTaskBar()->isGroupingEnabled() && event->mimeData()->hasUrls())
++    {
++        event->setDropAction(Qt::CopyAction);
++        event->accept();
++        return;
++    }
+     if (event->mimeData()->hasFormat(mimeDataFormat()))
+     {
+         emit dragging(event->source(), event->position().toPoint());
+@@ -207,6 +221,12 @@ void LXQtTaskButton::dragLeaveEvent(QDragLeaveEvent *event)
+ void LXQtTaskButton::dropEvent(QDropEvent *event)
+ {
+     mDNDTimer->stop();
++    if ((event->possibleActions() & Qt::CopyAction) && parentTaskBar()->pinDrop(event->mimeData()))
++    {
++        event->setDropAction(Qt::CopyAction);
++        event->accept();
++        return;
++    }
+     if (event->mimeData()->hasFormat(mimeDataFormat()))
+     {
+         event->acceptProposedAction();
+@@ -406,6 +426,7 @@ bool LXQtTaskButton::isApplicationActive() const
+  ************************************************/
+ void LXQtTaskButton::raiseApplication()
+ {
++    if (!mWindow) return;
+     mBackend->raiseWindow(mWindow, parentTaskBar()->raiseOnCurrentDesktop());
+ }
+ 
+@@ -465,6 +486,7 @@ void LXQtTaskButton::unShadeApplication()
+  ************************************************/
+ void LXQtTaskButton::closeApplication()
+ {
++    if (!mWindow) return;
+     mBackend->closeWindow(mWindow);
+ }
+ 
+@@ -546,6 +568,7 @@ void LXQtTaskButton::contextMenuEvent(QContextMenuEvent* event)
+ 
+     QMenu * menu = new QMenu(tr("Application"), this);
+     menu->setAttribute(Qt::WA_DeleteOnClose);
++    mParentTaskBar->addPinAction(menu, mWindow);
+     QAction* a;
+ 
+     /* KDE menu *******
+diff --git a/plugin-taskbar/lxqttaskgroup.cpp b/plugin-taskbar/lxqttaskgroup.cpp
+index 4e1c4bf..048326a 100644
+--- a/plugin-taskbar/lxqttaskgroup.cpp
++++ b/plugin-taskbar/lxqttaskgroup.cpp
+@@ -28,6 +28,9 @@
+  *
+  * END_COMMON_COPYRIGHT_HEADER */
+ 
++#include <gio/gdesktopappinfo.h> // Include before Qt keyword macros.
++#include <QMessageBox>
++#include <QStyle>
+ #include "lxqttaskgroup.h"
+ #include "lxqttaskbar.h"
+ #include "lxqtgrouppopup.h"
+@@ -74,8 +77,54 @@ LXQtTaskGroup::LXQtTaskGroup(const QString &groupName, WId window, LXQtTaskBar *
+ /************************************************
+ 
+  ************************************************/
++void LXQtTaskGroup::setPinnedDesktop(const QString &path, const QString &name, const QIcon &icon)
++{
++    mPinnedDesktop = path;
++    mPinnedName = name;
++    mPinnedIcon = icon;
++    if (mButtonHash.isEmpty()) showPinnedLauncher();
++}
++
++void LXQtTaskGroup::showPinnedLauncher()
++{
++    setWindowId(0);
++    setProperty("doroshellRunning", false);
++    style()->unpolish(this); style()->polish(this);
++    mSingleButton = true;
++    setChecked(false);
++    setTextExplicitly(mPinnedName);
++    setToolTip(mPinnedName);
++    setIcon(mPinnedIcon);
++    show();
++}
++
++void LXQtTaskGroup::activatePinnedOrRaise()
++{
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty()) launchPinned();
++    else raiseApplication();
++}
++
++void LXQtTaskGroup::launchPinned()
++{
++    GDesktopAppInfo *info = g_desktop_app_info_new_from_filename(mPinnedDesktop.toUtf8().constData());
++    GError *error = nullptr;
++    bool ok = info && g_app_info_launch(G_APP_INFO(info), nullptr, nullptr, &error);
++    if (!ok) QMessageBox::warning(this, tr("Could not launch application"), error ? QString::fromUtf8(error->message) : tr("The pinned desktop entry is unavailable."));
++    if (error) g_error_free(error);
++    if (info) g_object_unref(info);
++    setChecked(false);
++}
++
+ void LXQtTaskGroup::contextMenuEvent(QContextMenuEvent *event)
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    {
++        QMenu menu;
++        menu.addAction(tr("Open"), this, &LXQtTaskGroup::launchPinned);
++        parentTaskBar()->addPinAction(&menu, 0, mPinnedDesktop);
++        menu.exec(event->globalPos());
++        return;
++    }
+     setPopupVisible(false, true);
+     if (mSingleButton)
+     {
+@@ -85,6 +134,7 @@ void LXQtTaskGroup::contextMenuEvent(QContextMenuEvent *event)
+     mPreventPopup = true;
+     QMenu * menu = new QMenu(tr("Group"));
+     menu->setAttribute(Qt::WA_DeleteOnClose);
++    parentTaskBar()->addPinAction(menu, mButtonHash.isEmpty() ? 0 : mButtonHash.constBegin().value()->windowId(), mPinnedDesktop);
+     QAction *a = menu->addAction(XdgIcon::fromTheme(QStringLiteral("process-stop")), tr("Close group"));
+     connect(a,    &QAction::triggered, this, &LXQtTaskGroup::closeGroup);
+     connect(menu, &QMenu::aboutToHide, this, [this] {
+@@ -123,6 +173,8 @@ LXQtTaskButton * LXQtTaskGroup::addWindow(WId id)
+     }
+ 
+     mButtonHash.insert(id, btn);
++    setProperty("doroshellRunning", true);
++    style()->unpolish(this); style()->polish(this);
+     mPopup->addButton(btn);
+ 
+     connect(btn, &LXQtTaskButton::clicked, this, &LXQtTaskGroup::onChildButtonClicked);
+@@ -153,6 +205,7 @@ LXQtTaskButton * LXQtTaskGroup::getNextPrevChildButton(bool next, bool circular)
+     int inc = next ? 1 : -1;
+     idx += inc;
+ 
++    if (mButtonHash.isEmpty()) return nullptr;
+     // if there is no checked button, get the first one if next equals true
+     // or the last one if not
+     if (!button)
+@@ -229,6 +282,11 @@ void LXQtTaskGroup::onWindowRemoved(WId window)
+ 
+         if (mButtonHash.count())
+             regroup();
++        else if (!mPinnedDesktop.isEmpty())
++        {
++            setPopupVisible(false, true);
++            showPinnedLauncher();
++        }
+         else
+         {
+             if (isVisible())
+@@ -307,6 +365,11 @@ void LXQtTaskGroup::draggingTimerTimeout()
+  ************************************************/
+ void LXQtTaskGroup::onClicked(bool)
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    {
++        launchPinned();
++        return;
++    }
+     if (visibleButtonsCount() > 1)
+     {
+         setChecked(mButtonHash.contains(mBackend->getActiveWindow()));
+@@ -383,6 +446,11 @@ void LXQtTaskGroup::setAutoRotation(bool value, ILXQtPanel::Position position)
+  ************************************************/
+ void LXQtTaskGroup::refreshVisibility()
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    {
++        showPinnedLauncher();
++        return;
++    }
+     bool will = false;
+     LXQtTaskBar const * taskbar = parentTaskBar();
+     const int showDesktop = taskbar->showDesktopNum();
+@@ -446,6 +514,7 @@ void LXQtTaskGroup::setPopupVisible(bool visible, bool fast)
+  ************************************************/
+ void LXQtTaskGroup::refreshIconsGeometry()
+ {
++    if (!windowId()) return;
+     QRect rect = geometry();
+     rect.moveTo(mapToGlobal(QPoint(0, 0)));
+ 
+@@ -561,8 +630,8 @@ void LXQtTaskGroup::enterEvent(QEnterEvent *event)
+  ************************************************/
+ void LXQtTaskGroup::dragEnterEvent(QDragEnterEvent *event)
+ {
+-    // only show the popup if we aren't dragging a taskgroup
+-    if (!event->mimeData()->hasFormat(mimeDataFormat()))
++    // Launcher drops pin the app instead of opening the group preview.
++    if (!event->mimeData()->hasFormat(mimeDataFormat()) && parentTaskBar()->launcherDropPaths(event->mimeData()).isEmpty())
+     {
+         setPopupVisible(true);
+     }
+@@ -608,6 +677,7 @@ void LXQtTaskGroup::mouseReleaseEvent(QMouseEvent* event)
+ 
+ void LXQtTaskGroup::wheelEvent(QWheelEvent* event)
+ {
++    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty()) { event->accept(); return; }
+     if (mSingleButton)
+     {
+         LXQtTaskButton::wheelEvent(event);
+@@ -639,7 +709,7 @@ bool LXQtTaskGroup::onWindowChanged(WId window, LXQtTaskBarWindowProperty prop)
+         // if class is changed the window won't belong to our group any more
+         if (parentTaskBar()->isGroupingEnabled() && prop == LXQtTaskBarWindowProperty::WindowClass)
+         {
+-            if (mBackend->getWindowClass(windowId()) != mGroupName)
++            if (mBackend->getWindowClass(window).compare(mGroupName, Qt::CaseInsensitive) != 0)
+             {
+                 onWindowRemoved(window);
+                 return false;
+diff --git a/plugin-taskbar/lxqttaskgroup.h b/plugin-taskbar/lxqttaskgroup.h
+index 31ab784..3b4434c 100644
+--- a/plugin-taskbar/lxqttaskgroup.h
++++ b/plugin-taskbar/lxqttaskgroup.h
+@@ -48,6 +48,10 @@ class LXQtTaskGroup: public LXQtTaskButton
+ public:
+     LXQtTaskGroup(const QString & groupName, WId window, LXQtTaskBar * parent);
+ 
++    void activatePinnedOrRaise();
++    QString pinnedDesktop() const { return mPinnedDesktop; }
++    void setPinnedDesktop(const QString &path, const QString &name, const QIcon &icon);
++
+     QString groupName() const { return mGroupName; }
+ 
+     int buttonsCount() const;
+@@ -104,6 +108,11 @@ signals:
+     void popupShown(LXQtTaskGroup* sender);
+ 
+ private:
++    QString mPinnedDesktop;
++    QString mPinnedName;
++    QIcon mPinnedIcon;
++    void showPinnedLauncher();
++    void launchPinned();
+     QString mGroupName;
+     LXQtGroupPopup * mPopup;
+     LXQtTaskButtonHash mButtonHash;
+diff --git a/plugin-worldclock/lxqtworldclock.cpp b/plugin-worldclock/lxqtworldclock.cpp
+index 4d66796..33eb2b4 100644
+--- a/plugin-worldclock/lxqtworldclock.cpp
++++ b/plugin-worldclock/lxqtworldclock.cpp
+@@ -38,6 +38,8 @@
+ #include <QLocale>
+ #include <QScopedArrayPointer>
+ #include <QTimer>
++#include <QScreen>
++#include <QScrollArea>
+ #include <QWheelEvent>
+ #include <QToolTip>
+ 
+@@ -57,12 +59,21 @@ LXQtWorldClock::LXQtWorldClock(const ILXQtPanelPluginStartupInfo &startupInfo):
+     mMainWidget = new QWidget();
+     mMainWidget->installEventFilter(this);
+     mContent = new ActiveLabel();
+-    mRotatedWidget = new LXQt::RotatedWidget(*mContent, mMainWidget);
++    const bool compact = settings()->value(QStringLiteral("doroshellTwoLine"), false).toBool()
++        && (panel()->position() == ILXQtPanel::PositionBottom || panel()->position() == ILXQtPanel::PositionTop);
++    mRotatedWidget = compact ? nullptr : new LXQt::RotatedWidget(*mContent, mMainWidget);
+ 
+     QVBoxLayout *borderLayout = new QVBoxLayout(mMainWidget);
+     borderLayout->setContentsMargins(0, 0, 0, 0);
+     borderLayout->setSpacing(0);
+-    borderLayout->addWidget(mRotatedWidget, 0, Qt::AlignCenter);
++    if (mRotatedWidget)
++        borderLayout->addWidget(mRotatedWidget, 0, Qt::AlignCenter);
++    else
++    {
++        mContent->setMargin(0);
++        mContent->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
++        borderLayout->addWidget(mContent);
++    }
+ 
+     mContent->setObjectName(QLatin1String("WorldClockContent"));
+ 
+@@ -137,9 +148,14 @@ void LXQtWorldClock::updateTimeText()
+     {
+         const QSize old_size = mContent->sizeHint();
+         mContent->setText(QLocale::system().toString(tzNow, preformat(mFormat, timeZone, tzNow)));
+-        if (old_size != mContent->sizeHint())
+-            mRotatedWidget->adjustContentSize();
+-        mRotatedWidget->update();
++        if (mRotatedWidget)
++        {
++            if (old_size != mContent->sizeHint())
++                mRotatedWidget->adjustContentSize();
++            mRotatedWidget->update();
++        }
++        else
++            fitClock();
+         updatePopupContent();
+ 
+     }
+@@ -361,7 +377,7 @@ void LXQtWorldClock::settingsChanged()
+     {
+         updatePopupContent();
+         mPopup->adjustSize();
+-        mPopup->setGeometry(calculatePopupWindowPos(mPopup->size()));
++        positionPopup();
+     }
+ 
+     setTimeText();
+@@ -409,7 +425,17 @@ void LXQtWorldClock::activated(ActivationReason reason)
+             QCalendarWidget *calendarWidget = new QCalendarWidget(mPopup);
+             if (!mShowWeekNumber)
+                 calendarWidget->setVerticalHeaderFormat(QCalendarWidget::NoVerticalHeader);
+-            mPopup->layout()->addWidget(calendarWidget);
++            if (mRotatedWidget)
++                mPopup->layout()->addWidget(calendarWidget);
++            else
++            {
++                auto *scroll = new QScrollArea(mPopup);
++                scroll->setFrameShape(QFrame::NoFrame);
++                scroll->setWidgetResizable(true);
++                scroll->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
++                scroll->setWidget(calendarWidget);
++                mPopup->layout()->addWidget(scroll);
++            }
+ 
+             QString timeZoneName = mActiveTimeZone;
+             if (timeZoneName == QLatin1String("local"))
+@@ -431,7 +457,7 @@ void LXQtWorldClock::activated(ActivationReason reason)
+         }
+ 
+         mPopup->adjustSize();
+-        mPopup->setGeometry(calculatePopupWindowPos(mPopup->size()));
++        positionPopup();
+ 
+         willShowWindow(mPopup);
+         mPopup->show();
+@@ -561,8 +587,55 @@ QString LXQtWorldClock::preformat(const QString &format, const QTimeZone &timeZo
+     return result;
+ }
+ 
++void LXQtWorldClock::positionPopup()
++{
++    if (mRotatedWidget)
++    {
++        mPopup->setGeometry(calculatePopupWindowPos(mPopup->size()));
++        return;
++    }
++    QRect bounds = mMainWidget->screen()->geometry();
++    QWidget *bar = mMainWidget->window();
++    const int barTop = bar->mapToGlobal(QPoint()).y();
++    if (panel()->position() == ILXQtPanel::PositionBottom)
++        bounds.setBottom(barTop - 1);
++    else
++        bounds.setTop(barTop + bar->height());
++    if (!bounds.isValid())
++        return;
++    mPopup->setMaximumSize(bounds.size());
++    const QSize size = mPopup->sizeHint().boundedTo(bounds.size());
++    QRect target(QPoint(), size);
++    target.moveRight(qBound(bounds.left() + size.width() - 1,
++                            mMainWidget->mapToGlobal(mMainWidget->rect().topRight()).x(), bounds.right()));
++    if (panel()->position() == ILXQtPanel::PositionBottom)
++        target.moveBottom(bounds.bottom());
++    else
++        target.moveTop(bounds.top());
++    mPopup->setGeometry(target);
++}
++
++void LXQtWorldClock::fitClock()
++{
++    if (mMainWidget->height() < 4 || mContent->text().isEmpty())
++        return;
++    QFont font = mMainWidget->font();
++    font.setPixelSize(QFontInfo(font).pixelSize());
++    mContent->setFont(font);
++    while (mContent->sizeHint().height() > mMainWidget->height() - 2 && font.pixelSize() > 1)
++    {
++        font.setPixelSize(font.pixelSize() - 1);
++        mContent->setFont(font);
++    }
++}
++
+ void LXQtWorldClock::realign()
+ {
++    if (!mRotatedWidget)
++    {
++        fitClock();
++        return;
++    }
+     if (mAutoRotate)
+         switch (panel()->position())
+         {
+@@ -635,6 +708,9 @@ void LXQtWorldClockPopup::show()
+ 
+ bool LXQtWorldClock::eventFilter(QObject * watched, QEvent * event)
+ {
++    if (watched == mMainWidget && !mRotatedWidget
++        && (event->type() == QEvent::Resize || event->type() == QEvent::FontChange))
++        fitClock();
+     if (mShowTooltip && watched == mMainWidget && event->type() == QEvent::ToolTip)
+     {
+         QHelpEvent *helpEvent = static_cast<QHelpEvent*>(event);
+diff --git a/plugin-worldclock/lxqtworldclock.h b/plugin-worldclock/lxqtworldclock.h
+index acfabe7..7e3565a 100644
+--- a/plugin-worldclock/lxqtworldclock.h
++++ b/plugin-worldclock/lxqtworldclock.h
+@@ -71,7 +71,7 @@ private slots:
+ 
+ private:
+     QWidget *mMainWidget;
+-    LXQt::RotatedWidget* mRotatedWidget;
++    LXQt::RotatedWidget* mRotatedWidget = nullptr;
+     ActiveLabel *mContent;
+     LXQtWorldClockPopup* mPopup;
+ 
+@@ -92,6 +92,8 @@ private:
+ 
+     QDateTime mShownTime;
+ 
++    void positionPopup();
++    void fitClock();
+     void restartTimer();
+ 
+     void setTimeText();

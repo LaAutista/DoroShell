@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "version": "0.3.0-rc.1",
+  "channel": "development",
+  "configuration_schema": 1,
+  "repository": "https://github.com/LaAutista/DoroShell.git",
+  "stable_tag": null
+}

@@ -1,0 +1,1182 @@
+{
+  "format": 1,
+  "candidate": "native-cpp",
+  "source_payloads": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "cf2176f8c7eb0ea91ac1f1d06e783b1a6276c458ddb04f1ecfb5c6d28ea0951c",
+      "size": 17128,
+      "mode": "0o644"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "86ae7333b38d6c40c2a22e0512599fc0991aaec48174b633c85dca2929e9aaa6",
+      "size": 3657,
+      "mode": "0o644"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "d8c320ffc0030d1b096ae4732b50d2b811cf95e9a9b7377c1127b2563e0a0388",
+      "size": 15220,
+      "mode": "0o644"
+    },
+    {
+      "path": "README.md",
+      "sha256": "bf1cea6bf2f43a130df0f564b3edf30202893a9474f30466271becd3baf34cd0",
+      "size": 3785,
+      "mode": "0o644"
+    },
+    {
+      "path": "RELEASE-CANDIDATE.md",
+      "sha256": "bbe67ef896739c80564a5a7ff8710441aec8dcadec94e1e5136009bdddf41ada",
+      "size": 1139,
+      "mode": "0o644"
+    },
+    {
+      "path": "SOURCE-SCAN.json",
+      "sha256": "5db4bdfc84a5dbe331c502ace19e88e525babeffbbe90f98f45ad93d67368656",
+      "size": 7406,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/catalog.json",
+      "sha256": "0b92489936aa8ba2e7c5d4bebb3ddb914c62f5d764e3ce642f76387a71851c0a",
+      "size": 2354,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/cursors/spin-doro-transparent.apng",
+      "sha256": "b0756c32819b8e457c43401532ba65ec4333b25c6c4d6d2a594678b532998b84",
+      "size": 1407214,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/cursors/spin-doro.gif",
+      "sha256": "c232566e9941fde6594e46bdd27bcbc049e4f32784f9d49fd8571c9f0c560874",
+      "size": 713423,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/doro/portrait.png",
+      "sha256": "79735954e5a60eaae0fb786219ffa91e12a15bbcbc28bf40288b9a899ce6e60e",
+      "size": 1430973,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/doro/start.png",
+      "sha256": "52eb5f4c110040d03f16ea85d458db9ce6cb021b7b9bf5127802bd272d34cf47",
+      "size": 288733,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/wallpapers/heretic-office.png",
+      "sha256": "a8f45238f396ba6561e6352ef1a79c22a7a10a91f4a42f58f670d141881c95ce",
+      "size": 9636159,
+      "mode": "0o644"
+    },
+    {
+      "path": "assets/wallpapers/jeanne.mp4",
+      "sha256": "ac2285f00a310d71c710f5de09ebae6b9bdb57878d0be58b80560fefcee362a5",
+      "size": 66094008,
+      "mode": "0o644"
+    },
+    {
+      "path": "bootstrap.sh",
+      "sha256": "579f7465dfa1560c889f788cd2fd70e970e60ab0d590bd899aef5770aba8a022",
+      "size": 1761,
+      "mode": "0o644"
+    },
+    {
+      "path": "deploy.py",
+      "sha256": "7b50754c285502d869d0b6df2e91b41883d7cf51bfa5393cc63eb857596f5a8d",
+      "size": 380,
+      "mode": "0o644"
+    },
+    {
+      "path": "display/dorodisplaycontrols.h",
+      "sha256": "f010425dd704863caba5c12391030fb2ba155d17d273f25145549eb69830eb96",
+      "size": 24323,
+      "mode": "0o644"
+    },
+    {
+      "path": "display/pcmanfm-advanced.patch",
+      "sha256": "72e7a276035b67210686fb97e859543b296904d898a78698a73c7715283214a7",
+      "size": 2617,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/assets.md",
+      "sha256": "bbd20a5868547022052753cb8c06e7ed309bda24c7e42ff6a666bf82ad96b017",
+      "size": 7673,
+      "mode": "0o644"
+    },
+    {
+      "path": "docs/native-rewrite.md",
+      "sha256": "27169ec505593796e4d67223d14d8fbccf692f42732b003622a87f221742a015",
+      "size": 5465,
+      "mode": "0o644"
+    },
+    {
+      "path": "input/unified-pointer.patch",
+      "sha256": "13aadfcda18c615d1b88cca06728113a4f0ca272e9bac3656b551869506c9034",
+      "size": 6844,
+      "mode": "0o644"
+    },
+    {
+      "path": "menu/start.svg",
+      "sha256": "69c1bfd0ea9ef0a52a8712f0d3302c7786e4e7034ba43c050113cfa8cfd66314",
+      "size": 319,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/CMakeLists.txt",
+      "sha256": "6611abb864f6029c33cb521e01f821b657186765ecac3a93f8a2507bd591cb17",
+      "size": 1647,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/import.cpp",
+      "sha256": "daee301a75712caadefa18d53c1671df3456b050281957931ad4ae8c2226f5f6",
+      "size": 2168,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/import.hpp",
+      "sha256": "2eb95d2f9135ff4486755c3ac82083f51a2c99f0d281eb20715f981f51b83b5d",
+      "size": 236,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/import_test.cpp",
+      "sha256": "3e07b08cb8c97c186ef0ccbfa570617d4191b1562c1a6ff598b8e778bf3ebfa9",
+      "size": 1785,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/main.cpp",
+      "sha256": "f6d261eff51fac10b7a0ad5818ee2e8c04e43b7b82c7a5bdab21f0b1136f6926",
+      "size": 5853,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/overlay.cpp",
+      "sha256": "5c6ffff169a85de63aafa9968ab59634843c3012af71a44b8d9655e67be4b446",
+      "size": 17300,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/overlay.hpp",
+      "sha256": "d4af471dbf8008eaa32eacbe6a52f93603cb20ea4b1f863ef6b67bb40c0e00d3",
+      "size": 1459,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/overlay_test.cpp",
+      "sha256": "42e3f033b05ba1b34ee42fcbb7b45e740357efb14b8d010e7762885192fdecb8",
+      "size": 1147,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/private_test.cpp",
+      "sha256": "07ec703c7e1d8a78440eed1552ca3413542b4be7c0d7becc209f5ea8e8ddf47f",
+      "size": 3753,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/render.cpp",
+      "sha256": "37438547152280d3aeb13bb937a3928be9d1bbd46e82d02456928c5f25a15254",
+      "size": 10252,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/render.hpp",
+      "sha256": "23e9954268f70900cbf246c3d47776d5967c9ec8fdfe2b363574009ebd0e1700",
+      "size": 3233,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/capture/render_test.cpp",
+      "sha256": "35c2a6e089836fa7db5e782f77f439af8e2bc45bc2088138ce86126bb6d8b7f7",
+      "size": 19062,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/clipboard/CMakeLists.txt",
+      "sha256": "442683fbe8a7358f2be2938b7e6bac517c6674f36e4a6f5d197e81d1927b6da8",
+      "size": 859,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/clipboard/entry.cpp",
+      "sha256": "429699f23b5bd746727630d4850daa8583ee103315ddc0ec5c266858d7d5bf65",
+      "size": 5782,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/clipboard/entry.hpp",
+      "sha256": "827fb411c2b72c3eaed62e59495e5eafc9b83ca1cbe3312f9dab87cec235fd57",
+      "size": 563,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/clipboard/entry_test.cpp",
+      "sha256": "e4eaae59f371ec12a7811194643e6e01767cfe3901a98b49467ff9b18aacb859",
+      "size": 1388,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/clipboard/main.cpp",
+      "sha256": "6981836d9c78ef4fe2434466e86c7c7f4fc60cdd7b1113b40c9506f64197f668",
+      "size": 11739,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/clipboard/session_test.cpp",
+      "sha256": "77cb49d9587497a57d1ef310b69669dc28cc6947ed3ffb77790a630a98a30020",
+      "size": 2284,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/compatibility/CMakeLists.txt",
+      "sha256": "825047c33b4872381b029ceb3cc17233a22b3b5adfaf77a68d7fe43997241b7c",
+      "size": 810,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/compatibility/check_test.cpp",
+      "sha256": "bfa87db4f8aa54a583f0df1732a2c49c453a32a8954aabea73d30ac604b3e4ad",
+      "size": 11232,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/compatibility/main.cpp",
+      "sha256": "e262483e7895053ab68099ea79d25776fcf77c4250d03b3f87971fb56f7bbf5c",
+      "size": 17259,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/compatibility/packages.hpp",
+      "sha256": "ac87a04818c8823e7453f5815f3b8a714deb9b752287b12bdd2b0dac9e5db0a6",
+      "size": 2501,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/core/CMakeLists.txt",
+      "sha256": "2cdfb758a5349c83dfc908e53531d3a4afdd42dbf15fb958faf1ebb0ac4a08dc",
+      "size": 1014,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/core/core_test.cpp",
+      "sha256": "dd066920c90016da55f639efb2fcd5fa6b419430bbe542c4241ca04fa0c0f590",
+      "size": 19258,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/core/main.cpp",
+      "sha256": "805d7b17456eb7f07dacdce10fbf84f3df6e65686b3fd0808f0851f5eec77543",
+      "size": 30299,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/cursor/CMakeLists.txt",
+      "sha256": "9eb43b6e8e9c37aa7d1df4c44ba97008f74c49d1ace0d6f375ea834a56f6a1e9",
+      "size": 1344,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/cursor/animation.cpp",
+      "sha256": "82d76baeecb90a3bde571aa70f85ca626a05465d9fb53381e2e172610055895c",
+      "size": 8048,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/cursor/cursor.cpp",
+      "sha256": "33346bc1f1da54106056ac338cec6ab367a21d9ae100abd59037ec0a1848ebe0",
+      "size": 5284,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/cursor/cursor.hpp",
+      "sha256": "242caa24f5fff12c572e34581c7f0a5216a143bed62107d78d52e486fc50d4a0",
+      "size": 697,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/cursor/main.cpp",
+      "sha256": "3145aedd93f5bb0d804be9e3e146827b54e13a2556153b0906b3bdd45436c67b",
+      "size": 2517,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/cursor/test.cpp",
+      "sha256": "5131e2c72360cd93bc66cf06e76af94d30a3525e94de0fa804adcaa50735419c",
+      "size": 7293,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/cursor/transaction.cpp",
+      "sha256": "95c415217d9510a41fc4a93f79e9c1df3aabbdc19b03f172e3eb4b307b81dea9",
+      "size": 12459,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/desktop/CMakeLists.txt",
+      "sha256": "c42d3e3a0fe58641751b5daff9d5977561d2437d6c812ce0d1d8c6f197a484aa",
+      "size": 137,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/desktop/main.cpp",
+      "sha256": "ffbd23d268370d58c0d36e463f76a8304de8c79e69d64a32dfb63196e49a0c52",
+      "size": 2428,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/CMakeLists.txt",
+      "sha256": "077d07f3e997b86d24280781c54bcf4e9ebe540012a3a7a7abce6601c7b2701a",
+      "size": 2074,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/README.md",
+      "sha256": "c5db1bb964073c5b7a26d5ae1336db25f54216fe02221dada06c03720a8ef13e",
+      "size": 1751,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/backend.cpp",
+      "sha256": "3f5f3dfc3ce86bd54f8cb9c8cb2027e9034916daad28bf8bf6e9239dc2fac9ef",
+      "size": 15184,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/desktop-helper.patch",
+      "sha256": "25592953d5bea49852cfa3b74fad9c074ae98338f8288c6a2542fd4a24ecb6e7",
+      "size": 4460,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/private_test.cpp",
+      "sha256": "426f7c15ee5aff443ebb556ce8ca446cd027f622dee629e079d7ca5ce209e7d3",
+      "size": 8575,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/state.cpp",
+      "sha256": "bc24841749a32e136f94f724470969296bc0b11b8577c9801ddd48a10ab23250",
+      "size": 12884,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/state.hpp",
+      "sha256": "12f01192a421baf0bf110951a2dbf83d71aa714be76d06cc6e33581d67cef032",
+      "size": 808,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/state_test.cpp",
+      "sha256": "bae69448aac533f5cf0926cb02e86f48851e9d66fcdd95d810913b110edfbd7b",
+      "size": 3600,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/display/widget_test.cpp",
+      "sha256": "51754073256f8d96c706a87b47d4f85010dfe3d45a0d301f41b9fc63d34f014e",
+      "size": 1688,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/CMakeLists.txt",
+      "sha256": "d68123d1872c84b0d99d64713fd29313500a5ff4e0abae15186888d454c95f44",
+      "size": 2572,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/diagnostic.cpp",
+      "sha256": "ed3cb12a1abe8bba52afd73037348cdeb1cfde8d54be0d99b6b5240f124040df",
+      "size": 9661,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/diagnostic.hpp",
+      "sha256": "1db94f2806e91a4a5ba409179f42a59ccf26775d02ed64e8faa0c5f97ee9e30b",
+      "size": 602,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/input_test.cpp",
+      "sha256": "d7afc39c60d5bcec8e1dc5dde8d979d011f0836345e2346b35a8eb6fe92d8df3",
+      "size": 9994,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/launch.cpp",
+      "sha256": "2b7d1cfe6ffe59aca6f74cb680f00db3c1e30992b970a588d03d11c8814a9e52",
+      "size": 1907,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/launch.hpp",
+      "sha256": "0ff4116f685099dcf3b7175e982cbbc6981af13130587d2c9a53c61608c3a857",
+      "size": 332,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/launch_main.cpp",
+      "sha256": "d628a6ccde0f6e3f9fbcdb17d10c2f2256c37cb40cc2790606557e0ae0d60847",
+      "size": 478,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/launch_test.cpp",
+      "sha256": "f9c627e275817ecac0fdf7e7794dff5b24b6ef83af99028a704f5096d44228c3",
+      "size": 4609,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/main.cpp",
+      "sha256": "d3a2bcffe1adbba3fd0945a0d4f72681b1c6afa80f22c759523cdd9b1af8f7a3",
+      "size": 4459,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/overrides.cpp",
+      "sha256": "53809377443cc75584210984b89e2d2350b2824185d19d85391445557f1b8d86",
+      "size": 6091,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/preferences.cpp",
+      "sha256": "b0c8384e31eb923f6848b78fb7b97ec592daf0aa5fc9ca03c91955da3fa4bcc5",
+      "size": 24357,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/preferences.hpp",
+      "sha256": "4f770eb65c28a04446f6c21b766b80512af141691b4931259735133c3cfc70e1",
+      "size": 2986,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/x11_test.cpp",
+      "sha256": "83c66f64884f52e87f0b16346758b7a800ef5f5b127b2dfb96b6501d3fcc2125",
+      "size": 5360,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/xinput.cpp",
+      "sha256": "47e2d70179ea0411353c1ade2ba28bf8102bba9d05fdd8f9b1ca6bbc5e55c942",
+      "size": 12360,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/input/xinput.hpp",
+      "sha256": "57646962d7ab799ccbf07f9b45f001d3344b44876b5172b8d58e6467641de500",
+      "size": 1005,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/maintenance/CMakeLists.txt",
+      "sha256": "999a0a1e6eda1e5f3f09687510f7c1414f887822f8cb0520bf9aff1efee3f74c",
+      "size": 1137,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/maintenance/main.cpp",
+      "sha256": "3cec79fa9dff6c6673dffb65ba03af08c2c4f1474c5572bbacbed0afcc5ffdf6",
+      "size": 43417,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/maintenance/test.cpp",
+      "sha256": "db5b6e5b5e0788de63e7e5efd00719a2c7c60869b0fb508a92b7881ba3d6d0e1",
+      "size": 21600,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/migration/CMakeLists.txt",
+      "sha256": "a46c74e487b2edf2b583080c720e5d891a279a5e7b9ba9ff9766254d886a4e8e",
+      "size": 696,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/migration/README.md",
+      "sha256": "cc801b845882b98a031e2d98e0d7d04695690ef9f168513b751ea856f03227e5",
+      "size": 2102,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/migration/main.cpp",
+      "sha256": "eb1ec5e4db6e6673e8cfb059a093cd26c303de6fe7ed92318ac94777d4b1668c",
+      "size": 17593,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/migration/route.cpp",
+      "sha256": "7c42aed5aedc26c0c4b1d655d9e827a0b8e25e58f68d494208a93850b3198689",
+      "size": 1239,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/migration/selection.hpp",
+      "sha256": "b0e882421582b09ebeb420d0ed4d2ca62ed0cb9d6ccec6c0755a8f7f56efe6b2",
+      "size": 1292,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/migration/test.cpp",
+      "sha256": "5ed87cbf2b3ee1f96cd6de6ff21a2f47f4c8c67e2c51acd91af55ed2c6653e92",
+      "size": 13134,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/migration/wallpaper.cpp",
+      "sha256": "0966aee149121371cc7d2b9bb33b89f69d6716ba6a8759a6d66e8f81c17105f2",
+      "size": 4924,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/modules/CMakeLists.txt",
+      "sha256": "322e069a35626fe66bff90a35792e3eb37d505318b1f0db5a85ea3393d881976",
+      "size": 801,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/modules/README.md",
+      "sha256": "ca188e1f0c7924378dcce73693ee33fb1f3129a7b273be8befcecafe2411b5d8",
+      "size": 2855,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/modules/main.cpp",
+      "sha256": "b3544b8efc60d060564fe0a6e228c9b3d840efd1c68f7b24d781dbe212e76712",
+      "size": 16118,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/modules/options.cpp",
+      "sha256": "d5b6604d948030d35de2c7a4f7824f961b0590265a6933e8751ae5a3bb9f3667",
+      "size": 14900,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/modules/options.hpp",
+      "sha256": "bf030b6e0f96f80dc3d2a5d078b98446a24d523e2e655ea2c6358ac7c72c74fd",
+      "size": 948,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/modules/test.cpp",
+      "sha256": "458aaa92d99e3d99fe486ad435b059ee193e5b667d984a896966e21e3cd0e3a7",
+      "size": 11482,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/CMakeLists.txt",
+      "sha256": "db7073bcc8357693554f3abfa87b46cb65fc8342d872409ee7d41a1536ff8e1d",
+      "size": 1635,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/chooser.cpp",
+      "sha256": "8b82535ceb296ea55589dd5f0da5630f2b36f1eda6e4f1695196a11b82b80b63",
+      "size": 37299,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/chooser.hpp",
+      "sha256": "496fc635ec4f4d69a64e482cb5e2246ebc5e3bac9d00f0f8d03cc79b3d6102b2",
+      "size": 149,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/chooser_test.cpp",
+      "sha256": "554f46728db232e0f52442a929d7a3a529e01c2ccd392b4be4f83dca661b7262",
+      "size": 7749,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/main.cpp",
+      "sha256": "49e2e1945774c8c649df8da1fdb0f14e354d9b68df36da5edb108cb7d5caba1b",
+      "size": 1512,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/model.cpp",
+      "sha256": "8c4dd92c047d83bfa498b18428bea20abe34d1fea8157f6f6024a4fac1ee25c6",
+      "size": 6918,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/model.hpp",
+      "sha256": "19ab57dfb5c9b654fa90c132b0567261185891803a4a8a4305317ef67bac10c8",
+      "size": 1221,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/network/model_test.cpp",
+      "sha256": "c54c93e65d57ed0c4e25e665fd53ea4b16d7b6e8872755910b85fc2a047cc8b2",
+      "size": 2346,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/panel-profile/CMakeLists.txt",
+      "sha256": "5a5fd18c2cdd2990b3c3d4f0e12a26e0530f939bded812e40425c27c6a2d2836",
+      "size": 1714,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/panel-profile/README.md",
+      "sha256": "076af04ec8e45900f93972769a07a698cbc3735180746c77cdf3e16869b2a7de",
+      "size": 2226,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/panel-profile/main.cpp",
+      "sha256": "1aa430b8c292d9c7a591b8787d4ed3c95c7c5d00be092d53ecf7c7ff3f24c08e",
+      "size": 17597,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/panel-profile/private_test.cpp",
+      "sha256": "33d5c6a13649d514854c89b73363acfc2b14ea4dc3a40e19eeb1b78d77d43846",
+      "size": 6069,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/panel-profile/profile.cpp",
+      "sha256": "6143441566a1eac2b6eaedfbd4aa732b4156b36cca665727924c04a06ac063a7",
+      "size": 15214,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/panel-profile/profile.hpp",
+      "sha256": "055cc4eb2955dbf33fc726150ff46068ff6daceeb5dbbf983e78fa94813ce60b",
+      "size": 340,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/panel-profile/profile_test.cpp",
+      "sha256": "ce05fbb71c46e8d5ba8fbf013e38469f2cf5657f6d70714b97d6d2799ad38174",
+      "size": 13133,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/portable/CMakeLists.txt",
+      "sha256": "b8e5e7cf9d61fe8f80efba4b214d6366513d100b172c7c1f806d1a4b355400bf",
+      "size": 979,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/portable/main.cpp",
+      "sha256": "7c18525452add04204abd1e4cbe14a8513e3421942da22db6a746c2495917c6d",
+      "size": 5452,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/portable/portable.cpp",
+      "sha256": "0c0f68c068b30d54d61b1db072d7dd949d9b3a35a72e24722046deba2d08f277",
+      "size": 13113,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/portable/portable.hpp",
+      "sha256": "fea18cd26e8d8838c55aedabacf8fdbe2d137032043f0baea317bc27be62c333",
+      "size": 2857,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/portable/portable_test.cpp",
+      "sha256": "56e82e1c350b29bffc37ee560e7e09a6c45a20572ac230f2d92c988073269b9b",
+      "size": 7489,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/portable/store.cpp",
+      "sha256": "f641a40586f669d7cf1f89f82ed35beb895d1114bf2b69a407281fd1687efabb",
+      "size": 12427,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/settings/CMakeLists.txt",
+      "sha256": "2467565fe09b4aa1e2d6812dbbe3d46747181d0ab281b3af65f5dc76316f7c75",
+      "size": 988,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/settings/hub.cpp",
+      "sha256": "d449c60efb8a4d481e843ec2fe98a7ee7ed4ebbc654d849eb3147f6759b3b896",
+      "size": 12189,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/settings/hub.hpp",
+      "sha256": "dceded2154886ccbc05842d5f1b9ffd284cec52223f6088eb21a5ce1f636ca10",
+      "size": 1121,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/settings/main.cpp",
+      "sha256": "56f41b50c79cdc9679846367877d4075619e9ae8385c6c65535c03200cabb609",
+      "size": 382,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/settings/test.cpp",
+      "sha256": "bb1751becc8dfa546dd1dbb5b7aea185b2c92848970a660ce663ff2b98556e55",
+      "size": 6217,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/CMakeLists.txt",
+      "sha256": "1dfc01fde15503ab0659d4817d2bc2cdc2ad02e5f7e675a5a3aa5e423210fba7",
+      "size": 925,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/desktop_test.cpp",
+      "sha256": "98be7b4bdd5937072c6392af1502d70a9c31514b2be17d93850737ad56cc5a56",
+      "size": 1881,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/files.hpp",
+      "sha256": "04b77192abc88e0915b0a2505b22e551de478e7d5825b836a209ee1feb1ea4b7",
+      "size": 4340,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/main.cpp",
+      "sha256": "080d5da71e40dcde00c541d8bc5525afc78653f062eba12ee07eb7fcedb8de25",
+      "size": 15629,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/session.cpp",
+      "sha256": "9c733af2dc466c66d845a487b8d52ce086d5956adf9dd1d4f3e034cb0fa5b6f0",
+      "size": 5902,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/session.hpp",
+      "sha256": "ccd82584d6f83857c7676289ec3089e0edd5da98d4eac072dd7495c731f44818",
+      "size": 405,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/session_test.cpp",
+      "sha256": "e11189994b3176f9b495ad95301a829f26a3b9c91f4e5f7cddaf757af4fa3c4e",
+      "size": 2819,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/setup/transaction_test.cpp",
+      "sha256": "33e0502163174f2d146ded834011b57e1f65a3b1a21493b83e76dddcc58a464f",
+      "size": 2275,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/snap/CMakeLists.txt",
+      "sha256": "9bcaf302f2270ab304a9164222a3287a15d41e383d7c4eedb19a93b82a2248fe",
+      "size": 1245,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/snap/README.md",
+      "sha256": "972bdc9065a4d5fd2b5da9eec2d753016ad3cc52705ecca7e43d807674a2db54",
+      "size": 941,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/snap/main.cpp",
+      "sha256": "ad9d4482e97ce0e4d14c9237f72d74565422530b900b8404a0a44628683db430",
+      "size": 3524,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/snap/private_test.cpp",
+      "sha256": "2bcc21cd76e9cb3654f00127d5a852e89b7f7a7ddddfae49078ec5230dbf0112",
+      "size": 10081,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/snap/snap.cpp",
+      "sha256": "02a3259977d8411b262fac8741fac1126a70956ddda8ea0eadf6bb1991127871",
+      "size": 10407,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/snap/snap.hpp",
+      "sha256": "2aeaf67e1a98d1f7c24ec14146d54106950c3ba2e529e5042c0b865696ebeb6a",
+      "size": 1354,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/CMakeLists.txt",
+      "sha256": "3a5a31542d36cae6d6c9a46d56e2e0c0afe939c4edd636ecf5a7f0953c9b642e",
+      "size": 2222,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/browse.cpp",
+      "sha256": "e29baf053e58f4ce37db391fb90a7bf418952da7c000251c9373c72cd8f40e83",
+      "size": 7345,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/browse.hpp",
+      "sha256": "1caff2353a2028daafe68d7319bfd3f0b96f1ace07d9f51154ee47f2d7a7656c",
+      "size": 311,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/focus.cpp",
+      "sha256": "07314887d4fef50e507ba5a2b5e5c7a930c3e2f1f3046dcff21451c8f0415378",
+      "size": 4643,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/focus.hpp",
+      "sha256": "b3cb0f5d9ad3efebf2406d52e88a0ae71a396851a3f5294d6b81e62fe1c06b06",
+      "size": 627,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/glass.hpp",
+      "sha256": "bb30fb5324b2a5bd9bd9fb56444036538d3377a29c4aaca47e9cad676d305f93",
+      "size": 14529,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/main.cpp",
+      "sha256": "d825a2cb83ef870ee881193d4b7fff82ebd8315de03019bc2d85fa9dfa61063c",
+      "size": 41353,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/model.cpp",
+      "sha256": "9fcf935fce71861539aa2a9a84363b51c5fa6f5e2c155a902b44e7ccbe558a9f",
+      "size": 14751,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/model.hpp",
+      "sha256": "676f40e39cc3059ac6633963eda64c858d921dc0dfb55cfed4133aad82da8e90",
+      "size": 1282,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/preferences.cpp",
+      "sha256": "e26efeab7b1da36df8cf541302a4e81a6b18386c77ecb4225279c2713851eab3",
+      "size": 13886,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/preferences.hpp",
+      "sha256": "1605031cbdd2fcc1f8d2dc63c66699b3792516607cdff42ff9b2801ba67195e9",
+      "size": 192,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/start.qss",
+      "sha256": "0d6667b36e09522db37e4763c854e06295d5982e3038628118b75ff67329c322",
+      "size": 3661,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/test.cpp",
+      "sha256": "bfd3da3ebfdfb74c5dba690027a82cb167a8a237d5b629a642200394cb547d14",
+      "size": 5146,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/start/x11-test.cpp",
+      "sha256": "c3ecccf5e7173c290de09985fe1d159bbe3fd9e842cf6526f31925c0ccdaa9c2",
+      "size": 9590,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/testing/private_x11.hpp",
+      "sha256": "5e78f6d5d4302379417c807f31412611b1e84cced99e73a686575bd7d4fdcc21",
+      "size": 3095,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/testing/session_login.cpp",
+      "sha256": "98d048ca55bd251ea4b3f40d357685749b7bf6796896ec5e7e0e71ef81c07c4b",
+      "size": 3784,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/CMakeLists.txt",
+      "sha256": "377793b87435f06f2d9b8297cfa026ff5c39070b3e522d868302facec9f7840b",
+      "size": 1085,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/edits.cpp",
+      "sha256": "06085a8d881fcb25d2836a7946221cdae0752ba02d636beddc684ede2e4be962",
+      "size": 8913,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/main.cpp",
+      "sha256": "3c602e39cd3495608d4c57305dd10495eb517096704ce178c1048280f61422dc",
+      "size": 1328,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/palette.cpp",
+      "sha256": "d6ab1140e4ccc14056c1c6ef5e35eb20321d90d8d81efcf1567308466abe0697",
+      "size": 5290,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/templates/kate.json",
+      "sha256": "21330a1a91780684fd88ab85df74d7e3432c2a80388a26578b84ec3949c11f8a",
+      "size": 5840,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/templates/panel-theme-glass.qss",
+      "sha256": "99deaa14a45ae4d5d47d14fd3f7fc1aad39c61563d4758735bb6e673fe6d5c39",
+      "size": 1249,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/templates/scheme.colors",
+      "sha256": "13ea52aafc40f72e85ecc25c470822c3fa6e31101ee64f5f3914380dfd3cc8d5",
+      "size": 2648,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/templates/start-theme-glass.qss",
+      "sha256": "6f40faac60e9456466621d93dfe891c3f2b384a11651b35e21fe81ddf90c046c",
+      "size": 1908,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/templates/themerc",
+      "sha256": "a4f0723f6fe45f7b3ee5c1f6b0857b440d4c63989335d3719ad055cdabc1c3d4",
+      "size": 1078,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/theme.hpp",
+      "sha256": "4c04c244e58237c59631bc755e708ae642520d635d3ad541ba0ef9bec1e9718c",
+      "size": 703,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/theme_test.cpp",
+      "sha256": "8f8ec4eb22239f1c28321dfa6377215423c66c7765479d875538bc0aa8e280ba",
+      "size": 6849,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/theme/transaction.cpp",
+      "sha256": "d356a01cbdd00def32d49d12614c1f3f8be9a23ba8d2f1ca9efe7e4483a38ae8",
+      "size": 12935,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/upstream/CMakeLists.txt",
+      "sha256": "d68142f966830e49f3b387b4f8847b2f46c88770c6b8414e51a4298a37e37de7",
+      "size": 6834,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/upstream/apply-panel.cmake",
+      "sha256": "a469e7c160c2783b44700d54c871381588039d3a705785eb68f27e8b171e9c76",
+      "size": 489,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/upstream/input-helper.patch",
+      "sha256": "3a1f625dd326dd915119b4da37f13bb6a5c9d657f392f550fd6ce5bd6c947d43",
+      "size": 881,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/upstream/prepare.cmake",
+      "sha256": "ec4fce4f0f3e11a8e559e6fd6c508781289ef372b2e9858d03a10f3634d51ce2",
+      "size": 1782,
+      "mode": "0o644"
+    },
+    {
+      "path": "native/upstream/wallpaper-preferences.patch",
+      "sha256": "8f5a97684287fd48147997dbf293e17d0353cadfde0e22d66a91a9d0f1ac6f28",
+      "size": 3101,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/licenses/LGPL-2.1.txt",
+      "sha256": "dd6f70c43ef60fd045336e123af8a942caa2c5b4224f57046b91a7b68971a088",
+      "size": 24436,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/licenses/LXQt-AUTHORS",
+      "sha256": "b61d515a3e285c1e701a83a812544ea1969b9fe81091de2ccaf7987685d08ce4",
+      "size": 270,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0001-hidden-tray-popup.patch",
+      "sha256": "8b72b47a6c473a870b6fa7c7ad5aac64c8573fe028fb071a263928278ab44e91",
+      "size": 63544,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0002-wallpaper-glass.patch",
+      "sha256": "afc6ef50f99415eb37980d417a3b271364c60f16f36e1e7b6dd9a025ba7027f1",
+      "size": 12687,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0003-launcher-identity.patch",
+      "sha256": "30d6311beebed37807f8e72cef5e613e9859af521e4cdee584c66f9a6973f45f",
+      "size": 14866,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0004-filtered-pins.patch",
+      "sha256": "8a8c46a444c784962ea7311ef67bb02b669c94e6708f016bd8d895e4185eac08",
+      "size": 4124,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0005-tray-attention-popup.patch",
+      "sha256": "8139691b2fd4b8f9ddde8a9d930e3d23b0d11b3e7b03efe2979a86de547db123",
+      "size": 1220,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0006-tray-keyboard-context.patch",
+      "sha256": "bc87e6b8ffd0dc27e5248f1d1e4c9ea14cb4436384687eaae0543434f80a3648",
+      "size": 4406,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0007-show-desktop-drag.patch",
+      "sha256": "6bee38afb7c0e120847c73b7f16556ae1b36ac93082d42b1c588df7b89ece231",
+      "size": 1222,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0008-panel-density.patch",
+      "sha256": "23dcc6f5d6fe6086e33dc14ee7ed0c4c165e7b666eae751ee2dbea5929ee154b",
+      "size": 4869,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0009-tray-registration-popup.patch",
+      "sha256": "dbd4a3739b9dbeccf18c349044859d5e65f97af2063c9730d5c014a9267302ad",
+      "size": 730,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0010-tray-shortcut.patch",
+      "sha256": "177fe6db85a2ed302e906612f96abb54b7bd160ec920fc8c25c1cb685363e662",
+      "size": 4199,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0011-calendar-bounds.patch",
+      "sha256": "c012a43afefbfc3f671188982dd7defd682162bb667ecdebb9ac895450cfa5ca",
+      "size": 1674,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0012-calendar-holidays-dst.patch",
+      "sha256": "172b515386bd0abb785e7839f6574ca459c8eb348dc614cd31257ec6af13a997",
+      "size": 4579,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0013-layout-request-loop.patch",
+      "sha256": "9bdf3181aa64dd496c268ba3492a1f8054ebe6e1ccd0cdc4676f0912032e589f",
+      "size": 2382,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0014-tray-dispatch-ungrab.patch",
+      "sha256": "356eaa4a0fec118fe3868522ef648b8707ce46a05d7c8b87fde86f01207f8c25",
+      "size": 4269,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0015-tray-menu-only-items.patch",
+      "sha256": "5b6d1f0795ed2798dd0c00c04073e37ade5eac1db3b56cf6a8a77ec3ce8ebbc0",
+      "size": 4935,
+      "mode": "0o644"
+    },
+    {
+      "path": "panel/patches/0016-network-chooser.patch",
+      "sha256": "4ea7311ef0f37c3af46a715f3eb13f70f59cd1e70d4e50c444637176b3c157bc",
+      "size": 2827,
+      "mode": "0o644"
+    },
+    {
+      "path": "release.json",
+      "sha256": "d694feae260f164a20425a5c970fc413507fd06d399c41383a05ad5426f168c8",
+      "size": 186,
+      "mode": "0o644"
+    },
+    {
+      "path": "screengrab/import-png.patch",
+      "sha256": "6edf901d44a655d9eb8f39f735ee51f8a848f9fb47349360d37fd23da019ac7b",
+      "size": 2488,
+      "mode": "0o644"
+    },
+    {
+      "path": "source_release.py",
+      "sha256": "6923bdcbe96fe4eeabaa5d3fbc3d1c91c8566d7c3df7f9f9a567852a76eef7f2",
+      "size": 4594,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/desktop-video.patch",
+      "sha256": "4511ac345827b16851976e37c0f48260aa34b8cd92a8209f601ac3fae430872a",
+      "size": 3308,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/dorovideoscale.h",
+      "sha256": "f96c20194a9e21ac1a494f28563694326e70680e828f5383e90c249f90e936ab",
+      "size": 5165,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/dorovideotransport.h",
+      "sha256": "1d5e2163aa43534a5f43722054582e7d06852711b3cae7041078b2056751a1fc",
+      "size": 740,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/dorovideoworker.cpp",
+      "sha256": "a6bc3492df9347a8a9a253cc9e25368744720c4076af5273dcd6e5e74f479a4d",
+      "size": 4129,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/dorowallpaper.cpp",
+      "sha256": "c71ab88328735cef52ee162e344d264b2d3678dfcdefa1ca387ed3991f045d84",
+      "size": 12781,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/dorowallpaper.h",
+      "sha256": "8a8bec939ea1cd58ee3179aec2f844e10a6066eb034a544406c66a621bfcd01b",
+      "size": 1135,
+      "mode": "0o644"
+    },
+    {
+      "path": "wallpaper/dorowallpapercontrols.h",
+      "sha256": "fccf6eec08c84ab1c61da5362f9edf6148cd55e69f9dfc5739bba264159b5dbe",
+      "size": 9063,
+      "mode": "0o644"
+    }
+  ]
+}

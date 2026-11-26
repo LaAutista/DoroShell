@@ -1,0 +1,11 @@
+
+        LXQtPanel #BackgroundWidget { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 @surface@,stop:0.48 @shine@,stop:0.5 @surface@,stop:1 @surface@); border-top: 1px solid @edge@; }
+        QLabel#WorldClockContent, LXQtTaskButton, QuickLaunchButton, QToolButton#doroshellTrayArrow { color: @ink@; }
+        LXQtTaskButton:hover, QuickLaunchButton:hover, QToolButton#doroshellTrayArrow:hover { background: @selection@; border-color: @edge@; }
+        LXQtTaskButton[doroshellRunning="true"] { border-bottom: 2px solid @accent@; }
+        QFrame#doroshellTrayPopup { background: @tray@; color: #fff5fb; border-color: @side@; }
+        QFrame#doroshellTrayPopup QToolButton { background: transparent; color: #fff5fb; border: 1px solid transparent; border-radius: 4px; }
+        QFrame#doroshellTrayPopup QToolButton:hover, QFrame#doroshellTrayPopup QToolButton:focus { background: @tray@; border-color: #fff5fb; }
+        QToolButton[doroshellEdge="true"] { background: @window@; border-color: @edge@; }
+        LXQtTaskButton:checked, QToolButton[doroshellEdge="true"]:hover, QToolButton[doroshellEdge="true"]:focus { background: @selection@; border-color: @edge@; }
+        LXQtGroupPopup { background: @base@; border: 1px solid @edge@; }

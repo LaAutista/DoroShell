@@ -1,0 +1,111 @@
+diff --git a/plugin-statusnotifier/statusnotifierbutton.cpp b/plugin-statusnotifier/statusnotifierbutton.cpp
+index f09deeb..73008cf 100644
+--- a/plugin-statusnotifier/statusnotifierbutton.cpp
++++ b/plugin-statusnotifier/statusnotifierbutton.cpp
+@@ -310,10 +310,23 @@ void StatusNotifierButton::newStatus(QString status)
+     resetIcon();
+ }
+ 
+-void StatusNotifierButton::contextMenuEvent(QContextMenuEvent* /*event*/)
++void StatusNotifierButton::contextMenuEvent(QContextMenuEvent *event)
+ {
+-    //XXX: avoid showing of parent's context menu, we are (optionally) providing context menu on mouseReleaseEvent
+-    //QWidget::contextMenuEvent(event);
++    // Mouse menus are dispatched on release; keyboard menus use the focused icon.
++    if (event->reason() == QContextMenuEvent::Keyboard)
++        showContextMenu(mapToGlobal(rect().center()));
++    event->accept();
++}
++
++void StatusNotifierButton::showContextMenu(const QPoint &position)
++{
++    if (mMenu)
++    {
++        mPlugin->willShowWindow(mMenu);
++        mMenu->popup(mPlugin->panel()->calculatePopupWindowPos(position, mMenu->sizeHint()).topLeft());
++    }
++    else
++        interface->ContextMenu(position.x(), position.y());
+ }
+ 
+ void StatusNotifierButton::mouseReleaseEvent(QMouseEvent *event)
+@@ -323,14 +336,7 @@ void StatusNotifierButton::mouseReleaseEvent(QMouseEvent *event)
+     else if (event->button() == Qt::MiddleButton)
+         interface->SecondaryActivate(QCursor::pos().x(), QCursor::pos().y());
+     else if (Qt::RightButton == event->button())
+-    {
+-        if (mMenu)
+-        {
+-            mPlugin->willShowWindow(mMenu);
+-            mMenu->popup(mPlugin->panel()->calculatePopupWindowPos(QCursor::pos(), mMenu->sizeHint()).topLeft());
+-        } else
+-            interface->ContextMenu(QCursor::pos().x(), QCursor::pos().y());
+-    }
++        showContextMenu(QCursor::pos());
+ 
+     QToolButton::mouseReleaseEvent(event);
+ }
+diff --git a/plugin-statusnotifier/statusnotifierbutton.h b/plugin-statusnotifier/statusnotifierbutton.h
+index f6a5c81..3d3a243 100644
+--- a/plugin-statusnotifier/statusnotifierbutton.h
++++ b/plugin-statusnotifier/statusnotifierbutton.h
+@@ -73,6 +73,7 @@ public slots:
+ 
+ private:
+     void onNeedingAttention();
++    void showContextMenu(const QPoint &position);
+ 
+     SniAsync *interface;
+     QMenu *mMenu;
+diff --git a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
+index 3eaf83b..79ad996 100644
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp
+@@ -49,8 +49,20 @@ public:
+ protected:
+     void keyPressEvent(QKeyEvent *event) override
+     {
+-        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter || event->key() == Qt::Key_Space)
++        if (event->key() == Qt::Key_F10 && event->modifiers() == Qt::ShiftModifier)
++        {
++            if (!event->isAutoRepeat())
++            {
++                QContextMenuEvent menuEvent(QContextMenuEvent::Keyboard, rect().center(), mapToGlobal(rect().center()));
++                contextMenuEvent(&menuEvent);
++            }
++            event->accept();
++        }
++        else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter || event->key() == Qt::Key_Space)
++        {
++            if (!event->isAutoRepeat()) mActivationKey = event->key();
+             event->accept();
++        }
+         else
+             StatusNotifierButton::keyPressEvent(event);
+     }
+@@ -58,8 +70,9 @@ protected:
+     {
+         if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter || event->key() == Qt::Key_Space)
+         {
+-            if (!event->isAutoRepeat())
++            if (!event->isAutoRepeat() && mActivationKey == event->key())
+             {
++                mActivationKey = 0;
+                 auto message = QDBusMessage::createMethodCall(mService, mPath, QStringLiteral("org.kde.StatusNotifierItem"), QStringLiteral("Activate"));
+                 auto point = mapToGlobal(rect().center());
+                 message << point.x() << point.y();
+@@ -70,8 +83,14 @@ protected:
+         else
+             StatusNotifierButton::keyReleaseEvent(event);
+     }
++    void focusOutEvent(QFocusEvent *event) override
++    {
++        mActivationKey = 0;
++        StatusNotifierButton::focusOutEvent(event);
++    }
+ private:
+     QString mService, mPath;
++    int mActivationKey = 0;
+ };
+ }
+ 

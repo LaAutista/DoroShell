@@ -1,0 +1,20 @@
+
+        QWidget#glassFrame { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 @frame_top@,stop:0.48 @frame_accent@,stop:1 @frame_top@); border: 1px solid @edge@; }
+        QWidget#applicationsPanel, QMenu, QMessageBox { background: @base@; color: @ink@; border: 1px solid @edge@; }
+        QWidget#applicationsPanel QLabel, QWidget#applicationsPanel QPushButton, QMessageBox QLabel { color: @ink@; }
+        QWidget#placesPanel { background: @place_side@; }
+        QWidget#placesPanel QLabel, QWidget#placesPanel QPushButton { color: #fff5fb; }
+        QLabel#personalStartImage { background: @window@; border: 1px solid @edge@; }
+        QListWidget, QLineEdit, QComboBox, QComboBox QAbstractItemView { background: @base@; color: @ink@; border-color: @edge@; }
+        QLineEdit { placeholder-text-color: @muted@; }
+        QListWidget::item:selected, QListWidget::item:hover, QComboBox QAbstractItemView::item:selected,
+        QPushButton:hover, QPushButton:focus, QMenu::item:selected { background: @selection@; color: @ink@; border-color: @edge@; }
+        QWidget#placesPanel QPushButton:hover, QWidget#placesPanel QPushButton:focus,
+        QPushButton[sessionPrimary="true"], QPushButton#powerMenuArrow { background: @side@; color: #fff5fb; border: 1px solid @edge@; }
+        QMessageBox QPushButton { background: @base@; color: @ink@; border-color: @edge@; }
+        QPushButton:disabled, QMenu::item:disabled { color: @muted@; }
+        QWidget#placesPanel QPushButton[sessionPrimary="true"], QWidget#placesPanel QPushButton#powerMenuArrow { color: #fff5fb; }
+        QPushButton#programsButton { border-top-color: @edge@; }
+        QWidget#placesPanel QPushButton:disabled { color: #c8bdc4; }
+        QToolButton#folderBrowse { color: #fff5fb; background: transparent; }
+        QToolButton#folderBrowse:hover, QToolButton#folderBrowse:focus { background: @side@; border-color: @edge@; }

@@ -1,0 +1,89 @@
+--- a/pcmanfm/desktoppreferencesdialog.cpp
++++ b/pcmanfm/desktoppreferencesdialog.cpp
+@@ -74,7 +74,7 @@
+   advancedLayout->setContentsMargins(0, 0, 0, 0);
+   advancedLayout->addWidget(advancedScroll);
+   displayControls_ = new DoroDisplayControls(
+-      {QStringLiteral("/usr/bin/python3"), QCoreApplication::applicationDirPath() + QStringLiteral("/doroshell-display-backend.py")}, this,
++      {QCoreApplication::applicationDirPath() + QStringLiteral("/doroshell-display")}, this,
+       QByteArrayLiteral(DOROSHELL_DISPLAY_SHA256));
+   ui.advancedPageLayout->insertWidget(1, displayControls_);
+ 
+--- a/pcmanfm/dorodisplaycontrols.h
++++ b/pcmanfm/dorodisplaycontrols.h
+@@ -26,6 +26,12 @@
+ #include <QMessageBox>
+ #include <QVBoxLayout>
+ #include <functional>
++#include <cerrno>
++#include <fcntl.h>
++#include <linux/memfd.h>
++#include <memory>
++#include <sys/mman.h>
++#include <sys/stat.h>
+ #include <utility>
+ 
+ // One fixed-schema, owner-only record, atomically replaced; never append raw errors.
+@@ -160,7 +166,7 @@
+ private:
+     QStringList helper_;
+     QByteArray helperHash_;
+-    QByteArray verifiedHelper_;
++    std::shared_ptr<QFile> verifiedHelper_;
+     QJsonObject state_;
+     QComboBox *output_, *rate_;
+     QCheckBox *vsync_;
+@@ -244,20 +250,43 @@
+     void start(QProcess *process, const QStringList &args) {
+         if (helper_.isEmpty()) { setStatus(tr("Display helper is not configured.")); return; }
+         if (!helperHash_.isEmpty()) {
+-            // Execute the bytes just verified, not a pathname that can change before exec.
+-            const auto loader = QStringLiteral("import sys; source=sys.argv.pop(2); __file__=sys.argv[1]; sys.argv=sys.argv[1:]; exec(compile(source,__file__,'exec'))");
+-            process->start(helper_.first(), QStringList{QStringLiteral("-c"), loader, helper_.value(1), QString::fromUtf8(verifiedHelper_)} + args);
++            const auto pinned = verifiedHelper_;
++            // Keep the sealed inode open across fork/exec even if the dialog reloads.
++            connect(process, &QObject::destroyed, [pinned] {});
++            process->start(QStringLiteral("/proc/self/fd/%1").arg(pinned->handle()), args);
+         } else process->start(helper_.first(), helper_.mid(1) + args);
+     }
+     bool verifyHelper() {
+         if (helperHash_.isEmpty()) return true; // Synthetic test harness supplies its own driver.
+-        QFile file(helper_.value(1));
+-        verifiedHelper_.clear();
+-        if (file.open(QIODevice::ReadOnly)) {
+-            auto bytes = file.readAll();
+-            if (QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex() == helperHash_) {
+-                verifiedHelper_ = bytes;
+-                return true;
++        QFile file(helper_.value(0));
++        verifiedHelper_.reset();
++        if (file.open(QIODevice::ReadOnly) && QFileInfo(file).isFile()) {
++            // Confirm the digest of the exact bytes passed to exec. Sealing also
++            // protects a pending launch if an updater replaces or edits the file.
++            auto pinned = std::make_shared<QFile>();
++            const unsigned flags = MFD_CLOEXEC | MFD_ALLOW_SEALING;
++            int fd = -1;
++#ifdef MFD_EXEC
++            fd = memfd_create("doroshell-display", flags | MFD_EXEC);
++            if (fd < 0 && errno == EINVAL)
++#endif
++                fd = memfd_create("doroshell-display", flags);
++            if (fd >= 0) {
++                if (pinned->open(fd, QIODevice::ReadWrite, QFileDevice::AutoCloseHandle)) {
++                    QCryptographicHash digest(QCryptographicHash::Sha256);
++                    bool copied = true;
++                    while (!file.atEnd()) {
++                        const auto block = file.read(64 * 1024);
++                        if (block.isEmpty() || pinned->write(block) != block.size()) { copied = false; break; }
++                        digest.addData(block);
++                    }
++                    if (copied && file.error() == QFileDevice::NoError && pinned->flush()
++                        && digest.result().toHex() == helperHash_ && fchmod(fd, 0500) == 0
++                        && fcntl(fd, F_ADD_SEALS, F_SEAL_WRITE | F_SEAL_GROW | F_SEAL_SHRINK | F_SEAL_SEAL) == 0) {
++                        verifiedHelper_ = std::move(pinned);
++                        return true;
++                    }
++                } else ::close(fd);
+             }
+         }
+         state_ = {}; output_->clear(); rate_->clear();

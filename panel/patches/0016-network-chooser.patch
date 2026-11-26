@@ -1,0 +1,56 @@
+diff -uNr a/plugin-statusnotifier/statusnotifierwidget.cpp b/plugin-statusnotifier/statusnotifierwidget.cpp
+--- a/plugin-statusnotifier/statusnotifierwidget.cpp	2026-11-24 23:09:13.897561610 -0800
++++ b/plugin-statusnotifier/statusnotifierwidget.cpp	2026-11-24 23:09:13.912648232 -0800
+@@ -33,6 +33,8 @@
+ 
+ // DoroShell modification: optional native hidden-icon popup, LGPL-2.1-or-later.
+ #include <QFrame>
++#include <QProcess>
++#include <QStandardPaths>
+ #include <QPainter>
+ #include <QGridLayout>
+ #include <QVBoxLayout>
+@@ -159,6 +161,20 @@
+ {
+     setLayout(new LXQt::GridLayout(this));
+ 
++    // The DoroShell chooser is a launcher; NetworkManager's tray agent keeps its own actions.
++    mNetworkBtn = new QToolButton(this);
++    mNetworkBtn->setObjectName(QStringLiteral("doroshellNetwork"));
++    mNetworkBtn->setAccessibleName(tr("Wi-Fi and network connections"));
++    mNetworkBtn->setToolTip(tr("Wi-Fi and network connections"));
++    mNetworkBtn->setIcon(QIcon::fromTheme(QStringLiteral("preferences-system-network"),
++                                          QIcon::fromTheme(QStringLiteral("network-wireless"))));
++    mNetworkBtn->setAutoRaise(true);
++    mNetworkBtn->setMinimumSize(24, 24);
++    layout()->addWidget(mNetworkBtn);
++    connect(mNetworkBtn, &QAbstractButton::clicked, this, [this] {
++        QProcess::startDetached(QStringLiteral("gio"), {QStringLiteral("launch"), mNetworkBtn->property("desktopEntry").toString()});
++    });
++
+     // The button that shows all hidden items:
+     mShowBtn = new QToolButton(this);
+     mShowBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+@@ -356,6 +372,11 @@
+     if (mOverflow)
+         mOverflow->close();
+     const bool drawer = mPlugin->settings()->value(QStringLiteral("doroshellPopup"), false).toBool();
++    const QString entry = QStandardPaths::locate(QStandardPaths::ApplicationsLocation,
++                                                QStringLiteral("doroshell-network.desktop"));
++    mNetworkBtn->setProperty("desktopEntry", entry);
++    mNetworkBtn->setVisible(drawer && !entry.isEmpty() &&
++                            mPlugin->settings()->value(QStringLiteral("doroshellNetworkButton"), true).toBool());
+     mShowBtn->setToolButtonStyle(drawer ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextOnly);
+     if (drawer)
+     {
+diff -uNr a/plugin-statusnotifier/statusnotifierwidget.h b/plugin-statusnotifier/statusnotifierwidget.h
+--- a/plugin-statusnotifier/statusnotifierwidget.h	2026-11-24 23:09:13.897601786 -0800
++++ b/plugin-statusnotifier/statusnotifierwidget.h	2026-11-24 23:09:13.912564964 -0800
+@@ -78,6 +78,7 @@
+     QStringList mHideList;
+     QStringList mVisibleList;
+     bool mCollapseNew = false;
++    QToolButton *mNetworkBtn;
+     QToolButton *mShowBtn;
+     int mAttentionPeriod;
+     bool mForceVisible;

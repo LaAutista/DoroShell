@@ -1,0 +1,31 @@
+border.width: 1
+padding.width: 5
+padding.height: 4
+window.handle.width: 3
+window.active.border.color: @accent@
+window.active.client.color: @window@
+window.inactive.client.color: @window@
+window.inactive.border.color: @edge@
+window.active.title.bg: gradient vertical
+window.active.title.bg.color: @window@
+window.active.title.bg.colorTo: @selection@
+window.inactive.title.bg: flat solid
+window.inactive.title.bg.color: @window@
+window.*.label.bg: parentrelative
+window.active.label.text.color: @ink@
+window.inactive.label.text.color: @muted@
+window.*.button.*.bg: parentrelative
+window.active.button.*.image.color: @ink@
+window.inactive.button.*.image.color: @muted@
+window.active.button.*.hover.bg: flat solid
+window.active.button.*.hover.bg.color: @selection@
+menu.title.bg: flat solid
+menu.title.bg.color: @side@
+menu.title.text.color: #fff5fb
+menu.items.bg: flat solid
+menu.items.bg.color: @base@
+menu.items.text.color: @ink@
+menu.items.disabled.text.color: @muted@
+menu.items.active.bg: flat solid
+menu.items.active.bg.color: @selection@
+menu.items.active.text.color: @ink@

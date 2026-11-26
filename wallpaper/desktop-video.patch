@@ -1,0 +1,93 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7a31f41..b374b4e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -23,6 +23,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+ 
+ find_package(Qt6DBus ${QT_MINIMUM_VERSION} REQUIRED)
+ find_package(Qt6LinguistTools ${QT_MINIMUM_VERSION} REQUIRED)
++find_package(KF6WindowSystem REQUIRED)
++find_package(X11 REQUIRED)
++find_package(Qt6Multimedia ${QT_MINIMUM_VERSION} REQUIRED)
+ find_package(Qt6Widgets ${QT_MINIMUM_VERSION} REQUIRED)
+ find_package(fm-qt6 ${LIBFMQT_MINIMUM_VERSION} REQUIRED)
+ find_package(lxqt2-build-tools ${LXQTBT_MINIMUM_VERSION} REQUIRED)
+diff --git a/pcmanfm/CMakeLists.txt b/pcmanfm/CMakeLists.txt
+index c670d2d..198305e 100644
+--- a/pcmanfm/CMakeLists.txt
++++ b/pcmanfm/CMakeLists.txt
+@@ -69,6 +69,7 @@ lxqt_translate_desktop(DESKTOP_FILES
+ 
+ add_executable(pcmanfm-qt
+     ${pcmanfm_SRCS}
++    dorowallpaper.cpp
+     ${pcmanfm_DBUS_SRCS}
+     ${pcmanfm_UIS}
+     ${QM_FILES}
+@@ -88,6 +89,10 @@ target_include_directories(pcmanfm-qt
+ )
+ 
+ target_link_libraries(pcmanfm-qt
++    KF6::WindowSystem
++    X11::Xext
++    X11::Xss
++    Qt6::Multimedia
+     Qt6::Widgets
+     Qt6::DBus
+     LayerShellQtInterface
+@@ -102,3 +107,7 @@ install(FILES ${DESKTOP_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/application
+ 
+ # prevent the generated files from being deleted during make clean
+ set_directory_properties(PROPERTIES CLEAN_NO_CUSTOM true)
++
++add_executable(doroshell-video-worker dorovideoworker.cpp)
++target_link_libraries(doroshell-video-worker Qt6::Widgets Qt6::Multimedia)
++add_dependencies(pcmanfm-qt doroshell-video-worker)
+diff --git a/pcmanfm/desktopwindow.cpp b/pcmanfm/desktopwindow.cpp
+index 411aec7..cbb34d9 100644
+--- a/pcmanfm/desktopwindow.cpp
++++ b/pcmanfm/desktopwindow.cpp
+@@ -19,6 +19,7 @@
+ 
+ #include "desktopwindow.h"
+ #include <QWidget>
++#include "dorowallpaper.h"
+ #include <QPainter>
+ #include <QImage>
+ #include <QImageReader>
+@@ -112,6 +113,7 @@ DesktopWindow::DesktopWindow(int screenNum, const QString& screenName):
+     // Then we paint desktop's background ourselves by using its paint event handling method.
+     listView_->viewport()->setAutoFillBackground(false);
+ 
++    doroWallpaper_ = new DoroWallpaper(this);
+     Settings& settings = static_cast<Application* >(qApp)->settings();
+ 
+     // NOTE: When XRandR is in use, the all screens are actually combined to form a
+@@ -1346,6 +1348,7 @@ void DesktopWindow::paintBackground(QPaintEvent* event) {
+     // This is to workaround Qt bug 54384 which affects Qt >= 5.6
+     // https://bugreports.qt.io/browse/QTBUG-54384
+     QPainter painter(this);
++    if (doroWallpaper_ && doroWallpaper_->paint(painter, rect())) return;
+     if(wallpaperMode_ == WallpaperNone || wallpaperPixmap_.isNull()) {
+         painter.fillRect(event->rect(), QBrush(bgColor_));
+     }
+diff --git a/pcmanfm/desktopwindow.h b/pcmanfm/desktopwindow.h
+index 8d3af85..3f0bcda 100644
+--- a/pcmanfm/desktopwindow.h
++++ b/pcmanfm/desktopwindow.h
+@@ -26,6 +26,7 @@
+ #include <string>
+ 
+ #include <QHash>
++class DoroWallpaper;
+ #include <QPoint>
+ #include <QByteArray>
+ #include <QScreen>
+@@ -208,6 +209,7 @@ private:
+     QTimer* trashUpdateTimer_;
+     GFileMonitor* trashMonitor_;
+ 
++    DoroWallpaper* doroWallpaper_ = nullptr;
+     QStringList filesToTrust_;
+ };
+ 

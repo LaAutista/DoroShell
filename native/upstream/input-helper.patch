@@ -1,0 +1,17 @@
+--- a/lxqt-config-input/lxqt-config-input.cpp
++++ b/lxqt-config-input/lxqt-config-input.cpp
+@@ -118,12 +118,12 @@
+     pointerPage->setWidget(controls);
+     dlg.addPage(pointerPage, QObject::tr("Mouse and Touchpad"), QStringLiteral("input-mouse"));
+ 
+-    const QString helper = QDir::homePath() + QStringLiteral("/.local/share/doroshell/toolkit/input_preferences.py");
++    const QString helper = QCoreApplication::applicationDirPath() + QStringLiteral("/doroshell-input-preferences");
+     QString revision;
+     bool savedFlat = false;
+     auto callHelper = [&](const QStringList &args, QByteArray &output) {
+         QProcess child;
+-        child.start(QStringLiteral("/usr/bin/python"), QStringList{helper} + args);
++        child.start(helper, args);
+         if (!child.waitForFinished()) {
+             feedback->setText(child.errorString());
+             return false;

@@ -1,0 +1,78 @@
+diff --git a/pcmanfm/desktoppreferencesdialog.cpp b/pcmanfm/desktoppreferencesdialog.cpp
+index 01424fe..c928c7f 100644
+--- a/pcmanfm/desktoppreferencesdialog.cpp
++++ b/pcmanfm/desktoppreferencesdialog.cpp
+@@ -18,6 +18,9 @@
+ */
+ 
+ #include "desktoppreferencesdialog.h"
++#include "dorowallpapercontrols.h"
++#include <QScrollArea>
++#include <QScreen>
+ #include "dorodisplaycontrols.h"
+ #include <QScrollArea>
+ #include "desktopwindow.h"
+@@ -51,6 +54,17 @@ DesktopPreferencesDialog::DesktopPreferencesDialog(QWidget* parent, Qt::WindowFl
+ 
+   Settings& settings = static_cast<Application*>(qApp)->settings();
+   ui.setupUi(this);
++  wallpaperControls_ = new DoroWallpaperControls(this);
++  ui.verticalLayout_3->insertWidget(2, wallpaperControls_);
++  auto backgroundContent = new QWidget;
++  backgroundContent->setLayout(ui.verticalLayout_3);
++  auto backgroundScroll = new QScrollArea(ui.bgPage);
++  backgroundScroll->setWidgetResizable(true);
++  backgroundScroll->setWidget(backgroundContent);
++  auto backgroundLayout = new QVBoxLayout(ui.bgPage);
++  backgroundLayout->setContentsMargins(0, 0, 0, 0);
++  backgroundLayout->addWidget(backgroundScroll);
++  connect(this, &QDialog::rejected, wallpaperControls_, &DoroWallpaperControls::stopPreview);
+   auto advancedContent = new QWidget;
+   advancedContent->setLayout(ui.advancedPageLayout);
+   auto advancedScroll = new QScrollArea(ui.advancedPage);
+@@ -161,7 +175,7 @@ DesktopPreferencesDialog::DesktopPreferencesDialog(QWidget* parent, Qt::WindowFl
+ 
+   ui.noItemTooltip->setChecked(settings.desktopNoTooltip());
+ 
+-  resize(sizeHint()); // show it compact
++  resize(sizeHint().expandedTo(QSize(545, 700)).boundedTo(screen()->availableGeometry().size() - QSize(40, 60)));
+ }
+ 
+ DesktopPreferencesDialog::~DesktopPreferencesDialog() = default;
+@@ -253,6 +267,7 @@ void DesktopPreferencesDialog::applySettings()
+ 
+ void DesktopPreferencesDialog::onApplyClicked()
+ {
++  if(!wallpaperControls_->apply()) return;
+   displayControls_->submitFromDialog();
+   applySettings();
+   static_cast<Application*>(qApp)->updateDesktopsFromSettings(true, // change slide
+@@ -266,6 +281,7 @@ void DesktopPreferencesDialog::reject() {
+ 
+ void DesktopPreferencesDialog::accept() {
+   if(displayControls_->submitFromDialog([this] { accept(); })) return;
++  if(!wallpaperControls_->apply()) return;
+   applySettings();
+   static_cast<Application*>(qApp)->updateDesktopsFromSettings(false, // do not change slide
+                                                               true); // allow shortcut removal
+diff --git a/pcmanfm/desktoppreferencesdialog.h b/pcmanfm/desktoppreferencesdialog.h
+index 2338afc..2c0d0cf 100644
+--- a/pcmanfm/desktoppreferencesdialog.h
++++ b/pcmanfm/desktoppreferencesdialog.h
+@@ -28,6 +28,8 @@
+ 
+ class DoroDisplayControls;
+ 
++class DoroWallpaperControls;
++
+ namespace PCManFM {
+ 
+ class DesktopPreferencesDialog : public QDialog {
+@@ -57,6 +59,7 @@ protected Q_SLOTS:
+ 
+ private:
+   DoroDisplayControls* displayControls_;
++  DoroWallpaperControls* wallpaperControls_;
+   Ui::DesktopPreferencesDialog ui;
+   Ui::DesktopFolder uiDesktopFolder;
+ 

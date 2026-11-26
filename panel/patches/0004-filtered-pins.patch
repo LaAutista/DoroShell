@@ -1,0 +1,102 @@
+diff --git a/plugin-taskbar/lxqttaskgroup.cpp b/plugin-taskbar/lxqttaskgroup.cpp
+index 3a3f553..bdbbdf5 100644
+--- a/plugin-taskbar/lxqttaskgroup.cpp
++++ b/plugin-taskbar/lxqttaskgroup.cpp
+@@ -88,12 +88,15 @@ void LXQtTaskGroup::setPinnedDesktop(const QString &path, const QString &name, c
+ void LXQtTaskGroup::showPinnedLauncher()
+ {
+     setWindowId(0);
+-    setProperty("doroshellRunning", false);
++    setPopupVisible(false, true);
++    setProperty("doroshellRunning", !mButtonHash.isEmpty());
++    if (mButtonHash.isEmpty()) setUrgencyHint(false);
+     style()->unpolish(this); style()->polish(this);
+     mSingleButton = true;
+     setChecked(false);
+     setTextExplicitly(mPinnedName);
+-    setToolTip(mPinnedName);
++    setToolTip(mButtonHash.isEmpty() ? mPinnedName
++        : tr("%1 — windows hidden by taskbar filters").arg(mPinnedName));
+     setIcon(mPinnedIcon);
+     show();
+ }
+@@ -101,6 +104,8 @@ void LXQtTaskGroup::showPinnedLauncher()
+ void LXQtTaskGroup::activatePinnedOrRaise()
+ {
+     if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty()) launchPinned();
++    else if (!mPinnedDesktop.isEmpty() && visibleButtonsCount() == 0)
++        mBackend->raiseWindow(mButtonHash.constBegin().key(), parentTaskBar()->raiseOnCurrentDesktop());
+     else raiseApplication();
+ }
+ 
+@@ -117,10 +122,11 @@ void LXQtTaskGroup::launchPinned()
+ 
+ void LXQtTaskGroup::contextMenuEvent(QContextMenuEvent *event)
+ {
+-    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    if (!mPinnedDesktop.isEmpty() && visibleButtonsCount() == 0)
+     {
+         QMenu menu;
+-        menu.addAction(tr("Open"), this, &LXQtTaskGroup::launchPinned);
++        menu.addAction(mButtonHash.isEmpty() ? tr("Open") : tr("Show existing window"),
++                       this, &LXQtTaskGroup::activatePinnedOrRaise);
+         parentTaskBar()->addPinAction(&menu, 0, mPinnedDesktop);
+         menu.exec(event->globalPos());
+         return;
+@@ -365,9 +371,10 @@ void LXQtTaskGroup::draggingTimerTimeout()
+  ************************************************/
+ void LXQtTaskGroup::onClicked(bool)
+ {
+-    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty())
++    if (!mPinnedDesktop.isEmpty() && visibleButtonsCount() == 0)
+     {
+-        launchPinned();
++        setChecked(false);
++        activatePinnedOrRaise();
+         return;
+     }
+     if (visibleButtonsCount() > 1)
+@@ -411,10 +418,24 @@ void LXQtTaskGroup::regroup()
+         }
+     }
+     else if (cont == 0)
+-        hide();
++    {
++        if (!mPinnedDesktop.isEmpty()) showPinnedLauncher();
++        else hide();
++    }
+     else
+     {
+         mSingleButton = false;
++        // Returning from a filtered launcher needs a visible representative again.
++        if (!mButtonHash.contains(windowId()) || !mButtonHash.value(windowId())->isVisibleTo(mPopup))
++        {
++            for (LXQtTaskButton *button : std::as_const(mButtonHash))
++                if (button->isVisibleTo(mPopup))
++                {
++                    setWindowId(button->windowId());
++                    updateIcon();
++                    break;
++                }
++        }
+         QString t = QString(QStringLiteral("%1 - %2 windows")).arg(mPinnedName.isEmpty() ? mButtonHash.constBegin().value()->text() : mPinnedName).arg(cont);
+         setTextExplicitly(t);
+         setToolTip(parentTaskBar()->isShowGroupOnHover() ? QString() : t);
+@@ -455,7 +476,7 @@ void LXQtTaskGroup::refreshVisibility()
+         showPinnedLauncher();
+         return;
+     }
+-    bool will = false;
++    bool will = !mPinnedDesktop.isEmpty();
+     LXQtTaskBar const * taskbar = parentTaskBar();
+     const int showDesktop = taskbar->showDesktopNum();
+     for(LXQtTaskButton * btn : std::as_const(mButtonHash))
+@@ -681,7 +702,7 @@ void LXQtTaskGroup::mouseReleaseEvent(QMouseEvent* event)
+ 
+ void LXQtTaskGroup::wheelEvent(QWheelEvent* event)
+ {
+-    if (!mPinnedDesktop.isEmpty() && mButtonHash.isEmpty()) { event->accept(); return; }
++    if (!mPinnedDesktop.isEmpty() && visibleButtonsCount() == 0) { event->accept(); return; }
+     if (mSingleButton)
+     {
+         LXQtTaskButton::wheelEvent(event);

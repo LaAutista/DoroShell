@@ -1,0 +1,100 @@
+diff --git a/plugin-worldclock/lxqtworldclock.cpp b/plugin-worldclock/lxqtworldclock.cpp
+index 7891e34..11c278c 100644
+--- a/plugin-worldclock/lxqtworldclock.cpp
++++ b/plugin-worldclock/lxqtworldclock.cpp
+@@ -31,9 +31,11 @@
+ #include <LXQt/Globals>
+ 
+ #include <QCalendarWidget>
++#include <QCoreApplication>
+ #include <QDate>
+ #include <QDialog>
+ #include <QEvent>
++#include <QHash>
+ #include <QHBoxLayout>
+ #include <QLocale>
+ #include <QScopedArrayPointer>
+@@ -41,10 +43,72 @@
+ #include <QScreen>
+ #include <QScrollArea>
+ #include <QScrollBar>
++#include <QTextCharFormat>
+ #include <QWheelEvent>
+ #include <QToolTip>
+ 
+ 
++// shortcut: US federal holidays on their actual (not observed) dates, en_US-style locales only; add regions or ICS import when requested.
++static QList<QPair<QDate, QString>> doroshellHolidays(int year)
++{
++    QList<QPair<QDate, QString>> days;
++    if (QLocale{}.territory() != QLocale::UnitedStates)
++        return days;
++    const auto nth = [year](int month, int weekday, int n) {
++        const QDate first(year, month, 1);
++        return first.addDays((weekday - first.dayOfWeek() + 7) % 7 + 7 * (n - 1));
++    };
++    const QDate mayEnd(year, 5, 31);
++    const auto add = [&days](QDate date, const char *name) {
++        days.append({date, QCoreApplication::translate("LXQtWorldClock", name)});
++    };
++    add(QDate(year, 1, 1), "New Year's Day");
++    add(nth(1, Qt::Monday, 3), "Martin Luther King Jr. Day");
++    add(nth(2, Qt::Monday, 3), "Washington's Birthday");
++    add(mayEnd.addDays(-(mayEnd.dayOfWeek() - Qt::Monday)), "Memorial Day");
++    add(QDate(year, 6, 19), "Juneteenth");
++    add(QDate(year, 7, 4), "Independence Day");
++    add(nth(9, Qt::Monday, 1), "Labor Day");
++    add(nth(10, Qt::Monday, 2), "Columbus Day");
++    add(QDate(year, 11, 11), "Veterans Day");
++    add(nth(11, Qt::Thursday, 4), "Thanksgiving Day");
++    add(QDate(year, 12, 25), "Christmas Day");
++    return days;
++}
++
++// Mark holidays and the day a daylight-saving transition happens in the clock's zone.
++static void doroshellMarkCalendar(QCalendarWidget *calendar, const QTimeZone &zone, int year, int month)
++{
++    calendar->setDateTextFormat(QDate(), QTextCharFormat());
++    const QDate first = QDate(year, month, 1).addDays(-7);
++    const QDate last = QDate(year, month, 1).addMonths(1).addDays(13);
++    QHash<QDate, QStringList> notes;
++    for (int y = first.year(); y <= last.year(); ++y)
++        for (const auto &holiday : doroshellHolidays(y))
++            if (holiday.first >= first && holiday.first <= last)
++                notes[holiday.first].append(holiday.second);
++    if (zone.isValid() && zone.hasTransitions())
++        for (const auto &t : zone.transitions(first.startOfDay(zone), last.startOfDay(zone)))
++        {
++            // Skip pure standard-offset changes; describe direction, since some zones use negative DST.
++            const auto before = zone.offsetData(t.atUtc.addSecs(-1));
++            if (before.daylightTimeOffset == t.daylightTimeOffset || before.offsetFromUtc == t.offsetFromUtc)
++                continue;
++            notes[t.atUtc.toTimeZone(zone).date()].append(t.offsetFromUtc > before.offsetFromUtc
++                ? QCoreApplication::translate("LXQtWorldClock", "Daylight saving time: clocks move forward")
++                : QCoreApplication::translate("LXQtWorldClock", "Daylight saving time: clocks move back"));
++        }
++    for (auto it = notes.cbegin(); it != notes.cend(); ++it)
++    {
++        QTextCharFormat format;
++        format.setFontWeight(QFont::Bold);
++        format.setFontUnderline(true);
++        format.setToolTip(it.value().join(QLatin1Char('\n')));
++        calendar->setDateTextFormat(it.key(), format);
++    }
++}
++
++
+ LXQtWorldClock::LXQtWorldClock(const ILXQtPanelPluginStartupInfo &startupInfo):
+     QObject(),
+     ILXQtPanelPlugin(startupInfo),
+@@ -445,6 +509,10 @@ void LXQtWorldClock::activated(ActivationReason reason)
+             QTimeZone timeZone(timeZoneName.toLatin1());
+             calendarWidget->setFirstDayOfWeek(QLocale{}.firstDayOfWeek());
+             calendarWidget->setSelectedDate(QDateTime::currentDateTime().toTimeZone(timeZone).date());
++            doroshellMarkCalendar(calendarWidget, timeZone, calendarWidget->yearShown(), calendarWidget->monthShown());
++            connect(calendarWidget, &QCalendarWidget::currentPageChanged, calendarWidget, [calendarWidget, timeZone](int year, int month) {
++                doroshellMarkCalendar(calendarWidget, timeZone, year, month);
++            });
+         }
+         else
+         {
